@@ -11,8 +11,8 @@ describe('contratto dei contenuti istituzionali', () => {
 
   it('indirizza la CTA primaria solo alla piattaforma Ciak attiva', () => {
     expect(JSON.stringify(siteContent)).not.toContain('app.evolution-pro.it');
-    expect(siteContent.primaryCta.href).toBe('https://www.ciak.io/masterclass');
-    expect(siteContent.primaryCta.label).toBe('Guarda la masterclass gratuita');
+    expect(siteContent.primaryCta.href).toBe('https://www.ciak.io/analisi');
+    expect(siteContent.primaryCta.label).toBe('Fai la tua analisi gratuita');
   });
 
   it('descrive il Metodo EVO come protocollo in tre passaggi testato in 7 anni', () => {
@@ -30,12 +30,12 @@ describe('contratto dei contenuti istituzionali', () => {
     }
   });
 
-  it('espone tutte le venti collaborazioni approvate', () => {
-    expect(siteContent.collaborations).toHaveLength(20);
+  it('espone tutte le quindici collaborazioni approvate', () => {
+    expect(siteContent.collaborations).toHaveLength(15);
     expect(siteContent.collaborations.map(({ name }) => name)).toEqual(expect.arrayContaining([
       'Andrea Fredi',
       'Daniele Andolfi',
-      'Sara Stella Duè',
+      'Marco Orlandi',
       'Eva Gugliucciello',
     ]));
   });

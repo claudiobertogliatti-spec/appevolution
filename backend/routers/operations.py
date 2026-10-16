@@ -3,7 +3,8 @@ Router per la Dashboard Operations (Antonella)
 Gestisce: Partner attivi, Contenuti, Campagne ADV
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
@@ -11,8 +12,36 @@ from bson import ObjectId
 import uuid
 import logging
 from models.start_journey import only_real_partners
+from security_config import operations_staff_authorized
 
-router = APIRouter(prefix="/api/operations", tags=["operations"])
+security = HTTPBearer(auto_error=False)
+
+
+async def require_operations_or_admin(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """
+    Guardia per la Dashboard Operations (Antonella).
+
+    Accetta i ruoli admin/superadmin/operations: Antonella fa login con
+    role "operations" (require_ciak_admin la bloccherebbe). Prima di questa
+    guardia il router era APERTO e restituiva PII (CF, IBAN, indirizzi, URL
+    documenti d'identita') a chiunque, senza token — leak GDPR confermato.
+    """
+    from auth import decode_token
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    data = decode_token(credentials.credentials)
+    if not data or not operations_staff_authorized(getattr(data, "role", None)):
+        raise HTTPException(status_code=403, detail="Accesso riservato allo staff operations")
+    return data
+
+
+router = APIRouter(
+    prefix="/api/operations",
+    tags=["operations"],
+    dependencies=[Depends(require_operations_or_admin)],
+)
 
 # Database reference (verrà impostato da server.py)
 db = None

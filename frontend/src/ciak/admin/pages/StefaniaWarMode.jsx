@@ -22,6 +22,7 @@ import {
   Loader2, Link2, Sparkles, BarChart3, Facebook, Video,
 } from "lucide-react";
 import { adminFetch } from "../api";
+import { toast } from "sonner";
 
 const HOOK_TYPES = [
   { id: "pain", label: "Angolo del Dolore", icon: "😤", color: "text-red-600", desc: "Colpisci il punto dolente" },
@@ -125,7 +126,7 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") { onAuthExpired?.(); return; }
       console.error("Error generating hooks:", e);
-      alert("Errore nella generazione Hook Gallery");
+      toast.error("Errore nella generazione Hook Gallery");
     } finally {
       setGeneratingHooks(false);
     }
@@ -187,7 +188,7 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900 flex items-center gap-2">
-            <Target className="w-6 h-6 text-yellow-500" /> Campagne Ads
+            <Target className="w-6 h-6 text-yellow-500" /> Campagne partner
           </h1>
           <p className="text-slate-500 mt-1">
             Meta Ads per i partner in fase Ottimizza — tier Growth e Scale di Evolution One.

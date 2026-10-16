@@ -10,7 +10,7 @@ Contiene:
 - Regole operative di generazione
 - Template output Markdown
 
-Prezzo di vendita analisi: €67
+Analisi gratuita (lead magnet: nessun prezzo di vendita).
 """
 
 from typing import Dict, List, Optional
@@ -22,7 +22,7 @@ from datetime import datetime
 
 MASTER_PROMPT_CONFIG = {
     "version": "2.0",
-    "price": 67,
+    "price": 0,
     "min_words": 2500,
     "output_format": "markdown",
     "honesty_policy": True,
@@ -90,7 +90,7 @@ Ogni fase è progettata per massimizzare le probabilità di successo e minimizza
 - Le sezioni con ⚠️ indicano aree da approfondire
 - Le sezioni con ❌ indicano criticità da risolvere
 
-**Importante:** Questa analisi applica una politica di "Verità Brutale". Se il tuo modello di business attuale è insostenibile, te lo diremo chiaramente. Il valore dei €67 risiede nell'onestà della consulenza, non nel consenso."""
+**Importante:** Questa analisi applica una politica di "Verità Brutale". Se il tuo modello di business attuale è insostenibile, te lo diremo chiaramente. Il valore di questa analisi risiede nell'onestà della consulenza, non nel consenso."""
     },
     
     "04_glossario": {

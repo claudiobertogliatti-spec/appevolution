@@ -154,6 +154,30 @@ function VoceTappa({ item, onSegna, inCorso }) {
               </>
             )}
           </p>
+          {item.tappa === 1 && (
+            <>
+              <p data-testid="risposte-cliente">
+                Risposte del cliente:{" "}
+                {item.risposte_ricevute_at ? (
+                  <span className="font-medium text-emerald-700">
+                    ricevute il {new Date(item.risposte_ricevute_at).toLocaleDateString("it-IT")}: puoi generare
+                  </span>
+                ) : (
+                  <span className="font-medium text-amber-700">non ancora arrivate: senza non si parte</span>
+                )}
+              </p>
+              <p data-testid="marchio-cliente">
+                Marchio scelto dal cliente:{" "}
+                {item.marchio_ricevuto_at ? (
+                  <span className="font-medium text-emerald-700">
+                    inviato il {new Date(item.marchio_ricevuto_at).toLocaleDateString("it-IT")}
+                  </span>
+                ) : (
+                  <span className="font-medium text-amber-700">non ancora arrivato</span>
+                )}
+              </p>
+            </>
+          )}
           {item.nota && <p className="text-slate-500 break-words">{item.nota}</p>}
         </div>
 
@@ -227,7 +251,196 @@ function VoceTappa({ item, onSegna, inCorso }) {
   );
 }
 
+const TITOLI_BOZZE = {
+  positioning: "Posizionamento",
+  brand_kit: "Marchio",
+  social_profiles: "Profili social",
+  showcase: "Sito vetrina",
+  content_plan_90d: "Calendario 60 giorni",
+  partnership_readiness: "Verifica readiness",
+};
+
+const COLORE_HEX = /^#[0-9a-f]{3,8}$/i;
+const URL_HTTP = /^https?:\/\//;
+
+function etichettaChiave(chiave) {
+  const t = String(chiave).replace(/_/g, " ");
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+// Rende qualunque contenuto generato in modo leggibile, senza conoscere la forma
+// esatta di ogni deliverable: una chiave nuova nel generatore compare da sola.
+export function Valore({ v }) {
+  if (v === null || v === undefined || v === "") return <span className="text-slate-400">—</span>;
+  if (typeof v === "boolean") return <span>{v ? "Si" : "No"}</span>;
+  if (typeof v === "number") return <span>{v}</span>;
+  if (typeof v === "string") {
+    if (COLORE_HEX.test(v)) {
+      return (
+        <span className="inline-flex items-center gap-2">
+          <span
+            className="inline-block w-4 h-4 rounded border border-gray-300"
+            style={{ background: v }}
+            aria-hidden="true"
+          />
+          {v}
+        </span>
+      );
+    }
+    if (URL_HTTP.test(v)) {
+      return (
+        <a href={v} target="_blank" rel="noreferrer" className="text-blue-700 underline break-all">
+          {v}
+        </a>
+      );
+    }
+    return <span className="whitespace-pre-wrap break-words">{v}</span>;
+  }
+  if (Array.isArray(v)) {
+    if (!v.length) return <span className="text-slate-400">—</span>;
+    return (
+      <ul className="space-y-1.5">
+        {v.map((x, i) => (
+          <li key={i} className={x && typeof x === "object" ? "rounded-lg border border-gray-100 bg-gray-50 p-2" : ""}>
+            <Valore v={x} />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  return (
+    <dl className="space-y-1.5">
+      {Object.entries(v)
+        .filter(([k]) => k !== "status" && k !== "_fallback")
+        .map(([k, x]) => (
+          <div key={k}>
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{etichettaChiave(k)}</dt>
+            <dd className="text-sm text-slate-800">
+              <Valore v={x} />
+            </dd>
+          </div>
+        ))}
+    </dl>
+  );
+}
+
+function StatoBozza({ item }) {
+  const base = "text-[11px] font-semibold px-2 py-0.5 rounded border";
+  if (item.generation_status === "errore") {
+    return <span className={`${base} bg-red-50 text-red-700 border-red-200`}>Generazione fallita</span>;
+  }
+  if (item.generation_status === "in_corso" && !item.generato) {
+    return <span className={`${base} bg-slate-100 text-slate-600 border-slate-200`}>In generazione…</span>;
+  }
+  if (!item.generato) {
+    return <span className={`${base} bg-slate-100 text-slate-500 border-slate-200`}>Non ancora generato</span>;
+  }
+  if (item.approval_status === "approved") {
+    return <span className={`${base} bg-emerald-50 text-emerald-700 border-emerald-200`}>Approvato · il cliente lo vede</span>;
+  }
+  return <span className={`${base} bg-amber-50 text-amber-800 border-amber-200`}>Bozza da approvare · il cliente non la vede</span>;
+}
+
+// Sola lettura: serve a controllare il lavoro PRIMA di premere "Approva".
+function BozzeCliente({ clientId, versione, onAuthExpired }) {
+  const [aperto, setAperto] = useState(false);
+  const [dati, setDati] = useState(null);
+  const [errore, setErrore] = useState(null);
+
+  useEffect(() => {
+    if (!aperto) return undefined;
+    let attivo = true;
+    setErrore(null);
+    apiGet(`/start/${clientId}/bozze`)
+      .then((r) => attivo && setDati(r))
+      .catch((e) => {
+        if (!attivo) return;
+        if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+        else setErrore(e.message);
+      });
+    return () => {
+      attivo = false;
+    };
+  }, [aperto, clientId, versione, onAuthExpired]);
+
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        aria-expanded={aperto}
+        onClick={() => setAperto((v) => !v)}
+        className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-yellow-400 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 transition"
+      >
+        {aperto ? "Nascondi bozze" : "Vedi bozze e risposte del cliente"}
+      </button>
+
+      {aperto && (
+        <div className="mt-3 space-y-3">
+          {errore && <p className="text-sm text-red-700">Errore: {errore}</p>}
+          {!dati && !errore && <p className="text-sm text-slate-400">Caricamento…</p>}
+          {dati && (
+            <>
+              <details className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                <summary className="cursor-pointer text-sm font-semibold text-slate-800">
+                  Cosa ha risposto e scelto il cliente
+                </summary>
+                <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-slate-400">
+                      Risposte (posizionamento)
+                    </p>
+                    <Valore v={dati.risposte} />
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-slate-400">Marchio scelto</p>
+                    <Valore v={dati.marchio_scelto} />
+                  </div>
+                </div>
+              </details>
+
+              {dati.items.map((item) => (
+                <article key={item.type} className="rounded-xl border border-gray-200 bg-white p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-sm font-semibold text-slate-900">{TITOLI_BOZZE[item.type] || item.type}</h3>
+                    <StatoBozza item={item} />
+                  </div>
+                  {item.generation_error && <p className="mt-2 text-xs text-red-700">{item.generation_error}</p>}
+                  {item.generato && (
+                    <div className="mt-3 space-y-3">
+                      {item.contenuto?.fallback || item.contenuto?._fallback ? (
+                        <p className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
+                          Attenzione: la sintesi automatica non e' riuscita, questo testo e' di ripiego. Va riscritto a
+                          mano prima di approvare.
+                        </p>
+                      ) : null}
+                      <Valore v={item.contenuto} />
+                      {item.live_url && (
+                        <p className="text-sm">
+                          Pubblicata su: <Valore v={item.live_url} />
+                        </p>
+                      )}
+                      {item.html && (
+                        <iframe
+                          title={`Anteprima ${TITOLI_BOZZE[item.type]}`}
+                          sandbox=""
+                          srcDoc={item.html}
+                          className="h-96 w-full rounded-lg border border-gray-200"
+                        />
+                      )}
+                    </div>
+                  )}
+                </article>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ConsegneStart({ onAuthExpired }) {
+  const [versione, setVersione] = useState(0);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [inCorso, setInCorso] = useState(null);
@@ -277,11 +490,28 @@ export function ConsegneStart({ onAuthExpired }) {
     const chiave = `${client.client_id}-${azione}`;
     setInCorso(chiave);
     setEsito(null);
+    let liveUrl = null;
+    if (azione === "approva_vetrina") {
+      // La vetrina si approva solo quando e' online: serve il suo indirizzo.
+      liveUrl = window.prompt("Indirizzo della pagina online (https://...)");
+      if (!liveUrl) {
+        setInCorso(null);
+        return;
+      }
+    }
     const routes = {
+      genera_posizionamento: [`/start/${client.client_id}/posizionamento/genera`, null],
+      approva_posizionamento: [`/start/${client.client_id}/deliverable/approva`, { tipo: "positioning" }],
+      prepara_bozze: [`/start/${client.client_id}/bozze/prepara`, null],
+      crea_pdf: [`/start/${client.client_id}/pdf/crea`, null],
+      genera_marchio: [`/start/${client.client_id}/marchio/genera`, null],
+      approva_marchio: [`/start/${client.client_id}/deliverable/approva`, { tipo: "brand_kit" }],
+      genera_profili: [`/start/${client.client_id}/profili/genera`, null],
+      genera_vetrina: [`/start/${client.client_id}/vetrina/genera`, null],
       genera_calendario: [`/start/${client.client_id}/calendario-90/genera`, null],
       approva_calendario: [`/start/${client.client_id}/deliverable/approva`, { tipo: "content_plan_90d" }],
       approva_profili: [`/start/${client.client_id}/deliverable/approva`, { tipo: "social_profiles" }],
-      approva_vetrina: [`/start/${client.client_id}/deliverable/approva`, { tipo: "showcase" }],
+      approva_vetrina: [`/start/${client.client_id}/deliverable/approva`, { tipo: "showcase", live_url: liveUrl }],
       genera_readiness: [`/start/${client.client_id}/readiness/genera`, null],
       approva_readiness: [`/start/${client.client_id}/deliverable/approva`, { tipo: "partnership_readiness" }],
     };
@@ -289,12 +519,27 @@ export function ConsegneStart({ onAuthExpired }) {
       const [route, body] = routes[azione];
       const result = await apiPost(route, body || {});
       const missing = result?.deliverable?.missing || [];
-      setEsito({
-        ok: true,
-        testo: missing.length
-          ? `Verifica generata: restano ${missing.length} evidenze mancanti. Nessun via libera automatico.`
-          : `Operazione completata per ${client.nome || client.email}.`,
-      });
+      let testo;
+      if (azione === "crea_pdf") {
+        const nomi = { positioning: "posizionamento", brand_kit: "marchio" };
+        const fatti = (result?.creati || []).map((t) => nomi[t] || t);
+        const falliti = (result?.falliti || []).map((t) => nomi[t] || t);
+        testo = fatti.length || falliti.length
+          ? `PDF di ${client.nome || client.email}: creati ${fatti.length ? fatti.join(", ") : "nessuno"}${falliti.length ? `; non riusciti: ${falliti.join(", ")}` : ""}.`
+          : `Nessun materiale approvato per ${client.nome || client.email}: i PDF nascono all'approvazione.`;
+      } else if (result?.generating && azione === "prepara_bozze") {
+        testo = `Bozze in preparazione per ${client.nome || client.email}: tra 2-4 minuti le trovi in "Vedi bozze". Nessuna viene approvata da sola.`;
+      } else if (result?.generating) {
+        // Il calendario si genera in background (AI lunga): non c'e' ancora nulla
+        // da mostrare, comparira' al prossimo aggiornamento del pannello.
+        testo = `Generazione del calendario avviata per ${client.nome || client.email}: sara' pronto tra 1-2 minuti. Aggiorna il pannello.`;
+      } else if (missing.length) {
+        testo = `Verifica generata: restano ${missing.length} evidenze mancanti. Nessun via libera automatico.`;
+      } else {
+        testo = `Operazione completata per ${client.nome || client.email}.`;
+      }
+      setEsito({ ok: true, testo });
+      setVersione((n) => n + 1);
       load();
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
@@ -325,7 +570,7 @@ export function ConsegneStart({ onAuthExpired }) {
 
   return (
     <div className="p-10 max-w-6xl">
-      <h1 className="text-2xl font-semibold text-slate-900 mb-1">Consegne Start</h1>
+      <h1 className="text-2xl font-semibold text-slate-900 mb-1">Scadenze Start</h1>
       <p className="text-slate-500 mb-6">
         Le tre tappe che ogni cliente Ciak Start ha ricevuto per iscritto, con le date
         promesse nella sua email di attivazione. {data.totale_clienti}{" "}
@@ -348,6 +593,19 @@ export function ConsegneStart({ onAuthExpired }) {
         />
       </div>
 
+      {esito && (
+        <p
+          role="status"
+          className={`sticky top-4 z-20 text-sm mb-4 px-4 py-3 rounded-xl border shadow-sm ${
+            esito.ok
+              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+              : "bg-red-50 text-red-700 border-red-200"
+          }`}
+        >
+          {esito.testo}
+        </p>
+      )}
+
       {clienti.length ? (
         <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-5">
           <h2 className="font-semibold text-slate-900">Output finali Start</h2>
@@ -358,11 +616,36 @@ export function ConsegneStart({ onAuthExpired }) {
             {clienti.map((client) => (
               <div key={client.client_id} className="rounded-xl border border-slate-200 p-4">
                 <p className="text-sm font-semibold text-slate-900">{client.nome || client.email}</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Le bozze si preparano da sole quando il cliente invia risposte e marchio. Qui puoi rilanciarle.
+                </p>
+                <button
+                  type="button"
+                  disabled={inCorso === `${client.client_id}-prepara_bozze`}
+                  onClick={() => onDeliverable(client, "prepara_bozze")}
+                  className="mt-3 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-yellow-400 hover:bg-slate-800 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 transition"
+                >
+                  {inCorso === `${client.client_id}-prepara_bozze` ? "Attendi…" : "Prepara tutte le bozze"}
+                </button>
+                <button
+                  type="button"
+                  disabled={inCorso === `${client.client_id}-crea_pdf`}
+                  onClick={() => onDeliverable(client, "crea_pdf")}
+                  className="mt-3 ml-2 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 transition"
+                >
+                  {inCorso === `${client.client_id}-crea_pdf` ? "Attendi…" : "Crea i PDF dei materiali approvati"}
+                </button>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {[
+                    ["genera_posizionamento", "1a · Genera posizionamento"],
+                    ["approva_posizionamento", "Approva posizionamento"],
+                    ["genera_marchio", "1b · Genera scheda marchio"],
+                    ["approva_marchio", "Approva marchio"],
+                    ["genera_profili", "2a · Genera profili social"],
                     ["approva_profili", "Approva profili sistemati"],
-                    ["approva_vetrina", "Approva sito vetrina"],
-                    ["genera_calendario", "Genera calendario 90 giorni"],
+                    ["genera_vetrina", "2b · Genera sito vetrina"],
+                    ["approva_vetrina", "Approva sito vetrina (online)"],
+                    ["genera_calendario", "3 · Genera ciclo contenuti 60 giorni"],
                     ["approva_calendario", "Approva calendario"],
                     ["genera_readiness", "Genera verifica readiness"],
                     ["approva_readiness", "Approva report readiness"],
@@ -378,24 +661,13 @@ export function ConsegneStart({ onAuthExpired }) {
                     </button>
                   ))}
                 </div>
+                <BozzeCliente clientId={client.client_id} versione={versione} onAuthExpired={onAuthExpired} />
               </div>
             ))}
           </div>
         </section>
       ) : null}
 
-      {esito && (
-        <p
-          role="status"
-          className={`text-sm mb-4 px-4 py-3 rounded-xl border ${
-            esito.ok
-              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-              : "bg-red-50 text-red-700 border-red-200"
-          }`}
-        >
-          {esito.testo}
-        </p>
-      )}
 
       {data.totale_tappe === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-200 p-10 text-center">

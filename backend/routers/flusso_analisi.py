@@ -18,7 +18,7 @@ STATI:
 - partner_attivo
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Depends, Header
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
@@ -31,6 +31,29 @@ import io
 import re
 import bcrypt
 from internal_api import internal_api_url
+from routers.ciak_admin import require_ciak_admin
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from auth import decode_token
+from security_config import internal_or_admin_authorized
+
+_bearer = HTTPBearer(auto_error=False)
+
+
+async def _require_internal_or_admin(
+    x_internal_key: str | None = Header(None, alias="X-Internal-Key"),
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+):
+    internal_key = os.environ.get("INTERNAL_API_KEY", "").strip()
+    if not internal_key:
+        logging.warning(
+            "[attiva-partnership] INTERNAL_API_KEY non configurata: "
+            "endpoint non protetto (rollout: impostala per chiuderlo)"
+        )
+        return
+    token = decode_token(credentials.credentials) if credentials else None
+    is_admin = bool(token and getattr(token, "role", None) in ("admin", "superadmin"))
+    if not internal_or_admin_authorized(internal_key, x_internal_key or "", is_admin):
+        raise HTTPException(status_code=401, detail="Autenticazione richiesta")
 
 # Import Master Prompt e Strategic Research
 try:
@@ -49,7 +72,36 @@ except ImportError as e:
     logging.warning(f"Master Prompt o Strategic Research non disponibili: {e}")
     MASTER_PROMPT_AVAILABLE = False
 
-router = APIRouter(prefix="/api/flusso-analisi", tags=["flusso-analisi"])
+# Vecchio flusso "Analisi Strategica €67" (ritirato). Chiuso agli estranei
+# dal 29/9/2026: registrava clienti con password in chiaro, convertiva in
+# partner "active" e lanciava l'LLM senza autenticazione. Si elimina del
+# tutto dopo l'export dei dati storici (decisione Claudio).
+from fastapi import Depends as _Depends, Request as _Request
+from routers.ciak_admin import require_ciak_admin as _require_ciak_admin
+
+
+async def _require_ciak_admin_or_internal_key(
+    request: _Request,
+    x_internal_key: str | None = Header(None, alias="X-Internal-Key"),
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+):
+    """Admin Ciak, oppure il backend stesso con X-Internal-Key.
+
+    Le chiamate interne ad attiva-partnership (stripe_webhook._trigger_attiva,
+    verify-payment-partnership) mandano solo la chiave: con INTERNAL_API_KEY
+    impostata passano. Chiave non configurata = nessuna scorciatoia (qui non
+    si apre nulla, a differenza di _require_internal_or_admin): quelle chiamate
+    prendono 401 e l'attivazione si fa da admin. Al 30/9/2026 la chiave NON è
+    impostata su Cloud Run; oggi nessun checkout vivo arriva a quel ramo
+    (il checkout della proposta porta il token e il webhook esce prima).
+    """
+    internal_key = os.environ.get("INTERNAL_API_KEY", "").strip()
+    if internal_key and x_internal_key and internal_or_admin_authorized(internal_key, x_internal_key, False):
+        return None
+    return await _require_ciak_admin(request, credentials)
+
+
+router = APIRouter(prefix="/api/flusso-analisi", tags=["flusso-analisi"], dependencies=[_Depends(_require_ciak_admin_or_internal_key)])
 
 # Database reference
 db = None
@@ -1446,7 +1498,7 @@ async def get_decisione_data(user_id: str):
         "documenti": documenti,
         "pagamento": pagamento,
         "pagamento_completato": pagamento.get("completato", False) if pagamento else False,
-        "prezzo_partnership": 2790,
+        "prezzo_partnership": 2990,
         "can_activate": (
             contratto and contratto.get("firmato", False) and
             pagamento and pagamento.get("completato", False)
@@ -1566,61 +1618,11 @@ async def upload_documento(
 
 @router.post("/create-payment-session/{user_id}")
 async def create_payment_session(user_id: str):
-    """Crea sessione Stripe per pagamento partnership €2.790"""
-    if db is None:
-        raise HTTPException(status_code=500, detail="Database non inizializzato")
-
-    user = await db.users.find_one({"id": user_id}, {"_id": 0})
-    if not user:
-        raise HTTPException(status_code=404, detail="Cliente non trovato")
-
-    stripe_key = os.environ.get("STRIPE_API_KEY")
-    if not stripe_key:
-        raise HTTPException(status_code=500, detail="Stripe non configurato")
-
-    frontend_url = os.environ.get("FRONTEND_URL", "https://www.ciak.io")
-
-    try:
-        from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
-        checkout = StripeCheckout(api_key=stripe_key)
-        session_request = CheckoutSessionRequest(
-            amount=2790.00,
-            currency="eur",
-            success_url=f"{frontend_url}/decisione-partnership?payment=success",
-            cancel_url=f"{frontend_url}/decisione-partnership?payment=cancelled",
-            metadata={
-                "user_id": user_id,
-                "tipo": "partnership",
-                "importo": "2790",
-                "email": user.get("email", "")
-            }
-        )
-        session = await checkout.create_checkout_session(session_request)
-
-        # Salva riferimento sessione
-        await db.pagamenti_partnership.update_one(
-            {"user_id": user_id},
-            {"$set": {
-                "user_id": user_id,
-                "stripe_session_id": session.session_id,
-                "importo": 2790,
-                "valuta": "EUR",
-                "metodo": "stripe",
-                "completato": False,
-                "created_at": datetime.now(timezone.utc).isoformat()
-            }},
-            upsert=True
-        )
-
-        return {
-            "success": True,
-            "checkout_url": session.url,
-            "session_id": session.session_id
-        }
-
-    except Exception as e:
-        logging.error(f"Stripe session creation failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Errore creazione pagamento: {str(e)}")
+    """Retired: use the proposal with its signed contract and declaration."""
+    raise HTTPException(410, detail={
+        "code": "PARTNERSHIP_PROPOSAL_REQUIRED",
+        "message": "Apri il link alla proposta ricevuto dal team per accettare il contratto e procedere al pagamento.",
+    })
 
 
 @router.post("/verify-payment-partnership/{user_id}")
@@ -1662,7 +1664,8 @@ async def verify_payment_partnership(user_id: str):
                 import httpx
                 async with httpx.AsyncClient(timeout=10) as hc:
                     risposta = await hc.post(
-                        internal_api_url(f"/api/flusso-analisi/attiva-partnership/{user_id}")
+                        internal_api_url(f"/api/flusso-analisi/attiva-partnership/{user_id}"),
+                        headers={"X-Internal-Key": os.environ.get("INTERNAL_API_KEY", "")},
                     )
                     if risposta.status_code >= 400:
                         logging.error(
@@ -1684,8 +1687,13 @@ async def verify_payment_partnership(user_id: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/conferma-bonifico/{user_id}")
-async def conferma_bonifico(user_id: str):
-    """Admin conferma ricezione bonifico"""
+async def conferma_bonifico(user_id: str, _admin=Depends(require_ciak_admin)):
+    """Admin conferma ricezione bonifico.
+
+    ⛔ Solo admin: scrive un pagamento partnership `completato:True` (€2.990). Senza
+    guardia, un anonimo poteva fabbricare un incasso dal nulla e — a valle —
+    attivare la partnership (attiva-partnership richiede questo record + contratto).
+    """
     if db is None:
         raise HTTPException(status_code=500, detail="Database non inizializzato")
     
@@ -1697,7 +1705,7 @@ async def conferma_bonifico(user_id: str):
         {"user_id": user_id},
         {"$set": {
             "user_id": user_id,
-            "importo": 2790,
+            "importo": 2990,
             "valuta": "EUR",
             "metodo": "bonifico",
             "stato": "completato",
@@ -1719,7 +1727,11 @@ async def conferma_bonifico(user_id: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/attiva-partnership/{user_id}")
-async def attiva_partnership(user_id: str, background_tasks: BackgroundTasks):
+async def attiva_partnership(
+    user_id: str,
+    background_tasks: BackgroundTasks,
+    _auth=Depends(_require_internal_or_admin),
+):
     """
     Attiva la partnership dopo pagamento completato.
     
@@ -1777,7 +1789,9 @@ async def attiva_partnership(user_id: str, background_tasks: BackgroundTasks):
             "partnership_attiva": True,
             "partnership_attivata_at": now.isoformat(),
             "systeme_account_id": systeme_result.get("systeme_contact_id"),
-            "password_hash": new_hash
+            # Entrambi: il login legge `hashed_password or password_hash`.
+            "password_hash": new_hash,
+            "hashed_password": new_hash,
         }}
     )
     
@@ -1835,7 +1849,7 @@ async def attiva_partnership(user_id: str, background_tasks: BackgroundTasks):
 
 👤 {nome} {cognome}
 📧 {email}
-💰 €2.790 Partnership
+💰 €2.990 Partnership
 
 *Systeme.io:* {systeme_status}
 
@@ -2049,7 +2063,7 @@ async def download_contratto_pdf(user_id: str):
         elements.append(Spacer(1, 15))
         
         elements.append(Paragraph("3. CORRISPETTIVO", section_title))
-        elements.append(Paragraph("Il Partner si impegna a corrispondere a Evolution PRO l'importo di €2.790 (duemilasettecentonovanta euro) come quota di partecipazione al programma.", body))
+        elements.append(Paragraph("Il Partner si impegna a corrispondere a Evolution PRO l'importo di €2.990 (duemilanovecentonovanta euro) come quota di partecipazione al programma.", body))
         elements.append(Spacer(1, 15))
         
         elements.append(Paragraph("4. OBBLIGHI DI EVOLUTION PRO", section_title))

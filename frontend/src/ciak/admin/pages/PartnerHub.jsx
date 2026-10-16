@@ -10,6 +10,7 @@
  *                  azioni Journey / Vista (impersonazione) / Elimina.
  * Dati caricati una sola volta; il modale è condiviso tra le due viste.
  */
+import { IntestazioneAgente } from "../components/ui/IntestazioneAgente";
 import { useEffect, useState, useCallback } from "react";
 import { Search, Rocket, TrendingUp, LayoutGrid, Table2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -200,7 +201,7 @@ function AttoView({ partners, onOpen }) {
 
 // ─── Vista "Tabella" ──────────────────────────────────────────────────────
 
-function TableView({ partners, statoFilter, setStatoFilter, counts, onOpen, onDelete, onStatusChange, statusUpdating }) {
+function TableView({ partners, auditById, statoFilter, setStatoFilter, counts, onOpen, onDelete, onStatusChange, statusUpdating }) {
   const filtered = statoFilter
     ? partners.filter((p) => (p.stato || "attivo") === statoFilter)
     : partners;
@@ -234,10 +235,9 @@ function TableView({ partners, statoFilter, setStatoFilter, counts, onOpen, onDe
             <thead>
               <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
                 <th className="px-5 py-3 font-semibold">Partner</th>
-                <th className="px-5 py-3 font-semibold">Fase</th>
-                <th className="px-5 py-3 font-semibold">Revenue</th>
-                <th className="px-5 py-3 font-semibold">Piano</th>
-                <th className="px-5 py-3 font-semibold">Contratto</th>
+                <th className="px-5 py-3 font-semibold">Passaggio</th>
+                <th className="px-5 py-3 font-semibold">Prossima azione</th>
+                <th className="px-5 py-3 font-semibold">Responsabile</th>
                 <th className="px-5 py-3 font-semibold">Stato</th>
                 <th className="px-5 py-3 font-semibold text-right">Azioni</th>
               </tr>
@@ -246,11 +246,18 @@ function TableView({ partners, statoFilter, setStatoFilter, counts, onOpen, onDe
               {filtered.map((p) => {
                 const stato = p.stato || "attivo";
                 const contr = contrattoLabel(p);
+                const a = auditById?.[p.id] || null;
+                const passaggio = (a && a.macro_label) || attoEvo(p.phase) || "—";
+                const passaggioSub = (a && a.current_step) || p.phase || null;
                 return (
                   <tr
                     key={p.id || p.email}
-                    className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => onOpen(p, "profilo")}
+                    className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+                    onClick={() => onOpen(p, "panoramica")}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(p, "panoramica"); } }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Apri ${p.name || "partner"}`}
                   >
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
@@ -261,28 +268,29 @@ function TableView({ partners, statoFilter, setStatoFilter, counts, onOpen, onDe
                           <div className="font-medium text-slate-900 truncate">
                             {p.name || "—"}
                           </div>
+                          {/* revenue/piano/contratto demoti a sottoriga: contano, ma non sono la prima lettura operativa */}
+                          <div className="text-[11px] text-slate-400 truncate">
+                            {euro(p.revenue)}
+                            {p.piano_pagamento ? ` · ${p.piano_pagamento.rate_pagate}/${p.piano_pagamento.rate_totali} rate` : ""}
+                            {contr.text !== "—" ? ` · ${contr.text}` : ""}
+                          </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-5 py-3">
                       <span className="text-xs font-medium px-2 py-0.5 rounded bg-gray-100 text-slate-600">
-                        {attoEvo(p.phase) || "—"}
+                        {passaggio}
                       </span>
-                      {p.phase && (
-                        <div className="text-[10px] text-slate-400 mt-0.5">{p.phase}</div>
+                      {passaggioSub && (
+                        <div className="text-[10px] text-slate-400 mt-0.5">{passaggioSub}</div>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-slate-700">{euro(p.revenue)}</td>
-                    <td className="px-5 py-3 text-xs">
-                      {p.piano_pagamento ? (
-                        <span className="text-yellow-600 font-medium">
-                          {p.piano_pagamento.rate_pagate}/{p.piano_pagamento.rate_totali} rate
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
+                    <td className="px-5 py-3 text-xs text-slate-700 max-w-[220px]">
+                      {a && a.next_action ? a.next_action : <span className="text-slate-400">—</span>}
                     </td>
-                    <td className={`px-5 py-3 text-xs ${contr.cls}`}>{contr.text}</td>
+                    <td className="px-5 py-3 text-xs text-slate-700">
+                      {a && a.owner ? a.owner : <span className="text-slate-400">—</span>}
+                    </td>
                     <td className="px-5 py-3">
                       <select
                         value={stato}
@@ -306,11 +314,11 @@ function TableView({ partners, statoFilter, setStatoFilter, counts, onOpen, onDe
                     <td className="px-5 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => onOpen(p, "journey")}
-                          title="Apri la scheda partner sui Dati Journey"
+                          onClick={() => onOpen(p, "materiali")}
+                          title="Apri la scheda partner sui materiali e revisioni"
                           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-yellow-100 text-yellow-700 text-xs font-semibold hover:bg-yellow-200 transition"
                         >
-                          Journey
+                          Materiali
                         </button>
                         <button
                           onClick={() => openVista(p)}
@@ -344,6 +352,7 @@ function TableView({ partners, statoFilter, setStatoFilter, counts, onOpen, onDe
 
 export function PartnerHub({ onAuthExpired }) {
   const [partners, setPartners] = useState(null);
+  const [audit, setAudit] = useState({});
   const [error, setError] = useState(null);
   const [view, setView] = useState(
     () => localStorage.getItem("ciak_admin_partner_view") || "atto"
@@ -357,8 +366,32 @@ export function PartnerHub({ onAuthExpired }) {
 
   const load = useCallback(() => {
     setPartners(null);
-    apiGet("/partners", { include_profile: true })
-      .then((d) => setPartners(d.items || []))
+    Promise.all([
+      apiGet("/partners", { include_profile: true }),
+      apiGet("/delivery-audit").catch(() => null),
+      apiGet("/partner-alignment/overrides").catch(() => null),
+    ])
+      .then(([d, auditData, ovData]) => {
+        setPartners(d.items || []);
+        // Colonne operative dalla STESSA fonte di Audit Delivery: next_action/owner/
+        // blocco sono gia' calcolati dal backend; qui applico solo l'override "Regia"
+        // (come DeliveryAudit) per non contraddire quella pagina. Zero ricalcolo lato client.
+        const overrides = (ovData && ovData.overrides) || {};
+        const map = {};
+        for (const i of (auditData && auditData.items) || []) {
+          const ov = overrides[i.id] || {};
+          map[i.id] = {
+            next_action: ov.alignment_next_step || i.next_action || null,
+            owner: ov.alignment_owner || i.owner || null,
+            blocked: !!i.blocked,
+            stale: !!i.stale,
+            incoerenza: !!i.incoerenza,
+            current_step: i.current_step || null,
+            macro_label: i.macro_label || null,
+          };
+        }
+        setAudit(map);
+      })
       .catch((e) => {
         if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
         else setError(e.message);
@@ -369,16 +402,16 @@ export function PartnerHub({ onAuthExpired }) {
     load();
   }, [load]);
 
-  // Deep-link: /admin/partner?id=<id>&tab=<tab> apre direttamente la scheda
-  // del partner (usato dalla vista Partner Alignment).
+  // Deep-link: /admin/partner?partner=<id>&tab=<tab> apre direttamente la scheda
+  // del partner. Accetta anche il vecchio `?id=` (usato dalla vista Partner Alignment).
   useEffect(() => {
     if (!partners) return;
     const params = new URLSearchParams(window.location.search);
-    const wantId = params.get("id");
+    const wantId = params.get("partner") || params.get("id");
     if (!wantId) return;
     const p = partners.find((x) => String(x.id) === String(wantId));
     if (p) {
-      setDetailTab(params.get("tab") || "journey");
+      setDetailTab(params.get("tab") || "panoramica");
       setDetailPartner(p);
     }
   }, [partners]);
@@ -388,10 +421,38 @@ export function PartnerHub({ onAuthExpired }) {
     localStorage.setItem("ciak_admin_partner_view", v);
   };
 
-  // Apertura modale: dalle card "Per atto" sul Journey, dalla tabella sul tab passato.
-  const openPartner = (p, tab = "journey") => {
+  // Deep-link scrivibile: aprire una scheda aggiorna l'URL (?partner=<id>&tab=<tab>),
+  // cosi' refresh e link storico riaprono la stessa scheda+tab; chiudere pulisce l'URL.
+  // La vista atto/tabella resta in localStorage come prima.
+  const syncUrl = (partnerId, tab) => {
+    try {
+      const u = new URL(window.location.href);
+      if (partnerId) {
+        u.searchParams.set("partner", String(partnerId));
+        if (tab) u.searchParams.set("tab", tab);
+        else u.searchParams.delete("tab");
+        u.searchParams.delete("id");
+      } else {
+        u.searchParams.delete("partner");
+        u.searchParams.delete("id");
+        u.searchParams.delete("tab");
+      }
+      window.history.replaceState({}, "", u);
+    } catch {
+      /* history non disponibile: la scheda si apre comunque */
+    }
+  };
+
+  // Apertura modale: default sulla Panoramica; la tabella e le card passano il tab.
+  const openPartner = (p, tab = "panoramica") => {
     setDetailTab(tab);
     setDetailPartner(p);
+    syncUrl(p?.id, tab);
+  };
+
+  const closePartner = () => {
+    setDetailPartner(null);
+    syncUrl(null);
   };
 
   // L'eliminazione non parte piu' da un confirm() nativo: apre una conferma in
@@ -488,37 +549,41 @@ export function PartnerHub({ onAuthExpired }) {
 
   return (
     <>
-      <div className="p-8">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-2xl font-semibold text-slate-900">Partner</h1>
-          <div className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5">
-            {TABS.map((t) => {
-              const Icon = t.icon;
-              const active = view === t.id;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => switchView(t.id)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition ${
-                    active
-                      ? "bg-slate-900 text-yellow-400"
-                      : "text-slate-500 hover:text-slate-900"
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {t.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        <div className="mb-6" />
+      <div className="px-5 py-8 sm:px-10 lg:px-16 lg:py-12">
+        <IntestazioneAgente
+          agente="stefania"
+          titolo="Partner"
+          sotto="Chi è nel percorso, a che punto è e cosa tocca a te."
+          azione={(
+            <div className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5">
+              {TABS.map((t) => {
+                const Icon = t.icon;
+                const active = view === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => switchView(t.id)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition ${
+                      active
+                        ? "bg-slate-900 text-yellow-400"
+                        : "text-slate-500 hover:text-slate-900"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        />
 
         {view === "atto" ? (
-          <AttoView partners={partners} onOpen={(p) => openPartner(p, "journey")} />
+          <AttoView partners={partners} onOpen={(p) => openPartner(p, "percorso")} />
         ) : (
           <TableView
             partners={partners}
+            auditById={audit}
             statoFilter={statoFilter}
             setStatoFilter={setStatoFilter}
             counts={counts}
@@ -532,12 +597,13 @@ export function PartnerHub({ onAuthExpired }) {
 
       <PartnerDetailModal
         partner={detailPartner}
+        audit={detailPartner ? audit[detailPartner.id] : null}
         isOpen={!!detailPartner}
         initialTab={detailTab}
-        onClose={() => setDetailPartner(null)}
+        onClose={closePartner}
         onUpdate={load}
         onDelete={() => {
-          setDetailPartner(null);
+          closePartner();
           load();
         }}
         onAuthExpired={onAuthExpired}

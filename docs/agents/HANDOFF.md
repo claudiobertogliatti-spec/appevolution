@@ -1,93 +1,798 @@
-### 2026-09-24 · Claude Sonnet 5 (Claude Code) · PR #213 MERGIATA — 4 tappe reali del lead in admin
+### 2026-10-16 · Claude Code · cc/blueprint-13-14-genere — Blueprint: 13 "Le tre strade", 14 "Il nostro consiglio", regola sul genere
 
-**COSA:** PR [#213](https://github.com/claudiobertogliatti-spec/appevolution/pull/213) mergiata da Claudio (commit `347867cd`) — la lista e il dettaglio Lead in admin mostravano solo il `current_state` singolo della diagnostic session (nasconde le tappe precedenti). Ora espongono le 4 date reali da `state_history` già presente: questionario compilato, report/blueprint generato, call fissata, call fatta. Tocca `backend/routers/ciak_admin.py` + 2 file frontend → **deploy automatico Cloud Build già partito**. **Non ancora verificato**: nessuno smoke test post-deploy su questo lavoro specifico — verificare che i 4 pallini/date compaiano davvero in produzione su un lead reale prima di darlo per definitivo.
+**RICHIESTA:** Claudio presenta il Blueprint IN CALL: la 13 diceva "Dopo la call". Servono le 3 opzioni (solo descrizioni, niente prezzi) e subito dopo il nostro consiglio; inoltre errori di genere (Luca, Andrea non sono femminili).
 
-⚠️ **Nota per chi lavora in un worktree su questo frontend:** i test CRA/jest non vengono raccolti (0 su centinaia) se il worktree vive sotto `.worktrees/`. Workaround in `memory/reference_test_frontend_da_worktree_git.md` (memoria di Claude, non in questo repo).
+**DICHIARATO (backend/services/ciak_analisi.py, ciak_pdf_blueprint.py + test)**
+- Sezione 13 deterministica (`_build_strade_section`: Ciak Start, Start Plus, Partnership, sole descrizioni), iniettata come la 14; l'AI scrive 12 sezioni (prompt, schema, `_SEZIONI_BLUEPRINT`, user_message aggiornati).
+- Renderer `_c_strade`: i Blueprint già salvati con la vecchia 13 (no/yes/chiusura) continuano a renderizzare.
+- Sezione 14: eyebrow "Il nostro consiglio"; tolti i due testi al maschile ("Sei pronto per la", "ti porta pronto alla Partnership").
+- Regola sul genere in `_VINCOLI_STILE` (condiviso da research, definitiva, bozza, script_call, blueprint). Il nome del cliente NON viene mandato al modello.
+- CSS: `.dark .card h4{color:var(--ink)}` (la 13 è su pagina scura con card bianche: il titolo usciva bianco su bianco, trovato guardando il PDF).
 
-### 2026-09-22 · Claude Sonnet 5 (Claude Code) · Manus AI — prima scrittura Git verificata, PR #212 aperta (non mergiata)
+**VERIFICATO**
+- `cd backend && MONGO_URL=mongodb://localhost:27017 DB_NAME=t python3 -m pytest tests/test_ciak_blueprint_generator.py tests/test_ciak_pdf_blueprint.py tests/test_ciak_analisi.py tests/test_ciak_scoring_ai.py -q` → 48 passed.
+- PDF di prova per entrambi i rami (start e partnership), 16 pagine; `pdftotext`: 0 occorrenze di pronto/pronta/dopo la call/€/euro/trattino lungo; pagine 13 e 14 guardate.
 
-**COSA:** PR [#212](https://github.com/claudiobertogliatti-spec/appevolution/pull/212) "fix(ciak): gate del calendario per i lead nurture" — branch `mn/gate-instradamento-calendario`, commit `7153c40e`, implementato interamente da **Manus AI** nel suo sandbox cloud, su un piano che avevo verificato e approvato in precedenza (bug trovato dalla stessa Manus durante l'analisi CEO del 22/9: `/api/diagnostic/complete` calcola l'`instradamento` ma non lo espone, quindi tutti i lead — anche i "nurture" non pronti — vedevano lo stesso calendario di prenotazione call dei lead qualificati).
+**⛔ NON VERIFICATO / APERTO**
+- Nessun Blueprint reale generato dal modello (serve ANTHROPIC_API_KEY): contenuto delle sezioni 1-12 e rispetto della regola genere da verificare con una rigenerazione.
+- Prompt store admin: `_resolve_prompt` usa la versione attiva dello store per `research`, `definitiva`, `bozza`, `script_call`: se ce n'è una, la regola sul genere NON vale lì finché non la si aggiunge nello store. `blueprint` usa il prompt nel codice (nessuno store).
+- Testo della card Partnership: costruito dalle voci di `offerData.js` (partnership.servizi); "12 mesi" viene dalla decisione di Claudio, non da offerData.js. Lo Start Plus coincide con `offerData.startPlus`.
+- Non toccati (decisioni di Claudio): ramo del Plus nella 14, "numero chiuso" (Partnership) e "entro 48 ore" (Start), "una struttura che venda al posto tuo".
 
-**PERCHÉ QUESTA VOCE:** prima volta che si verifica se Manus ha davvero permessi di scrittura Git su questo repo (punto aperto in `docs/agents/PROTOCOL.md` §5-ter). **Risultato: sì, il push funziona.** Verificato da me in due modi indipendenti: (1) sul GitHub reale via API — branch e commit esistono, `main` è rimasto a `e052af88` invariato, nessuna PR era stata aperta da Manus stessa (rispettato il limite dichiarato); (2) sul diff riga per riga prima di aprire la PR — 5 file, cambio minimo, gate conservativo (solo `instradamento === "nurture"` nasconde il calendario; valori mancanti/sconosciuti/legacy mantengono il comportamento attuale), test scritti prima dell'implementazione con auto-correzione quando il primo rosso non era una prova valida, verifica dei due test adiacenti falliti tramite worktree baseline sullo stesso commit di `origin/main` (confermato: non regressioni).
+### 2026-10-14 (4) · Claude Code · claude/modest-euler-xde2pw — Controllo completo di server.py: 238 rotte chiuse
 
-**✅ AGGIORNAMENTO 22/9/2026:** PR #212 mergiata da Claudio (commit `495a58dd`) — il gate è in produzione, deploy automatico backend+frontend già partito. Chi riprende: **nessuno smoke test post-deploy ancora eseguito** su questo lavoro specifico — prima di darlo per buono in produzione, verificare che un lead nurture reale non veda più il calendario e che partnership/start lo vedano ancora.
+**RICHIESTA:** «si controllo completo» (dopo le rotte `/stefania/*`).
 
-**⚠️ Decisione di Claudio per il prossimo giro:** far preparare la PR direttamente a Manus (non solo il push del branch) — resta comunque a Claude Code/Claudio la revisione del diff prima del merge, e il merge resta sempre di Claudio. Dettaglio in `docs/agents/PROTOCOL.md` §5-ter.
+**TROVATO (dal vivo, solo codice HTTP; nessun valore letto)**
+- 410 rotte in `server.py`; **255 senza alcuna guardia**. Su `https://www.ciak.io` rispondevano 200 senza token: `GET /api/partners` (25 partner con nome, nicchia, fase, fatturato, contratto), `/partners/{id}/payments`, `/stats`, `/alerts`, `/agent-tasks`, `/files`, `/notifications`, `/youtube/status`, `/videos/jobs`, `/systeme/contacts`, `/celery/status`, `/storage/stats`… e, per lettura del codice, SCRITTURE aperte: `POST /systeme/credentials` (chiave API Systeme di un partner), `/partners/{id}/attiva-piano`, upload file/video, `/youtube/*`, `/heygen/*`, `/domain/*`, `/email-automation/*`, `/telegram/*`.
+- Le 6 letture `cliente-analisi/.../{user_id}` (dati personali dei prospect) erano gia' chiuse con 410 dal 29/9 (`_analisi_67_dismessa`).
 
-### 2026-09-22 · Claude Sonnet 5 (Claude Code) · Blueprint — PR #209 MERGIATA su main
+**DICHIARATO (server.py, 238 rotte + 1 guardia nuova `require_admin_or_system`)**
+- Default **admin-only** (`require_admin_role`, 191 rotte): nessun frontend dei partner le chiamava (verificato con espressioni esatte sul percorso; le pagine admin usano `adminFetch`).
+- **Partner su se stesso** (`require_partner_or_admin`, 37): letture con `{partner_id}` nel percorso + 7 scritture del partner (`files/upload`, `onboarding-documents/upload`, `profile` PATCH, `masterclass/script` POST/submit/partner-approve, `brandkit` POST).
+- **Partner o admin** (`require_partner_or_admin_any`, 7): checkout dei servizi (avatar, consulenza, growth-system, legal-pages, branding) e `payment-status`.
+- **Admin oppure chiave di sistema** (`require_admin_or_system`, 3): `GET /partners`, `POST /systeme/sync-all` (scheduler, header `X-Report-Key`=`LUCA_REPORT_KEY`), `POST /onboarding/send-welcome-email/{id}` (webhook Stripe, header `X-Internal-Key`=`INTERNAL_API_KEY`). Aggiornati `scheduler.py` e `routers/stripe_webhook.py` per mandarli.
+- Frontend: `AvatarCheckout`, `ConsulenzaCheckout`, `BoosterEvoPage`, `GrowthSystemPage` mandano il token del partner (`authHeaders`).
+- Restano pubbliche 17 rotte, ognuna motivata in `tests/test_server_routes_guarded.py::PUBBLICHE` (login, registrazione, tracking, health, webhook con segreto, listino avatar, `/notify/telegram`…).
+- `tests/test_server_routes_guarded.py` (6, in CI): FALLISCE se una rotta di `server.py` nasce senza guardia e non e' in `PUBBLICHE`; segnala le guardie "deboli" (`if not credentials` che accetta qualunque header) e le voci morte.
 
-**AGGIORNAMENTO:** PR #209 mergiata da Claudio, 20:57 UTC, commit `c8f332ae`. Tocca `backend/**` → deploy automatico Cloud Run già partito. ⛔ **Non ancora verificato**: nessuno smoke test post-deploy eseguito su questo lavoro. Chi riprende: prima di dare per buono il fix in produzione, verificare che il deploy sia andato a buon fine (Cloud Run revisione attiva, nessun errore di avvio) e — se possibile — che una generazione Blueprint reale non sia peggiorata.
+**VERIFICATO sul programma reale (server importato, token e DB finti)**
+- 398 rotte non pubbliche, senza token e con token finto: nessun 2xx. 16 risposte 500 (non 401) su rotte `/api/admin/*` che leggono `credentials.credentials` prima di tutto: negano, non eseguono nulla (sporco, non pericoloso).
+- 347 rotte guardate con identita' valide: admin passa; partner e cliente Start respinti sulle admin-only; partner passa solo sul PROPRIO id (altro id → 403); chiavi di sistema giuste passano, sbagliate 401. Unica "anomalia": 3 rotte YouTube rispondono 401 perche' YouTube non e' collegato (dopo la guardia).
+- 135 test passati (guardie, Stefania, assistenti, admin auth, agent token); frontend `src/ciak` 942/943 (rosso preesistente `PartnerFilesPage.loading`).
 
-### 2026-09-22 · Claude Sonnet 5 (Claude Code) · Blueprint — 4/5 rischi corretti (PR #209), 1 aperto per Claudio
+**⛔ DA FARE PRIMA/DOPO IL DEPLOY**
+1. Verificare su Cloud Run che **`INTERNAL_API_KEY` e `LUCA_REPORT_KEY` siano configurate sul servizio backend**: senza, la email di benvenuto dopo il pagamento Stripe, lo sync Systeme notturno, il monitoraggio partner e la revisione task di Stefania rispondono 401 (e loggano l'errore).
+2. `POST /api/notify/telegram` e' ancora APERTA di proposito: la chiamano celery/agenti/scheduler senza chiave e il worker (`evolution-pro-worker`) puo' avere env diverse. Chiuderla = dare `INTERNAL_API_KEY` al worker + header nei 7 chiamanti (`celery_tasks`, `agent_task_system` x2, `morning_briefing_task`, `luca_briefing_task`, `scheduler` x2) + guardia `require_admin_or_system`. Chiunque conosca l'URL oggi puo' mandarti messaggi Telegram.
+3. `/webhooks/systeme` e `/telegram/webhook` sono "rollout-safe": se `SYSTEME_WEBHOOK_SECRET` / `TELEGRAM_WEBHOOK_SECRET` NON sono configurate passano senza segreto (fail-open). Verificare che siano impostate in produzione.
+4. `GET /api/files/{path}` ora e' admin-only: link diretti a `internal_url` (`/api/files/...`) salvati nel DB non si aprono piu' senza token. Nessun frontend li usa (cercato), ma documenti/video vecchi potrebbero avere quei link.
+5. `POST /stefania/api/crm/sale` e le altre rotte `/api/*` chiamate da automazioni ESTERNE (Systeme/Zapier/MARTA) ora danno 401 senza token: nel repo nessuno le chiama.
 
-**CONTESTO:** revisione a due AI indipendenti (Antigravity + Codex CLI) sul renderer del Blueprint (`backend/services/ciak_pdf_blueprint.py`, `backend/services/ciak_analisi.py`), ognuna verificata da me leggendo il codice riga per riga prima di agire.
+**⛔ APERTO — ROUTERS (`backend/routers/*.py`, NON toccati)**
+Euristica statica: 135 rotte su 663 senza guardia riconoscibile in 31 file. Provate dal vivo (solo codice): `GET /api/masterclass-factory/stats` 200, `/api/journey/dashboard` 200, `/api/servizi-extra` 200, `/api/heygen/videos/{id}` 200, `/api/media/calendario/partner/{id}` 200, `/api/partner/payment-info` 200. File piu' sospetti: `media_integrations` (14), `heygen_production` (12), `avatar_social` (11), `agents_router` (8), `masterclass_factory` (8), `partnership` (7), `funnel_builder` (6), `journey_automation` (6), `systeme_contacts` (5). Molte sono pubbliche di proposito (proposta/token, booking e stripe webhook, diagnostic, ciak_go, magic-login, lead capture). Serve lo stesso lavoro fatto per server.py, con test analogo.
+Nota: `tests/test_course_builder.py` e `tests/test_credentials_telegram_auth.py` sono test HTTP contro un backend vivo (non in CI) e chiamano senza token.
 
-**CONSEGNA:** PR [#209](https://github.com/claudiobertogliatti-spec/appevolution/pull/209) (branch `cc/blueprint-hardening`, base `origin/main` aggiornata) corregge 4 rischi: injection HTML su `callout`/`chiusura` (nuova `_esc_safe`, consente solo tag di formattazione già in uso: b/i/em/strong/br), clipping silenzioso su testo AI troppo lungo (nuova `_tronca`, taglio visibile con ellissi), fallback CTA silenzioso su instradamento sconosciuto (ora logga un warning, default resta Ciak Start), buco nei test su `genera_blueprint_pdf()` (nuovo test che genera un PDF vero via Playwright, si salta se Chromium assente).
+### 2026-10-14 (3) · Claude Code · claude/modest-euler-xde2pw — Chiuse le 50 rotte /stefania/* aperte di server.py
 
-**PROVE:** 23/23 test passano (8 preesistenti + 15 nuovi), `py_compile` pulito. Prova visiva: PDF di esempio rigenerato con le correzioni, byte identici al precedente per contenuto normale (217.803 byte) — zero regressione visiva sul template lockato del 15/9. Nessuna modifica a palette/font/layout. Nessun push su main, nessun dato reale toccato.
+**RICHIESTA:** «si» (verifica e proteggi le rotte `/stefania/*` di `server.py` segnalate dal revisore).
 
-**⛔ APERTO — decisione per Claudio, non tecnica:** il claim di urgenza nella CTA (bonus 48h su Ciak Start, numero chiuso mensile su Partnership) resta testo fisso, non collegato a uno stato/scadenza reale. Cercato nel backend un meccanismo che lo verifichi: **non esiste**. Il commento "(enforced backend)" nel codice sorgente di `_build_cta_section` non è supportato da nulla di verificabile — è una nota aspirazionale o un processo manuale, non un controllo automatico. Prima di decidere come intervenire (calcolare davvero la scadenza, o accettare che è una policy applicata a mano da Claudio/team), serve la sua decisione: è un tema di onestà del claim (Codice del Consumo), non un bug di codice.
+**VERIFICATO PRIMA (dal vivo, solo codice HTTP):** 11 rotte su 12 provate su `https://www.ciak.io/api/...` rispondevano **200 senza token**: war-mode dashboard/alerts/campaigns, `api/credentials/{id}`, `api/roi/{id}`, `course-builder/{id}`, `memory/conversations`, `admin-review/pending`, `status`, `systeme/stefania/campaigns`. Nessun middleware globale richiede l'accesso (`CommercialScopeMiddleware` e `AgentTokenMiddleware` filtrano solo, non autenticano; `api_router` non ha `dependencies`). Chiamanti trovati: solo le pagine admin War Mode (`adminFetch`, gia' col token) e `scheduler.py` per `/agent-tasks/stefania-review`.
 
-### 2026-09-22 · Claude Sonnet 5 (Claude Code) · Allineamento stato reale — leggere prima di lavorare su admin/materiali/migrazione
+**DICHIARATO (server.py)**
+- Admin-only (`require_admin_role`): tutto `/stefania/memory/*`, `success-cases`, `golden-rules`, `status`, `check`, `admin-review/pending`, tutto `/stefania/war-mode/*`, `/stefania/api/*` (credenziali, ROI, CRM sale/sales, sync-metrics, smart-optimization), `/systeme/stefania/*`.
+- Partner o admin (`require_partner_or_admin_any`, nuova guardia): `review-script`, `generate-draft`, `course-builder/generate`, `course-builder/chat` (chiamate LLM a costo).
+- Partner solo se stesso: `GET course-builder/{partner_id}` (`require_partner_or_admin`) e `POST course-builder/save` (guardia nel corpo sul `partner_id` del body, prima di scrivere).
+- `POST /agent-tasks/stefania-review`: admin OPPURE chiave di report (`X-Report-Key` = `LUCA_REPORT_KEY`); `scheduler.py` ora manda l'header (se la variabile non e' configurata la revisione giornaliera risponde 401: stesso comportamento degli altri job di sistema).
+- `require_partner_or_admin` di `server.py`: stesso fail-open sulla stringa vuota di `partner_journey` corretto.
 
-**PERCHÉ QUESTA VOCE:** Claudio ha chiesto che chi lavora al progetto (Claude Code, Cowork, Antigravity, Codex) parta sempre dallo stato reale e non da conversazioni/prompt vecchi, per non rifare lavoro già spedito. Nessuna modifica applicativa in questo aggiornamento: solo verifica e allineamento.
+**VERIFICATO DOPO (programma reale importato con dipendenze installate a mano)**
+- 50 rotte `/stefania/*` senza token: 49 → 401/403; `course-builder/save` → 422 solo se il body manca, 401 con body valido e senza token.
+- Con token finti: admin passa (500 = DB assente nel sandbox, 200 sulle statiche); partner → 403 sulle admin-only e passa solo sul proprio `course-builder/{id}` (altro id 403, id vuoto 403); `ciak_client` → 403 ovunque.
+- `tests/test_stefania_routes_protected.py` (7, in CI): legge `server.py` come testo e FALLISCE se una rotta con «stefania» nel percorso non ha guardia nella firma; + comportamento delle guardie. Con il vecchio `server.py` 5 su 6 falliscono.
 
-**VERIFICATO — lavoro che risultava aperto ma è già concluso:**
-- PR [#107](https://github.com/claudiobertogliatti-spec/appevolution/pull/107) "Admin: riorganizzazione stile Poste (Home Regia + home reparto + collaboratrici)", branch `cc/admin-semplificazione` → **MERGED su main il 2026-09-10T13:15:16Z**. Il blocco Codex `e55a6dd6` e il prompt `docs/agents/CLAUDE-ADMIN-SEMPLIFICAZIONE.md` sopra in questo file descrivono la semplificazione admin come "da fare": **è superato**, il lavoro è in produzione. Chi apre quel prompt non deve ripartire da lì.
-- PR [#207](https://github.com/claudiobertogliatti-spec/appevolution/pull/207) "fix(ciak): Materiali partner — nascondi i file non apribili (Drive/404)" → **MERGED 2026-09-22T15:40:26Z**.
-- PR [#208](https://github.com/claudiobertogliatti-spec/appevolution/pull/208) "feat(ciak): Materiali — il partner può aprire/scaricare i suoi video (reel)" → **MERGED 2026-09-22T16:11:48Z**.
-- PR aperte al momento di questa verifica (`gh pr list --state open`): solo #114 (admin CRM inline status + Cmd/K, ferma dal 14/9), #75, #74. Nessuna riguarda admin-semplificazione o materiali/migrazione.
+**⛔ APERTO / DA SAPERE**
+- `POST /stefania/api/crm/sale` e' ora admin-only: nel repo nessuno la chiama, ma se un'automazione ESTERNA (Systeme/Zapier/MARTA) la usa senza token ora riceve 401. Se serve, darle la chiave di report come allo scheduler.
+- `tests/test_course_builder.py` e `tests/test_credentials_telegram_auth.py` sono test HTTP contro un backend vivo (`REACT_APP_BACKEND_URL`) e non girano in CI: chiamano senza token, quindi su un backend vero ora fallirebbero. Da aggiornare con un token se si vogliono riattivare.
+- Questo era SOLO il prefisso `/stefania/`: altre rotte di `server.py` senza guardia (es. `/partners`, `/systeme/sync-all`, `/notify/telegram`, `/admin/clienti-analisi`, tutte chiamate dallo scheduler senza token) NON sono state esaminate. Serve un audit completo di `server.py` (migliaia di righe, ~300+ rotte).
+- Il router `/api/stefania/*` di `stefania_chat.py` e' gia' protetto (voce precedente).
 
-**VERIFICATO — ATTENZIONE, due migrazioni Drive→Ciak distinte, non confonderle:**
-- **Metodo attuale, funzionante, verificato in produzione** (22/9, via subagent Claude Code): pilota **Daniele (23)**, 8/9 reel già migrati Drive→Cloudinary→Ciak e verificati apribili live (`GET /api/partner-step-materials/.../download` → 200, byte identici a Drive). Manca solo `reel_g9` (bloccato dal limite 10MB del tool MCP Drive, serve download manuale di Claudio). Metodo e comandi esatti in `memory/ciak_video_materiale_consegna_e_migrazione_drive.md` (memoria di Claude, non in questo repo). **Questo è il metodo da riusare per gli altri partner.**
-- **Conversazione Antigravity "Migrazione Dati Partner Evolution"** (progetto `appevolution` in Antigravity, non un branch git): approccio **diverso e più vecchio** (dossier JSON con revisione Codex/Claude), **ferma dal 2026-08-13 18:54** al primo partner elaborato, **Marco Serra**, in attesa di conferma per procedere con **Arianna Aceto**. Nessuna scrittura reale eseguita (`DRIVE_WRITES/CIAK_WRITES/EXECUTABLE_PAYLOADS` a 0). **Non è il metodo corrente**: prima di riprenderla, valutare se ha senso rispetto al metodo subagent sopra, che è già verificato live. ⚠️ Il "Marco Serra" di questa conversazione è un partner Ciak: non confonderlo con l'omonimo cliente di un progetto non-Ciak (SlimAmour).
-- Branch corrente in lavorazione su Claude Code al momento di questa voce: `cc/blog-videocorsi`, con una modifica non committata in `evolution-pro-site/src/components/Header.tsx` (voce di menu "Blog").
+### 2026-10-14 (2) · Claude Code · claude/modest-euler-xde2pw — Chat degli agenti (/api/stefania/*) protetta
 
-**REGOLA OPERATIVA PER CHI LEGGE:** prima di iniziare un task su admin, materiali partner o migrazione dati, eseguire `gh pr list --state open` e rileggere questa voce, per evitare di rifare lavoro già mergiato o di duplicare l'elaborazione già fatta su un partner. Su Claude Code il modello di default è ora Sonnet 5; Opus si usa solo sui nodi difficili e va dichiarato quando succede.
+**RICHIESTA:** «si proteggilo» (la chat con gli agenti era aperta: scoperta durante l'assistente partner).
 
-### 2026-09-09 · Codex · Primo blocco applicativo admin verificato
+**DICHIARATO**
+- `routers/stefania_chat.py`: `POST /chat` e `POST /escalation` richiedono il token e il `partner_id` del body deve essere quello di chi scrive (`require_partner_or_admin_for_partner`; l'admin in supervisione passa; un cliente Start passa solo per il proprio id); `partner_id` vuoto → 400. `GET /conversations/{id}`, `GET /escalations`, `PATCH /escalations/{id}` solo admin. `target_agent` ammesso solo tra STEFANIA/VALENTINA/ANDREA/GAIA/MARCO/MATTEO (prima anche MAIN, ELENA, RESEARCH = prompt interni; ora ripiega su STEFANIA). Testi liberi dell'escalation puliti prima di Telegram (Markdown).
+- `routers/partner_journey.py` `require_partner_or_admin_for_partner`: **fail-open corretto** — un utente partner senza `partner_id` collegato non passa piu' con `partner_id=""` ("" == "" autorizzava; trovato dal revisore). Vale per tutte le rotte che usano la guardia.
+- Frontend: i 4 punti che chiamano la chat (`AgentDrawer`, `SerenoHelp`, `TeamSupportoPage`, `StefaniaChat`) mandano `authHeaders()` (token partner; in vista admin il token e' quello dell'admin).
 
-**CONSEGNA:** commit locale `e55a6dd6`, branch `codex/admin-semplificazione`, worktree `.worktrees/codex-admin-semplificazione`, base aggiornata origin/main `20f43d4d`. Ricerca strumenti reparto; code prima del supporto espandibile; un solo titolo; matching sidebar per segmento; Nuovo lead/Importa lista/Ricerca automatica aprono gli stessi flussi esistenti. Nessun modulo o route eliminato, nessun push/deploy.
+**VERIFICATO**
+- Revisione indipendente (`auth-reviewer`): nessun percorso per leggere dati di un altro partner da questi endpoint; segnalati e sistemati: test non in CI, fail-open sul vuoto, `target_agent` troppo largo, Markdown Telegram, test partner senza auth reale.
+- `tests/test_stefania_chat_auth.py` (18 casi) e `test_partner_assistente.py` (con auth reale) in CI. Sul codice vecchio 9 dei nuovi test falliscono, sul nuovo passano. 72 passati su Stefania + assistenti. Frontend `src/ciak/partner` 198/199.
+- 10 test del backend rossi in `test_partner_journey_operativo.py` (8) e `test_sequenza_video.py` (2) falliscono IDENTICI con il codice precedente: preesistenti, non toccati.
 
-**PROVE:** 3 suite/9 test PASS; build completa e postbuild exit 0 con warning hook in parti non modificate; confronto NAV, blocco Routes/componenti e handler manuale/CSV identici alla base PASS. Diff-check finale e scansione pattern credenziali PASS. Esiti, comando Jest con override Windows e matrice di parità in `docs/agents/ADMIN-SEMPLIFICAZIONE-BLOCCO1.md` del worktree. Non certifica ogni azione dell'intera app né comportamento live.
+**⛔ APERTO — GRAVE, NON SISTEMATO**
+- In `server.py` ci sono rotte `/stefania/*` (con `api_router`) SENZA parametri di auth nella firma, con `partner_id` nel path: `GET /stefania/api/credentials/{partner_id}` (8702), `/stefania/api/roi/{partner_id}` (8758), `/stefania/api/crm/sales/{partner_id}` (8809), `/stefania/war-mode/campaigns[/{id}]` (8073, 8079), `/stefania/war-mode/performance/{id}` (8168), `/stefania/course-builder/{id}` (11480), `POST /stefania/api/sync-metrics/{id}` (8721), `/stefania/memory/conversations`, `/stefania/admin-review/pending`, `POST /stefania/review-script` e `/generate-draft`. NON verificato se `AgentTokenMiddleware` (server.py:140) le copre. Da far rivedere e proteggere (segnalato come task a parte).
+- Un cliente Start (`ciak_client`) puo' usare `/api/stefania/chat` per il proprio id: voluto dalla guardia comune, non testato.
+- Dopo il deploy un partner con la pagina aperta prima vedra' «Messaggio non inviato» finche' non ricarica.
 
-**CONTINUA CLAUDE:** prompt condiviso `docs/agents/CLAUDE-ADMIN-SEMPLIFICAZIONE.md` aggiornato con worktree. Partire dal commit, non ricreare il blocco. Restano riorganizzazione completa, parità di azioni annidate, ricerca trasversale e collegamenti contestuali, collaudo account/permessi/browser. Non toccato il backend né risolta l'intermittenza scraping. Tutte le capacità devono restare salvo doppioni provati.
+### 2026-10-14 (1) · Claude Code · claude/modest-euler-xde2pw — Assistente esteso all'area partner
 
-### 2026-09-09 · Codex · Anteprima personalizzata e consegna Claude
+**RICHIESTA:** «estendilo anche all'area partner» (l'assistente chat gia' fatto per i clienti Start).
 
-**VINCOLO FINALE DI CLAUDIO:** mantenere TUTTE le funzionalità attuali; solo riorganizzazione e semplificazione. Accorpare esclusivamente doppioni verificati, preservando azioni, filtri, varianti e permessi. Richiesta matrice di parità prima/dopo: il censimento di 52 route NON prova da solo la completezza delle capacità.
+**DICHIARATO**
+- `backend/services/partner_assistente.py`: scheda verificata costruita dalle FONTI, non scritta a mano: i 20 passi, le 3 fasi e chi segue ogni passo da `models.partner_journey_step` (`JOURNEY_STEPS_DEFINITION`, `MACRO_PHASES_DEFINITION`); «cosa fa / cosa NON fa Evolution PRO» dalla sezione verificata sul contratto (`proposta_chat.SCHEDA_VERIFICATA`, solo «COSA FA EVOLUTION PRO»); obiettivo go-live 21 giorni (`goLivePromise.js`); flusso video (CLAUDE.md). NON contiene prezzo, royalty, rimborso, esclusiva: su quelli passa al team (regex `argomento_delicato` = temi di Start + royalty/sospensione/risoluzione/esclusiva/rinnovo).
+- `POST /api/partner-assistente/{partner_id}/chat` (`routers/partner_assistente.py`, registrato in `server.py` dopo `stefania_router`): SSE, stesso motore di Start. Auth = `require_partner_or_admin_for_partner` (un partner scrive solo per se' stesso; un cliente Start riceve 403, ha il suo assistente; l'admin in vista supervisione e' tracciato `da: "admin"`). Coda in `partner_assistente` (`partner_id, id, at, domanda, risposta, passato_al_team, motivo, gestita, da`).
+- Admin: `GET /partner/{id}/assistente` e `POST /partner/{id}/assistente/{riga}/gestita` (`ciak_admin.py`); componente condiviso `admin/components/CodaAssistente.jsx` usato dalla scheda Start (Panoramica) e dalla Panoramica di `PartnerDetailModal`.
+- Frontend: chat condivisa `components/ChatAssistente.jsx` + `components/assistenteSse.js` (Start e partner la usano); `partner/assistente/PartnerAssistente.jsx` montato in `TeamSupportoPage` sia nella variante legacy (default di produzione) sia in quella Sereno (`REACT_APP_PARTNER_SERENO`, spenta di default).
 
-**CONSEGNA:** personalizzate voci e accessi per reparto nella preview locale; eliminato Apri scheda duplicato nell'elenco partner (restano Apri account/Vista partner). Prompt pronto in `docs/agents/CLAUDE-ADMIN-SEMPLIFICAZIONE.md`, con scope principale di riorganizzazione e gap backend separati. README preview aggiornato con limiti e verifiche.
+**VERIFICATO:** backend `test_partner_assistente.py` (23) + Start (25+5) + clienti router: 108 passati (con MONGO_URL, DB_NAME, JWT_SECRET_KEY, APP_ENV=test); frontend `src/ciak` 784/785 (rosso = `PartnerFilesPage.loading`, preesistente). Aggiunto il test alla CI.
 
-**VERIFICATO:** Node syntax app.js/workspace.js exit 0; verify-catalog.cjs PASS 52 route statiche senza mancanti/inventate; browser Delivery con voci specifiche e account, Nuovo lead validato con email fittizia ed esito nessun salvataggio, apertura Importa lista senza importazione. Nessuna modifica al frontend applicativo, dati reali, commit o deploy. Integrazione nel prodotto e parità di tutte le azioni da completare a cura di Claude.
+**⛔ NON VERIFICATO / APERTO**
+- `import server` NON e' stato eseguito nel sandbox (mancano dipendenze: stripe, google-cloud-storage…): la registrazione in `server.py` (5 righe, stesso schema di `stefania_router`) e' verificata solo per sintassi e per i nomi (`db` e' definito a riga 110). **Controllare dopo il deploy che `POST /api/partner-assistente/<id>/chat` risponda 401/403 senza token e non 404.**
+- Nessuna chiave Anthropic nel sandbox: il modello vero non e' stato mai interrogato (tono, regole, qualita'). Da provare con una partner reale (es. Sarah Arensi) con 5-6 domande, una delicata e una fuori scheda.
+- **⚠️ Scoperto, NON sistemato (fuori scope):** `POST /api/stefania/chat` (chat con gli agenti, `routers/stefania_chat.py`) NON ha autenticazione: accetta qualunque `partner_id` nel body e inietta nel prompt il contesto di quel partner (nome, nicchia, step, offerta). Un partner, o chiunque, puo' interrogare il contesto di un altro. Da far rivedere ad `auth-reviewer` e proteggere come `partner_assistente`.
+- Anche la pagina legacy dei partner nomina «Simona» e «Carlo» tra gli agenti (non nel roster canonico di CLAUDE.md): non toccato.
+- Nessuna notifica quando una domanda va in coda (la vede chi apre la scheda); nessun contatore in Home.
+### 2026-10-12 (9) · Claude Code · cc/competitor — Analisi competitor e piano social con link tracciati (Andrea)
 
-### 2026-09-09 · Codex · Priorità di semplificazione app
+**DICHIARATO**
+- `POST /competitor/analisi` (`services/ciak_competitor.py`): Andrea lavora SOLO sul testo/trascrizione e sulle cifre incollate da Claudio (non guarda il video: nessuna fonte lo porta in Ciak). Il tasso di interazione lo calcola il codice. Il «perche' ha funzionato» e' dichiarato ipotesi. Output: brief di un reel originale che alimenta il flusso reel. Storico in `ciak_competitor_analisi`.
+- Piano social del mese (`services/ciak_piano_social.py`, `/piano-social*`): Andrea propone fino a 16 voci (canale, formato, tema, brief), Claudio corregge e approva una volta; un piano per mese. Ogni voce riceve un link breve `{CIAK_BASE_URL}/api/ciak/go/{codice}` (router pubblico `routers/ciak_go.py`, montato in `server.py`) che reindirizza SOLO alla destinazione salvata con UTM e conta i clic (robot riconoscibili a parte, nessun IP/cookie). Collection `ciak_piano_social`, `ciak_link_tracciati`, `ciak_link_clic`.
+- Il piano NON pubblica da solo: ogni voce dichiara come si realizza (caroselli → Editoriale; reel → flusso reel; YouTube/LinkedIn/post testo/blog → manuale).
 
-**RICHIESTA:** personalizzare le voci per reparto e indicare cosa implementare davvero, mantenendo funzionalità e brand. Anteprima estesa con catalogo 52 route statiche (verify-catalog.cjs PASS), viste pipeline/KPI/obiettivi/clienti/partner, tre azioni Acquisizione e gestione materiali dimostrativa per account Delivery. Modifica e conferma eliminazione dimostrativa verificate nel browser; nessuna API collegata.
+**VERIFICATO:** frontend `src/ciak/admin` 84 suite / 508 test verdi; backend test nuovi competitor (12) e piano social (12) verdi; build compila.
 
-**VERIFICATO ORA:** letti router admin, cliente e partner e componenti materiali/supporto da origin/main 4c98b302. Import CSV e manuale già presenti in LeadManager sotto Importa. PartnerFilesPage dichiara caricamento diretto non attivo e rimanda a Telegram. TeamSupportoPage ora gestisce esplicitamente invio fallito: non ripetere il difetto storico di falso successo come attuale. Non eseguito collaudo completo dell'app o delle scritture.
+**⛔ NON VERIFICATO / APERTO**
+- Il redirect `/api/ciak/go/*` e' pubblico: da verificare che il proxy Vercel→Cloud Run instradi `/api/ciak/*` sul dominio del sito e che nessun middleware lo blocchi. Se non e' instradato i link brevi non funzionano.
+- Nessuna analisi/piano generati dal vivo (nessuna chiave AI nel sandbox). Il conteggio clic non e' lead: i lead restano nel funnel.
+- Su Instagram i link in didascalia non sono cliccabili (link in bio). Nessun collegamento ad API YouTube/LinkedIn/TikTok per leggere i video dei competitor.
 
-**PROPOSTA:** etichette e viste specifiche per reparto; ricerca e scheda persona comune; azioni contestuali collegate al record; gestione materiali e versioni; stati/KPI riconciliati; passaggi fra reparti e monitoraggio import/ricerca. Nessuna nuova implementazione applicativa, commit o deploy in questo passaggio.
+### 2026-10-12 (8) · Claude Code · cc/ciak-integrazione — Admin Ciak con gli agenti (Luca, Carlo, Marco, Simona, Andrea, Valentina)
 
-### 2026-09-09 · Codex · Anteprima riorganizzazione admin
+**RICHIESTA:** admin Ciak "macchina da guerra" in stile Sintra: 6 agenti con volto come menu, solo le funzioni HubSpot/Trello/Slack utili a Ciak. Tutto in un solo branch, un solo merge dopo il "go" esplicito di Claudio. Solo per Claudio: Antonella e Mariangela non cambiano (gli endpoint nuovi sono fuori dalla allowlist commerciale).
 
-**RICHIESTA:** Claudio vuole vedere una riorganizzazione con barre di ricerca, senza modificare colori, sfondi, palette, font o logo.
+**DICHIARATO** (tutti gli endpoint sono in `backend/routers/ciak_admin.py`, logica pura in `backend/services/ciak_*.py`, UI in `frontend/src/ciak/admin/`)
+- Memoria Ciak (regole condivise dagli agenti), home «Oggi» con i volti, menu laterale con i volti.
+- Sollecito trattative (Marco) e recupero 1 a 1 (Carlo): bozza AI, invio SOLO dopo «Invia» (`approvato: true`), registro `ciak_solleciti`, blocco doppio invio 24 h, nessun invio a chi ha pagato/firmato.
+- Prossimo passo con data + cronologia del contatto; compiti partner e avvisi percorso (Valentina); commenti con menzione agente + notifiche.
+- Contenuti (Andrea): pagina `/admin/contenuti`, bozze testo/SEO, chat di Andrea.
+- Reel con HeyGen (`services/ciak_reel.py`, `/reel/*`): Andrea scrive lo script, approvazione, video verticale 1080x1920 (`heygen_service.generate_video` ha il nuovo parametro `dimension`, default invariato), tetto mensile (default 8), coda di pubblicazione IG+FB (`social_publisher`: REELS e video Pagina).
+- Report della settimana (Luca): `/report/settimana`, 8 conteggi con confronto sui 7 giorni precedenti; una voce non contabile e' `n/d`, mai 0.
+- Integrata la PR #356 (striscia «Oggi hai N call»).
 
-**CONSEGNA:** anteprima autonoma locale in `output/admin-reorganisation-preview/`, server loopback http://127.0.0.1:4186. Direzione e quattro viste reparto; ricerca globale e locale, filtri, apertura scheda/materiali e supporto in pannello. Tutti i dati operativi sono esempi dichiarati, nessuna API Ciak collegata.
+**VERIFICATO:** frontend `src/ciak/admin` 82 suite / 500 test verdi; backend `tests/test_ciak_*.py` + `test_social_publisher.py` + `test_scheduler_social_trigger.py` 660 passati, 1 skipped (servono `stripe` e `apscheduler` installati nel sandbox); build frontend compila (warning preesistenti); il branch e' 0 indietro e senza conflitti con `main`.
 
-**VERIFICATO:** logo SHA256 identico a `frontend/public/ciak/logo.webp`; Poppins effettivamente caricato; colori ricavati da AdminShell/KpiTile/CabinaRegia. Check sintattici Node exit 0; ricerca Anna → persona/attività/documento e apertura diretta del documento; Bloccati → 2 righe, ricerca Marco → 1; Delivery → 3 righe. Desktop 1366 e mobile 390 senza overflow orizzontale, screenshot controllati, responsabile visibile anche su mobile. Dettagli nel README dell'anteprima.
+**⛔ NON VERIFICATO / APERTO**
+- Nessuna bozza AI e' mai stata generata dal vivo (nessuna chiave nel sandbox): qualita' di sollecito, recupero, contenuti, script reel da provare.
+- HeyGen mai chiamato dal vivo: l'elenco avatar/voci (`/reel/avatar`) dipende dal formato di risposta HeyGen non confermato; non si sa se la chiamata `/v2/video/generate` consumi crediti API o dell'abbonamento (fonte terza: separati). Da verificare col primo reel.
+- Pubblicazione reel su Meta mai provata dal vivo (IG REELS, video Pagina FB, permalink FB). Nel pannello reel non c'e' ancora il pulsante «Metti in coda» (esiste solo `POST /reel/{id}/in-coda`). YouTube Shorts e LinkedIn non supportati per i reel.
+- Il link HeyGen del video puo' scadere: non verificato; meglio copiarlo su Cloudinary prima della coda.
+- Non fatto: piano mensile dei social con link tracciati e report clic/lead per contenuto; analisi dei video virali dei competitor (non esiste una fonte dati); chat di Marco, Valentina, Luca.
+- Mobile del nuovo menu e foto degli agenti non verificati a vista (serve login).
+- Revisione Codex non eseguita (binario non installato, vedi voci precedenti).
 
-**APERTO:** solo proposta interattiva; nessun codice applicativo, dato reale, commit, push o deploy modificato. Preservati i worktree concorrenti. Integrazione e approvazione del layout da affrontare dopo la valutazione di Claudio.
+### 2026-10-12 (7) · Claude Code · claude/modest-euler-xde2pw — Assistente chat nell'area cliente Start
 
-### 2026-09-09 · Codex · Revisione strategica UI admin — sola lettura
+**RICHIESTA:** «inserisci un chatbot che risponde in automatico su tutte le questioni operative tecniche commerciali sui servizi evolution». Scelte di Claudio: dove = **area cliente Start** (pagina Assistenza); limiti = **passa al team** quando non sa o il tema e' delicato.
 
-**RICHIESTA:** analisi dettagliata di `/admin` e proposte per eliminare doppioni e azioni superflue.
+**DICHIARATO**
+- `backend/services/start_assistente.py`: scheda verificata (6 materiali da `start_pipeline.MATERIALI`, tappe 7/14/21 giorni, Start 390 €, Partnership 2.990 €, credito → 2.600 € da pagare, flusso approvazioni), regole del prompt, `argomento_delicato` (regex su rimborso/contratto/fattura/pagamento/rate/disdetta/accesso/avvocato/garanzia…), `passa_al_team`, `scheda_cliente` (dati reali: date tappe, materiali pronti, domande mancanti), `riga_log`.
+- `POST /api/ciak/client/start/assistente` (`routers/ciak_clients.py`, SSE, solo `has_start_entitlement`): riusa `proposta_chat` (stream_reply, clean_*, sse, `ChatRateLimiter` 20 msg/10 min per cliente, messaggi di errore). Temi delicati → risposta fissa SENZA chiamare il modello + riga in coda; se il modello usa la frase «Lo giro al team: ti risponde una persona.» → riga in coda; errore del servizio → messaggio onesto + riga in coda. Collezione `ciak_start_assistente` (`id, client_id, at, domanda, risposta, passato_al_team, motivo, gestita`).
+- Admin: `GET /start/{id}/assistente`, `POST /start/{id}/assistente/{riga}/gestita`; scheda cliente → Panoramica → «Domande all'assistente» (coda con motivo, «Fatto, ho risposto»; se non leggibile dice «Dato non disponibile»).
+- Frontend: `client/start/StartAssistenza.jsx` (chat nella grafica Sereno, esempi a un tocco, «Riprova» che non duplica, mail sempre disponibile), `assistenteStream.js`.
 
-**VERIFICATO:** fetch origin riuscito; sorgenti analizzati da origin/main `4c98b302`, senza aggiornare il checkout locale. Browser autenticato Claudio: Direzione, cinque landing operative incluse Acquisizione e vendita, Trattative KO, Calendario Acquisizione, Partner Per atto/Tabella. Confermati titolo Direzione errato nella nuova landing commerciale, intestazioni duplicate, chat prima delle code, landing KO/calendario composte da collegamenti, differenze di stato fra Kanban e tabella. Sorgenti confermano doppie landing video e assenza di collegamento operativo nelle code Vendite/Back office.
+**VERIFICATO:** backend `test_start_assistente.py` (25) + `test_start_assistente_admin.py` (3) + clienti/bozze 87 passati (con MONGO_URL, DB_NAME, JWT_SECRET_KEY, APP_ENV=test); frontend `src/ciak` 780/781 (rosso = `PartnerFilesPage.loading`, preesistente). Aggiunti i 2 file test a `.github/workflows/ci.yml`.
 
-**CONSEGNA:** report locale `output/revisione-admin-ui-2026-09-09.md`, con 12 gruppi di correzioni, priorità, architettura proposta, criteri e puntatori al commit. Non trattare i valori UI come riconciliazione contabile o prova di consegna.
+**⛔ NON VERIFICATO / APERTO**
+- Nessuna chiave Anthropic nel sandbox: **il modello vero non e' stato mai interrogato**. Tono, aderenza alle regole e qualita' delle risposte vanno provati da Claudio con 5-6 domande reali su `/cliente/start/assistenza` (incluse una delicata e una fuori scheda). Modello: `proposta_chat.CHAT_MODEL` (Haiku 4.5, env `PROPOSTA_CHAT_MODEL`).
+- «Tutte le questioni»: la scheda copre SOLO Start (cosa fare, tempi, strumenti, importi). Non conosce funnel, video, lancio, ads, Systeme dei partner: per quelli passa al team. Per allargare serve ampliare `_scheda_servizio` con fonti verificate.
+- Nessuna notifica quando una domanda va in coda: il team la vede solo aprendo la scheda del cliente (o, in futuro, un contatore in Home/pipeline).
+- Le regex dei temi delicati sono prudenti ma non esaustive; il modello ha comunque l'istruzione di passare al team sui soldi/contratto.
+- Non estesa all'area partner (hanno Stefania e gli agenti) ne' al sito pubblico.
 
-**APERTO:** proposte non implementate; nessuna modifica applicativa, invio, approvazione, pagamento, commit o deploy. Nessun collaudo mobile o degli altri ruoli. Preservato lavoro concorrente; vista Partner ripristinata a Per atto.
+### 2026-10-12 (6) · Claude Code · claude/modest-euler-xde2pw — Linda Pavia allineata, scheda a schede, Vista cliente
+
+**RICHIESTA:** finire l'account di Linda (risposte mancanti), poi «clienti e partner devono avere la stessa videata».
+
+**VERIFICATO (con prova)**
+- ✅ Materiale per le risposte di Linda: Gmail (solo la mail del Blueprint del 17/9), Drive (cartella «LINDA PAVIA»: solo materiali Video Up), Blueprint PDF (generico, 8 pagine). `GET /api/admin/ciak/lead?email=…`: `latest_diagnostic` e' un guscio `manual_delivery` senza risposte, `blueprint.stato = "mancante"`. Nessuna trascrizione di call e' salvata nel backend. Quindi nessuna risposta in piu' e' ricavabile: non se ne sono inventate.
+- ✅ Scritto da Claudio in console (200): 7 risposte confermate via `PUT /start/{id}/risposte-team` (`concorrenti_principali, contrarian_view, costo_del_no, desideri_avatar, livello_consapevolezza, paure_avatar, spazio_specialista`). `ancora_da_scrivere`: `metodo_step, prova_sociale_concreta, origin_story, obiezione_principale, limite_onesto` (strada scelta: le scrive Linda). `paure_avatar` e `costo_del_no` erano deduzioni, non parole sue, confermate da Claudio.
+- ✅ Linda: `access_level=cliente_start`, `start_purchased_at=2026-10-01`, `start_credit_amount=39000`. Claudio le ha mandato il messaggio e conferma che funziona.
+- ✅ Link d'accesso: valido 30 giorni e riutilizzabile (`create_magic_login_token`); il «48 ore» nella mail e' solo testo.
+
+**COMMIT (su main)**
+- `3613929` dashboard cliente: `start.attivo` (stessa regola dell'admin `has_start_entitlement`) + frontend `haStartAttivo`: un account Start attivato a mano non resta sull'area vecchia. NON era la causa per Linda (aveva gia' `cliente_start`): resta come difesa.
+- `e0913be` `SchedaStart` con schede come `PartnerDetailModal`: Panoramica · Percorso · Materiali · Documenti · Impostazioni (`?scheda=<id>`). Niente scheda Pagamenti (nessun dato verificato).
+- `9a250d7` pulsante «Vista cliente →» (come «Vista →» dei partner): apre `/cliente/accesso?token=…` in una scheda nuova, via `POST /clients/{id}/link-accesso` (crea un link nuovo e un evento nello storico; nessuna email).
+
+**TEST:** frontend `src/ciak/admin` 392/392; `src/ciak` 770/771 (l'unico rosso e' `PartnerFilesPage.loading`, preesistente); backend `test_ciak_clients_router.py` 55 passati (servono `MONGO_URL`, `DB_NAME`, `JWT_SECRET_KEY`, `APP_ENV=test`).
+
+**⛔ APERTO**
+- Il sito di Linda (`showcase`) e' stato generato con 8 risposte: NON approvarlo prima che abbia risposto alle 5 domande; decidere se rigenerare le bozze dopo.
+- Nessuna mail automatica avvisa il cliente della riapertura delle domande (l'ha avvisata Claudio a mano).
+- Generazione AI e invio email reali con le 20 risposte complete: mai provati.
+- «Vista cliente» lascia una sessione cliente nel browser dell'admin.
+
+### 2026-10-12 (5) · Claude Code · claude/modest-euler-xde2pw — Scheda admin del cliente Start aggiornata al nuovo regime
+
+**RICHIESTA:** «aggiorna la pagina di Linda Pavia… l'account con tutte le nuove impostazioni» = la scheda admin `/admin/start/<id>` (`SchedaStart.jsx`), ferma al vecchio regime.
+
+**DICHIARATO**
+- Backend `GET /start/{id}/bozze` aggiunge per materiale `approvato_da` («ciak-automatico» = approvazione automatica) e `ripiego`; e un blocco `domande {inviate_at, riaperto_dal_team, dal_team, proposte, mancanti}`.
+- Frontend: `SchedaStartDati.jsx` (`Domande20`: le 20 domande per blocco con la risposta, «inserita dal team», proposte in attesa, «da scrivere»; `MarchioScelto`: colori, voce, parole, espressioni, parole da evitare, emozioni, foto/logo). `SchedaStart.jsx`: etichetta «Approvato in automatico», «Testo di ripiego · da rivedere», pulsante «Approva sito e dominio» con spiegazione, ultimo movimento/fermo, riquadro «Come funziona». I dati grezzi restano in un details chiuso.
+
+**VERIFICATO:** frontend `src/ciak/admin` 62 suite, 386 test; backend 5 file (bozze, proposte, router clienti, autogenerazione, pipeline) tutti passati. Render con Chromium della scheda con i dati veri di Linda (incollati da Claudio il 12/10) + le 2 risposte del team simulate.
+
+**⛔ PROBLEMA DATI TROVATO:** per `differenza_riconoscibile` la domanda EVO («Come ti descriverebbe una cliente a un'amica, in una frase?») NON e' quella a cui Linda aveva risposto (vecchio testo Start: «Cosa fai tu di diverso dagli altri…»). Ora la sua risposta («Lavoro One to One e creo un percorso personalizzato») appare sotto la domanda sbagliata. Le altre 7 vecchie domande hanno testo molto simile a EVO. Da decidere con Claudio: farle riconfermare quella risposta.
+
+### 2026-10-12 (4) · Claude Code · claude/modest-euler-xde2pw — Risposte mancanti: il team propone/inserisce, il cliente completa
+
+**CONTESTO:** dopo il passaggio alle 20 domande EVO, Linda Pavia (letta dalla console admin di Claudio, 12/10) aveva solo le 8 vecchie risposte. Online NON esiste nulla su di lei né su «Nuovi Inizi» (due ricerche): nessun dato inventato. Claudio ha confermato le risposte dedotte (A: 5 riformulazioni delle sue parole; B: 2 ipotesi, approvate da lui). Le 5 che solo lei puo' scrivere (`metodo_step`, `prova_sociale_concreta`, `origin_story`, `obiezione_principale`, `limite_onesto`) restano a lei.
+
+**DICHIARATO (codice)**
+- `PUT /api/admin/ciak/start/{id}/risposte-proposte` (`ProponiRisposteStartRequest`): proposte in `data.proposte`, MAI in `data.answers`; riapre il questionario (`data.integrazione_richiesta_at`).
+- `PUT /api/admin/ciak/start/{id}/risposte-team` (`RisposteTeamStartRequest`): risposte GIA' CONFERMATE da Claudio → `data.answers` + tracciate in `data.risposte_dal_team.<chiave> = {da, at}`; mai sopra una risposta vera (≥ 8 caratteri), solo le 20 chiavi Start; se mancano ancora domande lascia/imposta `integrazione_richiesta_at`, se non manca nulla lo azzera. Non tocca stato/approvazioni e NON rigenera bozze.
+- `GET /api/ciak/client/start/risposte` ora ritorna anche `proposte` (solo per domande senza risposta) e `integrazione`. `PUT .../risposte` con `completato`: se `integrazione_richiesta_at` e' valorizzato servono TUTTE e 20 (altrimenti restano le 8 per chi le aveva inviate); a completamento lo azzera (valore `None`).
+- Frontend: `StartDomandePage` non mostra «Grazie» con `integrazione`, riparte dalla prima domanda mancante, avviso «abbiamo gia' messo a posto noi alcune risposte», proposta del team con pulsante «Va bene così, la uso» (la proposta non diventa risposta da sola). `startOggiModel`: con `integrazione` il passo e' «Rispondi alle ultime domande» (conta quante restano), il percorso mostra «da fare».
+
+**VERIFICATO:** backend `tests/test_start_proposte.py` + `test_ciak_clients_router.py` + `test_start_autogenerazione.py` → 77+ passati, 0 fallimenti (APP_ENV=test JWT_SECRET_KEY=ci-test-secret MONGO_URL=mongodb://localhost:27017). Frontend `src/ciak` → 120 suite, 762 test; unico fallito `PartnerFilesPage.loading` (preesistente).
+
+**⛔ APERTO**
+- Lo snippet per scrivere le 7 risposte di Linda va lanciato da Claudio dalla console admin (io non ho il token di produzione): fino ad allora i suoi dati NON sono stati modificati.
+- Le bozze gia' approvate di Linda (posizionamento, profili) non vengono rigenerate dalle nuove risposte: decisione da prendere.
+- Sito web e calendario di Linda sono ancora `pending_review` (esistevano prima dell'approvazione automatica, che non li tocca).
+
+### 2026-10-12 (3) · Claude Code · claude/modest-euler-xde2pw — Approvazione automatica dei materiali Start
+
+**DECISIONE DI CLAUDIO (11/10):** a mano restano SOLO sito vetrina e dominio (un solo passaggio: `live_url` https). Gli altri materiali vanno al cliente senza approvazione, MA (1) una bozza con testo di ripiego resta ferma, (2) UNA sola email al cliente. Supera la regola del 13/8/2026 «Claudio approva ogni deliverable».
+
+**DICHIARATO (codice, sul branch)**
+- `routers/ciak_admin.py`: l'approvazione e' ora `_approva_start_deliverable(client_id, tipo, actor, live_url_richiesta, *, avvisa=True)`; l'endpoint `POST /start/{id}/deliverable/approva` la chiama (comportamento invariato, 11 test del wiring passano).
+- `services/start_autogenerazione.py`: `AUTO_APPROVA = (positioning, brand_kit, social_profiles, content_plan_90d)`; dopo ogni generazione riuscita `_auto_approva` approva (approvatore `ciak-automatico`, senza email per singolo materiale) SE la bozza non e' di ripiego (`positioning.fallback`, `social_profiles._fallback`, `content_plan_90d.calendar.source != "ai"`). Approva SOLO cio' che questa esecuzione ha generato: le bozze gia' esistenti restano come sono. Sito vetrina e `partnership_readiness` MAI automatici.
+- Email unica: `ciak_client_reengagement.invia_materiali_pronti`, inviata da `_una_email_per_gruppo` solo quando tutti e 4 i materiali automatici sono approvati e `ciak_clients.start_materiali_email_at` non e' impostato (poi lo imposta). Se uno e' da rivedere a mano, nessuna email a meta': quando il team lo approva parte la vecchia email singola.
+- Avviso al team: dice cosa e' gia' al cliente e cosa resta «da rivedere a mano»; `requires_approval` solo se resta qualcosa (di solito il sito).
+- Testi al cliente resi veri: tolti «li controlliamo uno per uno» / «nessun materiale ti arriva senza essere stato guardato» (`StartOggi`, `startOggiModel`, `StartMateriali`, `MaterialiStart`, `BenvenutoStart`, pagine domande/marchio, libretto PDF). Il sito web: «lo controlliamo e lo mettiamo online noi».
+
+**VERIFICATO:** backend (APP_ENV=test JWT_SECRET_KEY=ci-test-secret MONGO_URL=mongodb://localhost:27017, con `pytest-asyncio`, `anthropic` ecc. installati nel sandbox): 13 file di test Start/clienti → 183 passati prima, **195 dopo, 0 fallimenti**; nuovi: 10 sull'approvazione automatica (approva i 4 e non il sito, email una volta sola e non ripetuta, ripiego per posizionamento/profili/calendario resta fermo, calendario di origine ignota si rivede, bozze esistenti non toccate, errore di approvazione non solleva) + 2 sull'email. Frontend `src/ciak`: 120 suite, 760 test; unico fallito `PartnerFilesPage.loading` (preesistente).
+
+**⛔ APERTO / RISCHI**
+- Mai provata con LLM e SMTP veri: i generatori e l'invio sono mockati. Dopo il deploy la prima volta che un cliente Start invia risposte+marchio le 4 bozze andranno DAVVERO al cliente senza che nessuno le guardi: tenere d'occhio la prima.
+- Il marker di ripiego e' letto dai flag attuali dei generatori; se un generatore cambia nome del flag, l'approvazione automatica smette di fermare il ripiego (c'e' un test per ciascuno).
+- Una bozza approvata in automatico non ha un passaggio di «correzione» lato cliente: se il testo e' scadente il cliente lo vede comunque.
+- `partnership_readiness` resta a mano (richiede che tutte le evidenze siano approvate, incluso il sito).
+- «Dominio»: nessun passaggio separato (decisione: un solo passaggio con il sito).
+
+### 2026-10-12 (2) · Claude Code · claude/modest-euler-xde2pw — Area cliente Start nella grafica dell'area partner
+
+**RICHIESTA DI CLAUDIO:** «la schermata per il cliente deve essere simile al partner». Mockup approvato («perfetto procedi»). ⚠️ Mia scelta di perimetro (domanda non risposta): la nuova area vale SOLO per `access_level === "cliente_start"`; Blueprint e Partnership restano con `ClientLayout`/`ClientHome` come prima.
+
+**DICHIARATO (codice, sul branch, NON su main)**
+- `frontend/src/ciak/client/start/`: `StartShell.jsx` (stessa grafica «Sereno»: importa `partner/sereno/sereno.css`; menu Oggi · Il percorso · I tuoi materiali · Assistenza, «Cosa viene dopo», «Chiedi aiuto», barra in basso sul telefono), `StartArea.jsx` (carica `/start/risposte`, `/start/marchio`, `/start/deliverables`, li ricarica a ogni cambio pagina; rotte: indice, `percorso`, `materiali`, `assistenza`, `start/domande`, `start/marchio`, `partnership`, `simulatore`; il resto → Oggi), `StartOggi.jsx`, `StartPercorso.jsx`, `StartMateriali.jsx` (riusa `MaterialiStart`), `StartAssistenza.jsx` (email `assistenza@evolution-pro.it`, nessuna chat), `startOggiModel.js` (puro: prossimo passo = domande → marchio → materiali pronti → «tocca a noi»; 6 materiali, tappe con le date `dashboard.start.consegne`).
+- `CiakClientApp.jsx`: se `cliente_start` → `<StartArea>` (con il banner «Pagamento ricevuto» passato come prop); il gate `BenvenutoStart` resta prima. Indirizzi storici `/cliente/start/domande` e `/cliente/start/marchio` invariati; `/cliente/start` → Oggi.
+- Saluto «Ciao {nome}.» (non «Bentornato»: sbaglia il genere).
+
+**VERIFICATO:** `CI=true npx craco test --watchAll=false src/ciak` → 120 suite passate, 760 test; unico fallito `PartnerFilesPage.loading` (preesistente). Nuovi: 10 test del modello, 9 dell'area, 3 del routing per livello. Render con Chromium del componente vero (desktop 1400 px e 390 px) con dati di esempio: fedele all'area partner.
+
+**⛔ NON VERIFICATO / APERTO**
+- Mai visto con un account Start reale nel browser; dati di esempio, non quelli di Linda.
+- «Il prossimo passo» non sa se il cliente ha gia' copiato i testi sui profili (lo stato «fatto» dei profili guidati e' solo nel browser): dopo i materiali approvati dice sempre «Hai N materiali pronti».
+- Assistenza = solo email, nessuna chat come nell'area partner (`SerenoHelp` usa endpoint partner).
+- `StartPage.jsx` (vecchia pagina Start, ancora usata per `access_level === "partner"`) dice ancora «Le tue otto domande» e «scegli i colori…»: testi vecchi, non toccati.
+- Il form del brand EVO dentro l'area resta lungo; le pagine domande/marchio hanno ancora la loro grafica Tailwind dentro il contenitore Sereno.
+
+### 2026-10-12 · Claude Code · claude/modest-euler-xde2pw — «Chi sei» e «Il tuo brand» di Start = percorso EVO
+
+**DECISIONI DI CLAUDIO (11-12/10):** (1) i clienti Start rispondono alle STESSE 20 domande del posizionamento EVO, tutte obbligatorie; (2) il marchio e' il brand kit completo di EVO. ⚠️ Contraddice la scelta documentata nel vecchio `ciak_start_domande.py` («otto e non venti: chi compra Start e' poco digitalizzato») e il principio «accompagnare per mano»: Claudio e' stato avvisato e ha confermato. Rischio da monitorare: clienti che non finiscono il questionario.
+
+**DICHIARATO (codice, sul branch, NON su main)**
+- Backend: `ciak_start_domande.py` → `DOMANDE_START_IDS` = 20 chiavi EVO (stesso ordine di `posizionamentoQuestions.js`); `DOMANDE_START_LEGACY_IDS` = le vecchie 8; `mancanti(risposte, gia_inviate)`: chi aveva GIA' inviato le 8 non viene riaperto (gli bastano le 8 se corregge). `routers/ciak_clients.py` passa `gia_inviate`.
+- `ciak_start_marchio.normalizza` accetta anche la forma EVO: `colors` (3 hex), `tone_of_voice` libera (bozza salvata di qualsiasi lunghezza; per INVIARE `mancanti` pretende `TONO_MIN`=40 come EVO), `espressioni`, `parole_evitare`, `emozioni`, `tono_scale`. Restano valide le vecchie scelte pronte. Le lettere (`font`) NON sono piu' obbligatorie (EVO non le chiede): default `Poppins` in `build_start_brand`. Logo e foto restano facoltativi in Start (obbligatori in EVO).
+- Frontend: `client/startDomande.js` deriva da `POSIZIONAMENTO_QUESTIONS` (una sola fonte; se cambia l'elenco va cambiato anche `DOMANDE_START_IDS`); `StartDomandePage` mostra il blocco («Il cliente ideale · Domanda 1 di 20»). `StartMarchioPage` ora incapsula `Step03BrandKit` (partner) con nuove prop opzionali `uploadFn`, `onFinalize`, `logoFotoObbligatori`, `ctaLabel`, `titolo`: il percorso EVO e' invariato (default). `MaterialiStart` e `start_libretto._sezione_marchio` mostrano anche espressioni / parole da evitare / emozioni.
+- Soglia minima per andare avanti nelle domande: resta 8 caratteri (`MIN_CARATTERI`), PIU' BASSA dei `minChar` EVO (25-80): scelta mia per un pubblico poco digitale, da confermare.
+
+**VERIFICATO**
+- Backend: nei file toccati i test che fallivano PRIMA falliscono uguale DOPO (dipendenze mancanti nel mio ambiente: es. `anthropic`, rotte dashboard), nessun fallimento nuovo; +8 test nuovi passati (domande: 2; marchio EVO: 5; libretto: 1). Eseguiti con `APP_ENV=test JWT_SECRET_KEY=ci-test-secret MONGO_URL=mongodb://localhost:27017`, dipendenze installate a mano nel sandbox.
+- Frontend `CI=true npx craco test --watchAll=false src/ciak` → 117 suite passate; unico fallito `PartnerFilesPage.loading` (preesistente).
+- ⛔ Mai visto nel browser vero. ⛔ La generazione automatica delle bozze con 20 risposte (posizionamento_statement ecc.) NON provata end-to-end.
+
+**APERTO**
+- ⛔ Non e' stata scritta l'approvazione automatica (vedi voce precedente): resta da fare.
+- ⛔ Il form brand EVO e' una pagina lunga (colori in esadecimale, scala del tono, emozioni): non l'ho reso «a passi» come i profili social. Candidato al prossimo giro.
+- 🔎 `AgentVoiceNarrante.jsx:8` (partner) dice ancora «8 domande»: preesistente, EVO ne ha 20.
+
+### 2026-10-11 (notte) · Claude Code · claude/modest-euler-xde2pw — Profili social guidati per il cliente (pilota) + decisione sull'approvazione
+
+**DECISIONE DI CLAUDIO (da implementare, NON ANCORA FATTO):** l'approvazione a mano resta SOLO per sito vetrina + dominio (sono un passaggio solo: `approva_deliverable_start` con `live_url` https). Gli altri materiali (posizionamento, marchio, profili social, calendario 60 giorni) devono andare al cliente senza approvazione, MA: (a) una bozza con testo di ripiego (`_fallback`/`fallback`) resta ferma per l'approvazione manuale; (b) UNA sola email al cliente quando i materiali automatici sono pronti (oggi `invia_deliverable_pronto` parte a ogni approvazione). Punto d'innesto individuato: `services/start_autogenerazione.prepara_bozze` + `approva_deliverable_start` (PDF + email). `partnership_readiness` richiede `ready` (tutte le evidenze approvate): da decidere. Nessun codice scritto per questo.
+
+**PRINCIPIO (Claudio):** il cliente Start e' poco digitalizzato: va accompagnato per mano, una azione alla volta, parole semplici, esempi visivi.
+
+**DICHIARATO (codice, sul branch, NON su main):** `frontend/src/ciak/client/ProfiliGuidati.jsx` sostituisce il vecchio blocco `Profili` in `MaterialiStart.jsx`: un passo per piattaforma (Instagram, Facebook, LinkedIn, TikTok), disegno d'esempio nostro (SVG generico con la zona gialla «qui incolli», non screenshot di app altrui), passi numerati, un pulsante grande «Copia il testo», «Ho incollato, vai avanti» / «Lo faccio dopo», contatore «Hai completato N passi su M», aiuto via `mailto:assistenza@evolution-pro.it` (indirizzo gia' presente in `CiakClientApp.jsx`). Il link in bio segnaposto («da inserire quando…») non si mostra piu' come testo da copiare. Nome da mostrare, scritte per la copertina e storie in evidenza stanno in «Più avanti».
+
+**VERIFICATO:** `CI=true npx craco test --watchAll=false src/ciak` → 117 suite passate, 741 test; unico fallito `PartnerFilesPage.loading` (preesistente, gia' noto). I 4 disegni resi con Chromium e guardati (uno ritoccato: etichetta LinkedIn sul bordo).
+
+**⛔ NON VERIFICATO / APERTO**
+- I passi dei menu delle app (es. «Tocca la tua foto in basso a destra → Modifica profilo → Bio») vengono da guide di TERZI trovate con WebSearch (nessuna pagina ufficiale Instagram/Facebook/LinkedIn/TikTok trovata): vanno provati con le app aperte (Claudio/Antonella) prima di fidarsi. I testi dicono al cliente di cercare la voce simile o di scrivere.
+- 🔎 DISCREPANZA: `services/start_profili_social.LIMITI["facebook_descrizione"] = 255` («verificati al 12/8/2026»), una guida di terzi parla di 155 caratteri per la descrizione. Non toccato: da verificare sulla piattaforma.
+- «Fatto» si ricorda solo sul dispositivo del cliente (localStorage): l'admin NON lo vede. Idea: salvarlo lato server per alimentare la pagina Clienti.
+- Mai visto nel browser vero (solo test e render dei disegni). Il PDF «libretto» (`start_libretto.py`) non e' stato toccato e ha ancora etichette tecniche; i testi generati hanno ancora apostrofi al posto delle accentate («Cos'e'», «e'»).
+- Stesso schema guidato da applicare a sito, marchio, calendario.
+
+### 2026-10-11 (sera, 2) · Claude Code · claude/modest-euler-xde2pw — Home a 4 riquadri apribili
+
+**DICHIARATO:** su richiesta di Claudio la Home «Oggi» e' ora fatta di 4 riquadri lunghi, apribili con la freccia, in quest'ordine: **Call · Trattative · Clienti · Partner**. Intestazione nel blu scuro della sidebar (slate-900, titolo bianco, freccia gialla `#FACC15`). Chiusi mostrano un riassunto con i numeri; partono chiusi e il browser ricorda cosa era aperto (`localStorage` chiave `ciak_admin_home_riquadri`, solo comodita'). Componente nuovo `components/ui/Riquadro.jsx` (un solo `<button aria-expanded>` nell'`<h2>`, riga intera cliccabile). `OggiBlocks` riceve `clienti` (= `OggiStart`) e lo mette in terza posizione. «Partner» unisce «Come procedono per fase» e le urgenze di delivery (Tocca a te / Aspettiamo il partner). Titolo «Trattative in corso» → «Trattative».
+
+**VERIFICATO:** `CI=true npx craco test --watchAll=false src/ciak/admin` → 62 suite, 384 test passati (nuovi: ordine dei 4 riquadri, apertura/chiusura, memoria). ⛔ Mai visto nel browser; build non lanciata. 🔎 «Blu come la sidebar» interpretato come slate-900 (colore attivo della sidebar), non un blu nuovo.
+
+### 2026-10-11 (sera) · Claude Code · claude/modest-euler-xde2pw — Clienti Start rivista, barra Delivery tolta, riepilogo Oggi tolto
+
+**DICHIARATO**
+- Pagina Clienti (`/admin/start`, `PipelineStart.jsx`) rifatta sul concetto «i clienti Start costruiscono il pacchetto o si sono fermati?»: colonne Cliente · Pacchetto (6 segmenti colorati + «N di 6 approvati», con testo per ogni materiale) · Prossima mossa (Tocca a te / Tocca al cliente) · Ultimo movimento (+ pillola «Fermo»). Filtri: Tutti · Fermi · le 4 fasi. Ordine: prima chi aspetta te, poi i fermi, in fondo i completi.
+- Backend (`services/start_pipeline.py`, `routers/ciak_admin.py`): `riga_cliente` aggiunge `ultimo_movimento {quando, giorni, da_acquisto}` (data piu' recente fra `updated_at/approved_at/completed_at/ready_at` degli step, `answers_completed_at`, `brand_completed_at`, bozze; se nessuna → acquisto, e lo dice) e `fermo` (non completato e `giorni >= SOGLIA_FERMO_GIORNI = 7`). ⚠️ **La soglia di 7 giorni e' una mia scelta di prodotto, non un dato**: da confermare con Claudio. 🔎 Non verificato che `updated_at` si aggiorni su OGNI avanzamento reale (puo' muoversi anche per modifiche admin).
+- `CiakAdminApp.jsx` + `sezioneModel.js`: pagine con `propria: true` (solo Clienti Start) non aprono la barra «DELIVERY · Panoramica · …» e non accendono «Delivery» nella sidebar. Resta nel NAV (ricerca, palette).
+- `OggiBlocks.jsx`: tolta la riga di 3 tasselli (Call da gestire, Trattative in corso, Partner in EVO): ripeteva i blocchi sotto.
+
+**VERIFICATO:** `pytest tests/test_start_pipeline.py` (APP_ENV=test JWT_SECRET_KEY=ci-test-secret MONGO_URL fittizia) → 14 passed (4 nuovi). `CI=true npx craco test --watchAll=false src/ciak/admin` → 62 suite, 382 test passati. ⛔ Mai visto nel browser; ⛔ eslint non eseguito (config v9 assente), build non lanciata.
+
+### 2026-10-11 · Claude Code · claude/modest-euler-xde2pw — admin Home: tolte le card dei reparti
+
+**DICHIARATO:** su richiesta di Claudio (screenshot di `ciak.io/admin`) rimosso da `AdminHome.jsx` il blocco «Numeri per reparto» (5 card Direzione/Acquisizione/Vendite/Delivery/Back office): ripeteva la sidebar. Restano striscia «Richiede attenzione», blocchi Oggi e «Le tue collaboratrici». Sottotitolo: «I reparti sono nel menu a sinistra.» Persi dalla Home, di proposito: cassa del mese, nuovi lead 7 gg, proposte inviate, partner attivi (sono nelle pagine dei reparti).
+
+**Aggiunta (stesso giorno):** tolto anche il tassello «Tocca a te» dal riepilogo di Oggi (`OggiBlocks.jsx`; ora 3 tasselli). L'elenco «Tocca a te» con i nomi resta in «Urgenze di delivery». Interpretazione di «il riquadro tocca a te» non confermata da Claudio.
+
+**VERIFICATO:** `CI=true npx craco test --watchAll=false src/ciak/admin` → 62 suite, 381 test passati. ⛔ Non visto nel browser. ⛔ L'evidenziazione dello screenshot non era visibile: ho dedotto che fosse il blocco card.
+
+### 2026-10-09 · Claude Code · claude/fervent-ramanujan-wfdt8k — Andolfi: dominio `corsi.`, lezione 1, iscrizioni → Systeme
+
+**CONTESTO:** il funnel di Daniele Andolfi (ID 23) resta sulla bozza Vercel; l'indirizzo finale e' `corsi.sabaiacademy.it` (NON `corso.`, residuo da togliere). CRM, automazioni e statistiche vanno nel suo Systeme.
+
+**VERIFICATO (output di Claudio / API, 9/10/2026)**
+- DNS su SiteGround (nameserver `ns1/ns2.siteground.net`, ✅ NS letti da 8.8.8.8): Daniele ha cambiato il CNAME `corsi` da `d34qf1t3po3iok.cloudfront.net` (Systeme) a `181bdfce03c120d9.vercel-dns-017.com` (Vercel). `Resolve-DnsName ... 8.8.8.8` conferma. Vercel `get_domain_config`: `misconfigured: false`, `configuredBy: CNAME`. Il sito si apre (Claudio).
+- Ciak: `domain_records` sostituite con la riga Vercel (`POST /funnel-review/23/admin/set` con `connections.dominio=false`), poi `domain/check` → `corsi ok`, passo `dominio fatto`, `via_libera attesa`. Il controllo ha mandato l'avviso Telegram "DOMINIO COLLEGATO" (visto).
+- `team_ready` NON impostato: restano aperti i collegamenti `optin` (contatti nel Systeme), `email` (sequenze, testi da validare con Daniele) e `pagamento` (`checkoutUrl` vuoto il 7/10; sistema di pagamento da decidere).
+- Lezione 1 (`m1_l1`): il vecchio grezzo Drive `1IgfzkPt…` non esiste piu' (Claudio, pagina Drive); retry con `force_phase=a` ha fallito (gdown, log del worker). Il worker `evolution-pro-worker` e' sano (minScale 1). `/api/celery/status` dal web service dice `enabled:false` perche' e' il servizio web, non il worker. Daniele ha ricaricato `Modulo1_L1_pilotaautomatico.mp4` (Drive `1xsl4AK4…`, 456 MB, condiviso come "chiunque col link, writer"); `submit-video-link` → `success`. ⛔ Esito non ancora visto; ⛔ non confermato che sia il girato (non montato).
+- `09-funnel-asset` `skipped`: id storico mappato su `10-sistema-vendita` da `_migrate_legacy_valida_steps` (`partner_journey.py:6962-7032`), non un problema.
+
+**DICHIARATO (codice, in questa PR)**
+- `POST /api/partner-optin/{id}`: con `partners.public_optin.systeme_sync=True` e la chiave del partner in `SYSTEME_API_KEY_PARTNER_<id>` (solo ambiente), l'iscritto viene creato anche nel Systeme del partner con tag `public_optin.systeme_tag` (default `iscritto_masterclass`). Background, mai bloccante; esito sul lead in `systeme` (ok, reason, attempts, at). Tetti dalla revisione `auth-reviewer`: 3 tentativi per lead, 15 min tra l'uno e l'altro, 5 sincronizzazioni in volo per istanza, tentativo prenotato prima di partire. Nome ripulito dai caratteri di controllo. Telefono non inviato (slug non verificato).
+- Test: `pytest tests/test_partner_systeme.py tests/test_partner_optin.py` → 38 passed (MONGO_URL fittizia come in CI); senza la modifica al router i test della sincronizzazione falliscono.
+
+**APERTO / ⛔**
+- Per attivarlo: PR mergiata e deployata; chiave API del Systeme di Daniele (*Impostazioni → Chiavi MCP e API*) nell'ambiente del backend come `SYSTEME_API_KEY_PARTNER_23` (dalla console Cloud Run, non in chat); poi `PATCH /api/admin/partner/23/journey` (`collection: partners`, chiavi puntate `public_optin.systeme_sync`, `public_optin.systeme_tag`).
+- Nessun trasferimento in blocco dei lead gia' presenti (erano di prova il 7/10; per eventuali reali: export CSV o backfill da aggiungere).
+- Residui: tetto per IP aggirabile con `X-Forwarded-For` falsificato (dichiarato); nessun double opt-in; nessun test sulla concorrenza; `corso.sabaiacademy.it` da togliere da Vercel; Cookie Policy della bozza dice "niente cookie di analisi" ma Web Analytics e' acceso (come lavora senza cookie non verificato); condivisione Drive del video da ridurre a "visualizzatore"; `la-tua-storia` risulta `done` ma non validata da Daniele (regola 7).
+
+### 2026-10-07 · Claude Code · claude/dreamy-maxwell-mz80ju (PR #352) — admin: Lead, Clienti, menu per persona
+
+**CONTESTO:** Claudio faticava a trovare le cose e a seguire i clienti Start. Decisioni prese con lui il 7/10: menu con accessi diretti **Home · Lead · Clienti · Partner** sopra i 4 reparti (invariati); pagina **Lead** = lead *in gestione* (Questionario · Call fissata · Call fatta · Trattativa) in **tabella** con un solo pulsante **Azioni** (menu a tendina con tutte le funzioni gia' attive); chi **acquista** (Start o Partnership) esce da Lead e compare in Clienti/Partner. Il **Blueprint e' gratuito**: chi lo riceve resta lead. Pipeline a tabella anche per Clienti.
+
+**DICHIARATO**
+- Backend: `GET /api/admin/ciak/lead-gestione` (`services/lead_gestione.py`: fasi, uscita dei compratori — Start per entitlement, Partnership per contratto pagato/partner attivo); `GET /start/pipeline` (`services/start_pipeline.py`); `PUT /start/{id}/marchio` (admin imposta colori/logo del marchio Start, stessa validazione della pagina cliente, non tocca stato); `PATCH /lead` esteso (nome, cognome, telefono in `telefono`+`phone`, email con controlli: mai se ha account o proposta o l'indirizzo e' di altri; cascata su `ciak_leads`/`diagnostic_sessions`/`ciak_checkpoint_events`); `DELETE /lead?elimina_account=` (solo su richiesta, mai se ha acquistato, controllo PRIMA di cancellare).
+- `nome` resta il nome per intero (lo leggono tutte le pagine); il cognome si salva in piu' (`nome_proprio`, `cognome`).
+- Frontend: `pages/LeadHub.jsx` + `leadModel.js`, `pages/PipelineStart.jsx` (tabella) + `SchedaStart.jsx` (account cliente: 6 materiali, un pulsante per stato), blocco "Clienti Start" nella Home (`components/OggiStart.jsx`, `oggiModel.buildOggiStart`), `QUICK` in `CiakAdminApp.jsx`, `AdminLeadDetail` apre sulla sezione giusta con `?vai=` (questionario, fissata, blueprint, invia, proposta, riporta). Esito dei pulsanti di Consegne Start ora visibile in alto (sticky).
+
+**VERIFICATO**
+- Backend: `pytest` (con `APP_ENV=test JWT_SECRET_KEY=ci-test-secret`): `test_lead_gestione` + `test_lead_modifica_elimina` + `test_start_pipeline` + `test_start_marchio_admin` + `test_start_bozze_admin` + i test esistenti su lead/eliminazione passano (125 nell'ultimo giro mirato). Due test esistenti sull'eliminazione fallivano con il mio primo codice (default `Query(False)` letto come vero chiamando la funzione direttamente): corretto con `is True`.
+- Frontend: `src/ciak/admin` 62 suite, 379 test passati.
+- ⛔ `src/ciak/partner/sections/PartnerFilesPage.loading.test.js` fallisce **anche senza le mie modifiche** (verificato con `git stash`): non e' mio, non l'ho toccato.
+
+**APERTO**
+- ⛔ Mai visto nel browser: nessuna istanza avviata. Dopo il merge/deploy aprire `/admin/lead`, `/admin/start`, il menu **Azioni** (apertura sopra/sotto, tastiera) e una scheda con `?vai=blueprint`.
+- ⛔ Il prezzo/uscita: le pagine **Trattative** di oggi continuano a mostrare chi ha comprato Start (non ho cambiato `/pipeline-blueprint`); l'uscita automatica vale solo per la pagina Lead.
+- 🔎 Dopo una modifica con cognome, le altre pagine leggono `nome` (intero): corretto. Il telefono e' in due campi (`telefono`, `phone`) scritti insieme: non ho unificato i vecchi record.
+- 🔎 "Trattative KO" e' solo una pagina di collegamenti (il backend non ha uno stadio KO): non e' una fase di Lead.
+- ✅ Fatto dopo (stesso giorno, "procedi"): **nomi nel menu e titoli di pagina** — Pipeline Partner→Partner, Quarantena→Partner in pausa, Ex Partner→Partner usciti, Motore Vendite Partner→Vendite dei partner, Audit Delivery→Stato del percorso (titolo pagina era "Delivery Audit"), Produzione video→Video da approvare, Risultati finali→Siti e funnel da guardare, Consegne Start→Scadenze Start, KPI Partner→Numeri dei partner, Trattative KO→Trattative perse, Consegna manuale→Invia il Blueprint, Date contratti→Scadenze contratti, Clienti Ciak→**Account Ciak**. Invariati di proposito: "Calendario partner" e "Campagne partner" (li citano le dashboard di Antonella e `navCoerenza.test.js`), File, Casi studio, Clienti Start. Gli URL non cambiano.
+- ✅ **Account Ciak** (`/admin/clienti-ciak`): tre viste — *Hanno comprato* (default: Start, Partner, credito/acquisto Start o Partnership attiva), *Solo Blueprint* (lead gratuiti), *Tutti* — con conteggi; `haComprato()` esportata e provata. Frontend `src/ciak/admin`: 62 suite, 382 test passati.
+- ⏭️ Non fatto: le pagine **Trattative** (`/pipeline-blueprint`) mostrano ancora chi ha gia' comprato Start (la Home le dedupica da sola in `oggiModel`); i commenti nel codice citano ancora i vecchi nomi.
+
+### 2026-10-07 · Claude Code · claude/fervent-ramanujan-wfdt8k — iscrizione dal funnel Vercel di Andolfi + home «Ciak prepara. Systeme pubblica.»
+
+**CONTESTO:** Daniele Andolfi (ID 23) riferiva che le iscrizioni alla masterclass non risultavano su Systeme. Decisioni di Claudio: il funnel **definitivo sta su Systeme**, Vercel è solo **bozza**; il dominio sarà collegato a Systeme; nel frattempo il modulo della bozza deve salvare i contatti in Ciak, per trasferirli poi in Systeme. Ciò che Daniele segnalava (modulo non collegato, video non più su Ciak) non erano guasti: il collegamento si fa col dominio; i video, dopo l'editing, escono da Ciak verso YouTube e Systeme.
+
+**DICHIARATO**
+- PR #350 (squash `cceba6c`): nuovo `POST /api/partner-optin/{partner_id}` (`backend/routers/partner_optin.py`, pubblico per scelta) che salva in `partner_leads`. Regole: attivo solo con `partners.public_optin.enabled is True` (404 uguale per «non esiste» e «non abilitato»); consenso obbligatorio (controllato prima del 404) e registrato con data; email validata; nessun JSON grezzo né IP salvati; campo trappola `website`; tetto 120/ora per partner e 10 ogni 10 min per IP (da `X-Forwarded-For`); upsert atomico; storico interazioni a 20; avviso Telegram senza email. Export CSV dei lead (`partner_journey._csv_safe`): formule `= + - @` neutralizzate. Revisione `auth-reviewer` fatta, correzioni applicate prima del merge.
+- Home area partner (`SerenoHome.jsx`): blocco «Ciak prepara. Systeme pubblica.» con tre punti.
+- Flag per Daniele acceso da Claudio: `PATCH /api/admin/partner/23/journey` con `collection: partners`, `data.public_optin = {enabled: true, funnel_origin: "masterclass_vercel"}`.
+- Sito Vercel (`sabai-daniele-andolfi`, file in `C:\Users\berto\.claude\funnel-daniele\_deploy\sabai-daniele-andolfi`, backup `funnel-daniele_backup_optin_2026-10-07`): `config.js` con `optinEndpoint: "/api/optin"`; `vercel.json` con rewrite `/api/optin` → `https://www.ciak.io/api/partner-optin/23` (nessuna modifica CORS); riga `/_vercel/insights/script.js` in index, guarda, grazie, offerta. Deploy `dpl_G3xHWyN8…` (`fryntgnb5`), `READY`.
+
+**VERIFICATO**
+- CI della #350 verde (4 controlli); locale: `test_partner_optin.py` 14 test + guardie route, 31 passati. Deploy backend run 392 (`cceba6c`) `success` in tutti gli step, smoke incluso (10:59:39 UTC), letto dai job GitHub Actions.
+- Prova in produzione (PowerShell di Claudio, 7/10): `POST /api/partner-optin/23` → `ok: True`; `GET /api/partner-journey/leads/23` mostra `source: funnel_bozza_vercel`, `funnel_origin: masterclass_vercel`, `status: new`. Poi un'iscrizione fatta da Claudio dal sito (riga `Claudio`, `c5cabd59…`) è comparsa nello stesso elenco: **il percorso modulo → rewrite Vercel → Ciak funziona** (indirizzo usato non dichiarato, ma `corso.sabaiacademy.it` non risolve, quindi un `vercel.app`).
+- Entrambe le righe di prova segnate `lost` (`update-status`, «Status aggiornato a lost» ×2).
+- Letto da Vercel: deployment nuovo con `config.js` e `vercel.json` come sopra. Progetto `berto` senza deployment.
+
+**APERTO**
+- 🔴 **Errore mio, già corretto con Claudio:** avevo scritto che `corso.sabaiacademy.it` serviva il sito con i prezzi giusti. **Falso**: era un falso positivo dello script PowerShell (variabile rimasta dalla pagina precedente). Lo screenshot del browser mostra `DNS_PROBE_FINISHED_NXDOMAIN`: il nome non esiste nel DNS. Vercel lo elenca fra i domini del progetto, ma il DNS pubblico no.
+- ⛔ Il progetto Vercel ha la protezione attiva («Deployment Protection … Vercel Authentication»): non è verificato se i link `vercel.app` siano apribili da chi non ha un account Vercel. Se non lo sono, nessun visitatore poteva iscriversi.
+- ⛔ **Incidente 7/10:** `npx vercel deploy --prod --yes` lanciato da `C:\Users\berto` (cartella personale) ha creato il progetto Vercel vuoto **`berto`** e avviato il caricamento della home. Nessun deployment risulta (letto da Vercel), ma non è dimostrabile che nessun file sia stato trasferito. Da fare: cancellare il progetto `berto` dal pannello Vercel; **rigenerare il token admin** (`ciak_admin_token.txt` stava in quella cartella). Regola: `vercel deploy` solo dalla cartella del sito; se chiede di confermare la «home directory», rispondere no.
+- ⛔ Lead precedenti a oggi (Daniele e la moglie): non salvati da nessuna parte, vanno reinseriti a mano. Quando il dominio è collegato a Systeme: export `POST /api/partner-journey/leads/export-csv/23` e import in Systeme.
+- ⛔ Web Analytics Vercel: la riga è nelle pagine, ma va acceso dal pannello (non verificato).
+- ⛔ Limiti dichiarati dell'endpoint: tetto per IP per istanza Cloud Run, `X-Forwarded-For` falsificabile (resta il tetto orario per partner); nessun indice unico `(partner_id, email)`; nessun double opt-in.
+- ⛔ Il testo «Il passaggio da Ciak a Systeme lo facciamo noi» (home) vale per i video; per pubblicazione e dominio dipende da chi fa il DNS (decisione di Claudio ancora aperta). Il pannello «Indirizzo web» chiede ancora al partner di aggiungere righe DNS, mentre il piano 11/7 dice che le configura Evolution.
+- ⛔ Non indagato: il video «prima lezione non sincronizzata» di Daniele (serve il sintomo preciso); le «stories» caricate su Drive da Daniele (nel Drive leggibile da me non risultano; i `giorno N` in `04 - Calendario editoriale/reel` mi apparivano vuoti, ma il connettore potrebbe non vedere tutto).
+
+### 2026-10-05 · Claude Code · claude/fervent-ramanujan-wfdt8k — prezzo reale nella chat degli agenti
+
+**CONTESTO:** Daniele Andolfi (ID 23) non riusciva a far cambiare il prezzo ad Andrea. Nuovo prezzo deciso da Claudio: **147€ scontato / 247€ listino** (sostituisce 297/497).
+
+**DICHIARATO**
+- Codice (PR #327, `f9d1fcc3` su `main`): la chat partner (`POST /api/stefania/chat`) non ha strumenti e non può scrivere dati; il suo contesto non conteneva il prezzo (l'agente lo inventava). `build_partner_context` ora aggiunge un blocco OFFERTA letto da `partner_hub` (`offer_price.chat_block`): prezzo reale, oppure "NON ANCORA DEFINITO", più la regola "la chat non può cambiare il prezzo, lo aggiorna il team". Nessun system prompt di agente modificato (né Matteo).
+- Dati di Daniele scritti in produzione dalla console admin di Claudio (token in `localStorage` chiave **`ciak_admin_token`**: le chiavi `access_token`/`token` citate in CLAUDE.md sono superate):
+  1. `partner_hub.offerPrice`: `297€ (listino 497€)` → `147€ (listino 247€)` (`PATCH /api/partner-hub/23/field`).
+  2. `04-posizionamento` risposta `prezzo_e_formato`: "97€" → "147€ (listino 247€)" (`PATCH /api/admin/partner/23/step/04-posizionamento`, merge, status invariato).
+  3. Funnel rigenerato (`POST /api/partner-journey/funnel/generate`, con gli stessi `inputs`); backup del funnel precedente scaricato da Claudio come `funnel-andolfi-prima-2026-10-05.json`.
+  4. `page_content.offerta.corso`: "Prezzo di lancio €297 (listino €497)" → "€147 (listino €247)" (`POST /funnel-review/23/admin/set`).
+  5. `production_kit.descrizione_offerta` e `faq` rigenerati (`POST /workspace/23/vendita/generate/{task}`); **`termini` lasciato volutamente a 297/497** (legacy, non esposto, testo legale AI superato da `legal_documents`).
+  6. Correzione aperta offerta/corso ("147, listino 297", autore non registrato) chiusa con `POST /funnel-review/23/admin/new-version` (`version: 1`, `pages: ["offerta"]`).
+
+**VERIFICATO (output incollato da Claudio dalla console, 5/10/2026)**
+- hub: PRIMA `297€ (listino 497€)` · PATCH 200 · DOPO `147€ (listino 247€)` (updated 17:32).
+- posizionamento: PATCH 200 `answers_saved: 20`, DOPO "…a 147€ (listino 247€)…".
+- funnel: `generated_at 2026-10-05T17:40:19`, non approvato né pubblicato; blueprint CTA "147€ (listino 247€)".
+- `offerta.corso`: SET 200, DOPO "…Prezzo di lancio €147 (listino €247)." (la pagina era `in_modifica`, nessuna approvazione toccata).
+- `production_kit`: descrizione_offerta e faq → 200 (file_id `a74a6073…`, `80b0d4c6…`); scansione: resta solo "Risparmi 100€" (247−147, corretto).
+- correzione: PRIMA `aperta` → DOPO `risolta` 17:52:47, `preview_version` 1.
+- codice: `pytest tests/test_webinar_offer_price.py` → 11 passed; CI della PR #327 verde (4 controlli).
+- Deploy (letti dai job GitHub Actions, 5-6/10): run 374 (`f9d1fcc3`, #327) `success` in tutti gli step, smoke incluso (18:03:42). Run 376 (#330) **annullato**, sostituito dal 377 (`3c4abdb`, #331, successivo) `success` con smoke alle 18:38:51; la #330 è antenata di `3c4abdb` e i suoi due file non sono cambiati dopo (`git merge-base --is-ancestor` + `git diff`), quindi la guardia è in produzione.
+- Codice #330 (merge `6976834d`): i generatori Gaia `descrizione_offerta`, `faq`, `termini` leggono il prezzo da `partner_hub`, ammettono solo listino/promo/risparmio, riprovano una volta, poi 502 senza salvare; senza prezzo nell'hub rispondono 400. `pytest tests/test_webinar_offer_price.py` → 15 passed, CI verde.
+- Chat di Andrea: Claudio riferisce il 6/10 che «risponde bene» (⛔ output delle due domande "quanto costa?" e "cambialo" non incollato).
+- Strategia webinar (`12-prezzo-webinar`, PowerShell, screenshot 6/10): PRIMA `listino 497€` / `promo_webinar 297€` → `POST /api/partner-journey/operativo/save-draft/23/12-prezzo-webinar` con `{"data":{"strategia":…}}` (merge sul primo livello di `data`, status invariato, deck intatto) → `success: True`, chiavi `strategia` → DOPO `247€` / `147€`.
+- Scansione finale 6/10 (PowerShell su `full-data`, esclusi note contratto, `termini`, correzioni): **2 righe**, entrambe `production_kit.descrizione_offerta` con importo 100 (risparmio 247−147). Esclusi per scelta: 12.
+- PR #335 mergiata (`e317a9c2`), CI verde (4 controlli): default `Da definire` in `funnel_export_service.py` (test 17 passed, il test «senza prezzo» fallisce col vecchio codice), chiave token in `CLAUDE.md`, note in memoria/scheda Andolfi.
+- Sito del funnel (progetto Vercel `sabai-daniele-andolfi`, statico, **non collegato a git**; file in `C:\Users\berto\.claude\funnel-daniele\_deploy\sabai-daniele-andolfi`): Daniele ha segnalato su Telegram che `offerta.html` mostrava ancora €497/€297. I numeri sono scritti dentro i file (non vengono dall'hub). Corrette 3 righe in sorgente e copia `_deploy` (backup `funnel-daniele_backup_prezzo_2026-10-06`): `offerta.html:55` €497→€247, `:56` €297→€147, `:110` pulsante fisso €297→€147. Deploy con `npx vercel@latest deploy --prod --yes` → `dpl_N9g8e3dR…` `READY`; da Vercel: `offerta.html` uid `7b0678e1…`→`7f919342…`, tutti gli altri file invariati, nessun `.env.local` caricato. Pagina pubblica `sabai-daniele-andolfi.vercel.app/offerta.html` (PowerShell, screenshot 6/10): `247`×1, `147`×3 (il terzo è dentro un tracciato SVG), nessun `497`/`297`.
+- `corso.sabaiacademy.it` risulta tra i domini del progetto (alla prima lettura non c'era) e la CLI ha stampato `Aliased`; dal PC di Claudio il nome **non si risolve** (DNS). Non verificato: il secondo risultato dello screenshot era un falso positivo (variabile `$h` non azzerata nello script di controllo).
+- `/funnel/export*`: #341 (`8d6971e7`) e #342 (`ae6cae46`) mergiate. Deploy 387 (`4f42437`) `success` in tutti gli step, smoke 09:55:15; entrambe le PR sono antenate di quel commit (`git merge-base --is-ancestor`) e il suo `server.py` ha `Depends(require_admin_role)` sulle 4 route. I run 381, 382 e 385 sono `cancelled` perché sostituiti da quelli successivi.
+
+**APERTO**
+- ✅ **Webinar**: strategia corretta (vedi sopra); le slide (`deck.slides.19`) risultavano già pulite alla scansione del 6/10. Dispensa PDF: legge il prezzo dall'hub e non segnalerà più differenze con la strategia.
+- ✅ **`descrizione_offerta`** di Daniele rigenerata il 6/10 alle 08:02 con la guardia live (PowerShell: `OK`, file_id `f034381a…`; importi nel testo `100, 147, 247` — «80€» sparito; 100 = risparmio 247−147).
+- ✅ `termini` di Daniele rigenerato il 6/10 alle 08:37 (su richiesta di Claudio) con la guardia live: PowerShell `termini -> OK`, file_id `c1b2a984…`; importi nel testo `100, 147, 247` (297/497 spariti; 100 = risparmio 247−147). Testo scritto dall'AI: la guardia controlla gli importi, non la correttezza legale (il percorso legale resta `legal_documents`).
+- ✅ Scansione finale eseguita il 6/10: restano solo la correzione chiusa `review.corrections.0`, le note del contratto e il risparmio 100 in `descrizione_offerta`. **Stato finale: prezzo di Daniele `147€ (listino 247€)` coerente ovunque, `termini` compresi (rigenerati dopo la scansione).**
+- ✅ Mergiati con #335 (`e317a9c2`; deploy 383 `7d20227`, successivo, `success`): default `"297€"` in `funnel_export_service.py` → `"Da definire"` (endpoint `POST /funnel/export` senza chiamanti nel frontend); `CLAUDE.md` sez. 6 con la chiave `ciak_admin_token`; `memory/CIAK_MIGRATION_MEMORY.md` e `docs/migration/partner-daniele-andolfi-ciak.md` annotati (prezzo 147/247; gli endpoint della regola 18 oggi richiedono token admin). Restano 297/497 storici in `docs/migration/ciak-falle-simulazione-andolfi.md` (cronaca del 30/07).
+- ✅ `POST /funnel/export*` messi in sicurezza con #341 (admin obbligatorio, nome file e percorso sicuri) e #342 (HTML escapato, preview con CSP `sandbox`, niente `filepath`, tolto `partner_id` inutile); revisione `auth-reviewer` senza bloccanti. ⛔ Prova dal vivo (richiesta senza token → 401) non ancora eseguita. Residuo non toccato: nessun limite a dimensione del body e numero di file scritti (solo admin).
+- ⛔ **Sito del funnel**: il prezzo è scritto nei file HTML, non letto dall'hub: ogni cambio prezzo richiede modifica a mano e nuovo deploy. `corso.sabaiacademy.it` va verificato (DNS non risolto dal PC di Claudio; dominio aggiunto al progetto da persona/sessione non identificata) e la sua messa online va allineata al «via libera» del partner nella schermata del funnel.
+- 🔎 `vercel link` ha creato `.env.local` (token OIDC temporaneo) nella cartella di deploy e l'ha aggiunto a `.gitignore`: non risulta caricato; cancellato da Claudio con `Remove-Item` (esistenza non riverificata).
+- 🔎 Andrea compare nel drawer solo sugli step 05-09 (`agents.js`): visibilità fuori da quegli step = decisione di prodotto.
+- ✅ Intestazione della voce di Codex del 2026-09-10 (Mariangela), cancellata per errore in #327, ripristinata con #330.
+
+### 2026-09-10 · Codex · Mariangela aggiunta a Collaboratori
+
+**DIFETTO LIVE:** `/admin/collaboratori` caricava e mostrava esclusivamente Antonella (`/collaboratori/antonella`), mentre Mariangela Caccia compariva solo nell'organigramma Acquisizione/Vendite.
+
+**CORREZIONE:** la pagina elenca separatamente Mariangela Caccia e Antonella. Mariangela è collegata alla sua vista operativa Acquisizione+Vendite. Nessuna tariffa o condizione copiata da Antonella: finché manca una regola economica verificata, la UI dichiara “Compenso non calcolabile: regola economica non configurata”. Gestione ore/fatture Antonella invariata.
+
+**PROVA PRE-PUSH:** parse Babel `Collaboratori.jsx` PASS; `git diff --check` PASS. Verificare CI e browser live dopo il deploy.
+
+### 2026-09-10 · Codex · correzione usabilità admin dopo verifica live
+
+**RISCONTRO DI CLAUDIO:** la versione pubblicata non piace e non funziona ancora bene. Verifica sul tab Chrome realmente usato: Claudio era su `/admin/direzione`, pagina densa preesistente; la nuova Home `/admin` non era raggiungibile dalla sidebar. Mancava inoltre la ricerca globale dell'anteprima. In Acquisizione lo stato vuoto parlava erroneamente di “partner” e la descrizione mescolava lead e trattative.
+
+**CORREZIONE:** Home esplicita e logo cliccabile nella sidebar; ricerca globale delle funzioni disponibile da ogni pagina, con reparto e collegamento diretto; grammatica singolare/plurale nei risultati di ricerca reparto; testi e stato vuoto Acquisizione coerenti con i lead. Nessuna route o funzione rimossa, nessun cambio di palette/font/logo.
+
+**PROVA PRE-PUSH:** parse Babel dei due JSX modificati PASS; `git diff --check` PASS. Test Jest locale non raccolto nel worktree Windows per il junction `node_modules` che conserva il root dell'altro worktree; affidare test e build alla CI dello SHA pubblicato. Dopo il deploy verificare dal browser Home, ricerca globale (`KPI`, `checkout`, `partner`) e Acquisizione vuota.
+
+### 2026-09-10 · Codex · correzioni review admin/discovery e rilascio
+
+**AUTORIZZATO:** Claudio ha chiesto di applicare i rilievi della review sul diff `20f43d4d..683ce0d4`, registrarli per Claude e distribuire backend e frontend. Branch isolato `codex/admin-review-fixes`, base `origin/main` `683ce0d4`; checkout principale sporco lasciato intatto.
+
+**DICHIARATO:** ripristinata nel menu Vendite la voce reale “Collaudo checkout”; l'inserimento manuale Discovery non azzera più il form né dichiara un lead importato quando il backend restituisce `success:false`; CSV vuoti e liste vuote non sono successi; conteggio HOT CSV usa gli score reali. `import`, `import-csv` e `search-places` richiedono admin. I lead Places usano `_id` deterministico e trattano la collisione concorrente come duplicato. Home Regia distingue errore delle fonti, caricamento e zero; filtri persona normalizzati anche per nome completo e stato vuoto esplicito; deep-link credito segue la query corrente. Verificatore parità aggiornato sul nuovo contratto onesto, senza indebolire route/NAV.
+
+**VERIFICATO PRIMA DEL PUSH:** `verify-admin-parity.cjs` PASS (`removedRoutes:0`, `navPagesChecked:31`); 4 suite frontend mirate PASS, **33 test**; parse Babel dei 7 sorgenti JS/JSX modificati PASS; `py_compile` dei 5 file backend/test PASS; `git diff --check` PASS. Nuovo test backend riproduce due query concorrenti sullo stesso `place_id`; la CI lo esegue tramite allowlist. Test pytest locale non eseguibile perché i runtime disponibili non contengono pytest; build locale avviata con dipendenze collegate da altro worktree ma senza esito affidabile, quindi build e backend suite restano da certificare nella CI dello SHA pubblicato.
+
+**EFFETTIVO IN PRODUZIONE:** commit `32cfa585` su `main`; CI `34488661453` verde; frontend Vercel pubblicato e verificato su `https://www.ciak.io/admin/reparto/vendite` con ricerca e 7 strumenti, incluso “Collaudo checkout”; deploy Cloud Run `34488661483` verde. Backend `evolution-pro-backend-00596-9lr` e worker `evolution-pro-worker-00228-qz4` servono il 100% del traffico. Smoke `/api/health` HTTP 200 con `status: healthy`; YouTube configurato. Nessun feature flag limita queste correzioni. Nessuna ricerca Google Places reale e nessuna mutazione di lead reali nel collaudo.
+
+### 2026-09-10 · Claude Code (Luca) · cc/discovery-affidabile — Discovery: timeout + import/import-csv (chiude i follow-up)
+
+**DICHIARATO** (aggiunto alla PR #108)
+- **Timeout**: `search-places` ora esegue le query città×categoria **in parallelo con concorrenza limitata** (`asyncio.Semaphore(6)`) invece del doppio for sincrono → tempo totale molto più breve. Aggregazione estratta in `aggregate_places_results` (pura, testata). Frontend: default `all_italy=false` (ricerca mirata veloce; tutta-Italia resta opt-in col toggle).
+- **Import onesto esteso**: `/import` e `/import-csv` ora usano `summarize_run` (rinominata da `summarize_places_run`, generica) → stesso esito ok/parziale/fallito, niente più `success:true` fisso. Frontend `ImportModal`: box verde/ambra/rosso via `status`.
+
+**VERIFICATO (comando+output)**
+- `python -m pytest tests/test_discovery_summary.py -q` → **7 passed** (5 summarize + 2 aggregate; marcati `unit`).
+- `python -m py_compile routers/discovery_engine.py services/discovery_summary.py` → OK.
+- Frontend `npm run build` → exit 0. `git diff --check` → 0; secret scan → nessun match.
+
+**APERTO**
+- ⛔ Nessun collaudo con Google Places reale (niente scraping di prova). La concorrenza riduce il tempo ma non elimina il costo API di all_italy (24 città × N query): il default targeted lo mitiga.
+- 🐛 minore, non toccato: in `/import-csv` `hot_leads` è calcolato con una comprehension errata (pre-esistente) — segnalato, fuori perimetro.
+
+### 2026-09-10 · Claude Code (Luca) · cc/discovery-affidabile — Discovery: fine del falso "success"
+
+**CONTESTO:** gap backend separato dalla riorganizzazione admin (PR #107). Branch `cc/discovery-affidabile`, worktree `.worktrees/cc-discovery-affidabile`, base `origin/main` 20f43d4d. **PR #108**: https://github.com/claudiobertogliatti-spec/appevolution/pull/108 (aperta, ⛔ NON mergiata — decide Claudio, review Codex come da protocollo).
+
+**DICHIARATO**
+- `POST /api/discovery/search-places` restituiva **sempre `success: true`** anche con TUTTE le query in errore: la UI mostrava un falso successo. Ora l'esito è onesto: **ok / partial / failed** (`success=false` solo se tutte le query falliscono), con `queries_total`/`queries_failed` e un `message` coerente.
+- Logica estratta in una **funzione pura** `backend/services/discovery_summary.py` (`summarize_places_run`), testabile senza DB.
+- Frontend `PlacesSearchModal` (LeadManager): il box risultato distingue verde (ok) / ambra (parziale) / rosso (fallito) leggendo `status`; retrocompatibile.
+
+**VERIFICATO (comando+output)**
+- `python -m pytest tests/test_discovery_summary.py -q` → **5 passed** (marcato `unit`, gira senza backend live).
+- `python -m py_compile routers/discovery_engine.py services/discovery_summary.py` → OK.
+- Frontend `npm run build` → exit 0.
+- `git diff --check` → 0; scansione pattern credenziali → nessun match.
+
+**APERTO**
+- ⏭️ Stesso pattern di falso `success` in `/import` e `/import-csv` (`discovery_engine.py`): non ancora corretto (follow-up, stessa funzione riusabile).
+- ⏭️ **Timeout**: `search-places` con `all_italy=true` (default frontend) esegue N città × M query in **una sola richiesta** (loop sincrono) → rischio timeout. Il fix vero = esecuzione in background (cambio architetturale) o default città singola: **decisione di Claudio**, non fatta qui.
+- ⛔ Nessun collaudo con Google Places reale (per non fare scraping di prova); nessun push/deploy.
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — PR aperta
+
+**CONSEGNA:** su autorizzazione di Claudio, branch pushato e **PR #107** aperta verso `main`: https://github.com/claudiobertogliatti-spec/appevolution/pull/107 (8 commit: blocco 1 di Codex `e55a6dd6` + blocchi 2-5). ⛔ **NON mergiata**: il merge su `main` fa deploy in produzione — decide Claudio, e il protocollo chiede la review Codex prima. Collaudo browser autenticato ancora da fare.
+
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 5: sezioni dedicate collaboratrici
+
+**DICHIARATO**
+- Nuova `pages/PersonaHome.jsx` (route `/admin/persona/:slug`): home dedicata per collaboratrice con la SUA coda personale, filtrata sul campo reale `owner` delle code esistenti. **Mariangela** = identità unica con viste **Acquisizione + Vendite**; **Antonella** = **Delivery** (coerente con `evolution-architettura-concordata.md`).
+- Aggiunto filtro `ownerFilter` (additivo) a `AcquisizioneQueue`, `VenditeQueue`, `DeliveryQueue`.
+- Sezione **"Le tue collaboratrici"** nella Home Regia con 2 tessere → le loro home.
+- Vincoli rispettati: solo **nome** (niente qualifica), **nessun dato economico** (compensi/provvigioni restano al Back office con le sue regole), **nessun permesso/contratto/login inventato** — è una vista dentro l'admin che filtra dati reali, non assegna nulla.
+
+**VERIFICATO (comando+output)**
+- `verify-admin-parity.cjs`: PASS (`removedRoutes: 0`).
+- Jest `7 suite / 32 test PASS` (nuovo `PersonaHome.test.jsx`: identità unica Mariangela, Delivery per Antonella, slug ignoto).
+- `npm run build`: exit 0.
+
+**APERTO**
+- ⛔ Collaudo browser non eseguito. La coda personale dipende dal campo `owner` reale: se i dati usano nomi agente invece del nome collaboratrice, la coda risulterà vuota (onesto) → da verificare con dati veri.
+- ⏭️ Se Claudio vuole che Mariangela **acceda** con un proprio login (oggi non esiste un admin_type "mariangela"), è una decisione di permessi separata, non fatta qui.
+- ⏭️ Restano i gap backend (§5 matrice: discovery/materiali) e sicurezza/KPI — decisione di Claudio.
+
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 4c: rifinitura home reparto
+
+**DICHIARATO**
+- **Acquisizione**: sulla home ora sono subito visibili **Importa lista** e **Ricerca automatica** (oltre a "Nuovo lead" inline nella coda). Aprono gli stessi modali reali di `LeadManager` via deep-link `?apri=importa|ricerca` (nuovo lettore di parametro in LeadManager). Nessuna logica/endpoint duplicati.
+- Intestazione **"Strumenti"** uniforme sopra le tessere dei reparti non raggruppati (Acquisizione/Vendite/Back office); Delivery resta a 4 gruppi. Struttura coerente col mockup.
+
+**VERIFICATO (comando+output)**
+- `verify-admin-parity.cjs`: PASS (`removedRoutes: 0`, `navPagesChecked: 30`).
+- Jest `6 suite / 29 test PASS` (incluso LeadManager, invariato col nuovo parametro).
+- `npm run build`: exit 0.
+
+**APERTO**
+- ⛔ Collaudo browser autenticato non eseguito (le scorciatoie aprono i modali via `?apri=`; da provare dal vivo).
+- ⏭️ Rifinitura ulteriore facoltativa; poi gap backend (§5: discovery/materiali) e sicurezza — decisione di Claudio.
+
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 4b: numeri reali + attenzione sulla Home Regia
+
+**DICHIARATO**
+- La Home "Regia" ora mostra, per ogni tessera-reparto, **un numero reale** dalle fonti esistenti (`useRepartoMetrics` → endpoint admin già in uso): Direzione = cassa del mese, Acquisizione = nuovi lead 7gg, Vendite = proposte inviate, Delivery = partner attivi, Back office = scade oggi.
+- Aggiunta la striscia **"Richiede attenzione"** (stile movimenti in evidenza): Output da approvare, Partner fermi, Rate in ritardo — mostrati **solo se realmente > 0**, con link al reparto.
+- Onestà: **caricamento (…)**, **dato non disponibile (—/Da attivare)**, **zero (0/Nessuna)** e **valore reale** sono stati distinti. Nessuna cifra inventata.
+
+**VERIFICATO (comando+output)**
+- Jest `5 suite / 24 test PASS` (nuovi test AdminHome: numeri, attenzione >0, stato caricamento, zero-urgenze).
+- `npm run build`: exit 0.
+
+**APERTO**
+- ⛔ Collaudo browser autenticato non eseguito (i numeri dipendono dagli endpoint reali).
+- ⏭️ Eventuale rifinitura delle altre home reparto; poi gap backend (§5) e sicurezza.
+
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 4: Home "Regia" + Direzione + Delivery raggruppato
+
+**CONTESTO:** Claudio ha definito la visione finale — un CRM unico, semplice, **stile Poste Italiane/online banking** (voci chiare, categorie ben divise) — e ha approvato un mockup navigabile. Vincolo ribadito: **non eliminare funzioni, solo organizzare**.
+
+**DICHIARATO**
+- Nuova **Home "Regia"** (`pages/AdminHome.jsx`): pagina d'ingresso `/admin` che lancia i 5 reparti (tessere chiare, nessun numero inventato). Antonella mantiene la sua dashboard come home.
+- **Direzione** ora ha una home dedicata su `/admin/direzione` (la Cabina di Regia, prima all'index). Voce sidebar Direzione → `/admin/direzione`; redirect `cabina-regia` → `/admin/direzione`.
+- **Delivery raggruppato**: le 12 voci in 4 gruppi con intestazione (Partner · Materiali e video · Contenuti e percorso · Risultati). `RepartoLanding` ora rende i `groups` con heading quando presenti, flat altrimenti; la ricerca strumenti filtra tutto. Nessuna voce persa.
+- Micro-blocco "togli 2 hub link" **annullato** (non committato) su richiesta di Claudio: le voci restano.
+
+**VERIFICATO (comando+output)**
+- `verify-admin-parity.cjs`: PASS — `removedRoutes: 0`, `navPagesChecked: 30`.
+- Jest `5 suite / 21 test PASS` (nuovo `AdminHome.test.jsx` + regressione).
+- `npm run build`: exit 0.
+
+**APERTO**
+- ⛔ Collaudo browser autenticato non eseguito (home Regia; Direzione su /admin/direzione; Delivery a gruppi). Serve sessione admin + backend.
+- ⏭️ **Numeri reali + striscia "richiede attenzione"** sulla Home Regia: da collegare alle fonti esistenti (CabinaRegia/approvals/crediti) distinguendo caricamento/errore/zero — non mostrare cifre finte.
+- ⏭️ Le altre home reparto (Acquisizione/Vendite/Back office) sono le landing esistenti; eventuale rifinitura stile-mockup da valutare. Poi gap backend (§5) e sicurezza, decisione di Claudio.
+
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 3b: Trattative a tab + Produzione video
+
+**DICHIARATO**
+- **Vendite "Trattative" (audit #7):** nuovo wrapper `pages/TrattativePipeline.jsx` (route `/admin/trattative`) con tab Tutte/Blueprint/Call/In trattativa/OK persistiti in `?stadio=`, che riusa `PipelineList` sullo stesso endpoint `/pipeline-blueprint`. Le 4 voci Vendite separate → 1 voce "Trattative"; vecchi URL (pipeline-blueprint, vendite-call, vendite-trattativa, vendite-ok) restano registrati.
+- **Delivery "Produzione video" (audit #6):** 1 voce → `VideoReview` (`/admin/video-review`), che È GIÀ la coda unica masterclass+lezioni (filtro, approva, monitor). Rimosse le 2 voci-hub di soli link (route `delivery-masterclass`/`delivery-lezioni` restano via URL). Nessuna coda inventata.
+- Nessuna route rimossa; nessun colore/font/logo toccato.
+
+**VERIFICATO (comando+output)**
+- Jest `5 suite / 24 test PASS` (nuovo `TrattativePipeline.test.jsx` con pattern react-router-dom mockato + regressione).
+- `verify-admin-parity.cjs`: PASS — `removedRoutes: 0`, `navPagesChecked: 30`.
+- `npm run build`: exit 0, postbuild 5 landing.
+
+**APERTO**
+- ⛔ Collaudo browser autenticato non eseguito (tab Trattative con ?stadio=; Produzione video apre la coda reale).
+- ⏭️ Restano hub di soli link ancora nel menu: "Calendario Editoriale" (Acquisizione) e "Trattative KO" (Vendite) — micro-blocco audit #5. Poi **blocco 4** (discovery/materiali) e i gap sicurezza/KPI (§5), decisione di Claudio.
+
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 3a: consolidamento commerciale
+
+**DICHIARATO**
+- Assorbita la macro "Acquisizione e vendita" dentro **Vendite** (audit #1 P1 + strategia "Direzione + 4 reparti"): Chiusura Insider e Listino & prezzi ora sono voci di Vendite; Collaudo checkout resta route tecnica via URL (fuori dal quotidiano). Redirect `/admin/reparto/acquisizione-vendita` → `/admin/reparto/vendite`. Rimosso l'import `Handshake` inutilizzato.
+- **Tutte le route conservate.** Aggiornato `verify-admin-parity.cjs` da "NAV byte-identico" a **raggiungibilità** (nessuna route rimossa + ogni voce NAV punta a una route registrata): necessario perché la riorganizzazione cambia il NAV per definizione.
+- Documentata in `ADMIN-PARITA-MATRICE.md` §4 la regola di fedeltà: le "voci proposte" senza pagina reale (Liste importate, Risultati acquisizione/vendite; Direzione Decisioni/Andamento/Obiettivi/Cassa = sezioni di CabinaRegia) NON si inventano né si trasformano in landing di soli link.
+
+**VERIFICATO (comando+output)**
+- `node docs/agents/evidence/verify-admin-parity.cjs`: PASS — `removedRoutes: 0`, `navPagesChecked: 34`, reachability PASS.
+- Jest `4 suite / 20 test PASS` (nessuna regressione).
+- `npm run build`: exit 0 ("Compiled with warnings" preesistenti), postbuild 5 landing.
+
+**APERTO**
+- ⛔ Collaudo browser autenticato non eseguito (sidebar senza "Acquisizione e vendita"; vecchio URL redirige; Vendite mostra Chiusura Insider + Listino).
+- ⏭️ **Blocco 3b**: unificare "Produzione video" (audit #6) e tab pipeline "Trattative" (audit #7) — lavoro a livello di componente, non semplice relabel.
+
+### 2026-09-09 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 2: code Vendite/Back office → record
+
+**CONTINUAZIONE del blocco 1 di Codex** (`codex/admin-semplificazione` `e55a6dd6`). Nuovo branch `cc/admin-semplificazione`,
+worktree `.worktrees/cc-admin-semplificazione`, base `e55a6dd6`. Non riscritto il blocco 1. Nessun push/deploy.
+
+**DICHIARATO**
+- Scritta la **matrice di parità** `docs/agents/ADMIN-PARITA-MATRICE.md` (route + azioni annidate + gap distinti), foundation obbligatoria prima delle modifiche.
+- Blocco 2: le righe delle code **Vendite** e **Back office** ora aprono il record esatto (audit #3, prompt §4). `DepartmentQueue` passa la riga intera al callback; Vendite→`/admin/leads/:email` (solo con email reale), Back office→`/admin/amministrazione?credito=<id>` con evidenziazione (deep-link additivo). Delivery invariata.
+- Nessuna capacità rimossa; nessun colore/font/logo toccato; brand lock rispettato (design-lead invocato).
+
+**VERIFICATO (comando+output)**
+- Jest `4 suite / 20 test PASS`: i **7 test originali** di `DepartmentQueue.test.jsx` conservati (1 rinominato per il nuovo contratto, stesso intento) + 4 nuovi; nessuna regressione su LeadManager/navigationMatch/DepartmentRoom.
+- `npm run build`: exit 0, postbuild rigenera le 5 landing `.ciak.html`.
+- `node docs/agents/evidence/verify-admin-parity.cjs`: PASS (NAV/Routes/handler identici alla base).
+- `git diff --check`: exit 0; scansione pattern credenziali sulle aggiunte: nessun match. Solo 4 file app + 1 doc toccati.
+
+**APERTO**
+- ⛔ **Collaudo browser autenticato non eseguito** (desktop/mobile): serve sessione admin + backend con dati reali. Le stringhe di navigazione sono verificate solo per revisione di codice + test di contratto.
+- ⏭️ **Blocco 3** (riorganizzazione voci per reparto + accorpamenti audit #1/#6/#7) e **blocco 4** (discovery affidabile, materiali delivery reali) descritti in `ADMIN-PARITA-MATRICE.md` §4-§5, non ancora eseguiti.
+- 📋 Gap distinti registrati (§5): sicurezza endpoint file/documenti/discovery senza auth, KPI Cabina (conteggi×listino vs transazioni). **Decide Claudio**, fuori dal perimetro riorganizzazione.
+- ⚠️ La voce HANDOFF del blocco 1 di Codex esiste solo nel checkout principale non committato; da riconciliare al merge.
+
+### 2026-09-09 · Codex · Insider: blocco checkout reali e consenso
+
+**AUTORIZZATO:** Claudio: applicare le correzioni dell'audit tecnico legale/fiscale.
+Worktree codex-insider-payment-gates, branch codex/insider-payment-gates,
+base 483461c9. Preservato il checkout principale e le altre sessioni.
+
+**DICHIARATO:** nuovi checkout Stripe Start/Partnership live chiusi per default;
+dichiarazione rigorosa legata alla proposta; recupero esplicito dei consensi
+legacy; testo caricato prima del pagamento; chiusura ingressi checkout legacy.
+Nessuna modifica al testo legale PLACEHOLDER, nessuna abilitazione dei gate,
+nessuna mutazione di pagamenti gia avvenuti. Dettagli in
+[INSIDER-PAYMENT-GATES.md](./INSIDER-PAYMENT-GATES.md).
+
+**VERIFICATO:** regressioni riprodotte prima dei fix; suite finale
+101 backend e 23 frontend PASS, compile e lint E9/F821 PASS. Review indipendente ha individuato due ingressi
+legacy aggiuntivi, corretti e aggiunti alla CI; review finale PASS. Inventario Stripe in sola lettura:
+zero sessioni aperte. Esiti definitivi e stato release da verificare dopo il push.
+
+**APERTO:** approvazioni di Claudio/legale/commercialista e chiusura placeholder
+prima di qualsiasi riapertura. Il blocco riguarda nuovi checkout Stripe;
+bonifici e pagamenti gia effettuati restano fuori perimetro.
+
+### 2026-09-09 · Claude · Motore Evolution: T20 collaudo integrato + runbook T21 + piano pilota T22
+
+**AUTORIZZATO:** Claudio "completiamo e concludiamo tutto". Branch `codex/evolution-collaudo` (da main con #78+#84).
+
+**DICHIARATO:** T20 `test_operational_tasks_end_to_end.py` — catena completa Acquisizione→Vendite→Delivery/Back office attraverso il motore, ogni handoff punta a un task_type registrato, coordinatore report, idempotente. T21 runbook `docs/agents/runbooks/evolution-operational-tasks.md` (rilascio una capacità alla volta, shadow, arresto controllato, rollback). T22 piano pilota `docs/agents/evidence/evolution-autonomia-pilot.md` (7 giorni, controlli giornalieri, gate G4).
+
+**VERIFICATO:** T20 **3 passed**; flake8 pulito; in ci.yml.
+
+**CONFINE ONESTO (ciò che NON si chiude in codice):** T15-T19 UI = design-lead (non fatte); T21 attivazione + T22 pilota = infra viva (Redis+2 Cloud Run) + decisioni Claudio + 7 giorni (qui solo i piani); integrazioni runtime (heartbeat/wiring generatori/creazione task in coda/lettura sorgenti reali); rimisura funzionale in prod di #78/#84. Branch collaudo in locale (push/PR da decidere).
+
+### 2026-09-09 · Claude · Motore Evolution: DEPLOY OK + T24/T25 collaborazioni
+
+**DEPLOY VERIFICATO:** PR #78 mergiata in main → **CI main `success`** + **Deploy Backend (Cloud Run) `success`** (job `gcloud run deploy` ok). La produzione si è avviata sana col nuovo codice (rischio boot server.py scongiurato). Rimisura funzionale profonda (worker/rotte) da fare con accesso live.
+
+**DICHIARATO (branch `codex/evolution-collaborazioni`):** T24 `collaboration_timesheet.py` — identità unica multi-reparto (personal_totals deduplica; department_view filtra), pianificato/consuntivo/approvato distinti, detect_duplicates/overlaps, weekly_load (over_limit segnalato non riscritto), access_for/redact_for (ognuna vede solo i propri economici; direzione tutto; la collaboratrice non modifica le proprie economiche). T25 `collaboration_compensation.py` — calcolo deterministico dalle regole validate T23: stimato/maturato/approvato/pagato, attribuzione vendita per EVENTO verificato (mai per nome), dedup evento, storno su rimborso, bonus discrezionale non auto-approvato, regola assente→non_calcolabile (mai zero), nessun pagamento eseguito, chiusura periodo immutabile + rettifica esplicita. `collaborations.py` arricchito con basis/maturation nell'artefatto validato (T23 re-testato).
+
+**VERIFICATO:** T24 11 passed, T25 13 passed; suite motore **179 passed, 2 skipped**; compileall OK; flake8 pulito. Nuovi test in ci.yml.
+
+**APERTO:** estrazione regole dai contratti (dati personali, storage privato); UI collaboratori/prospetti → design-lead; wiring ore/eventi reali + persistenza prospetti su `collaborator_settlements` con infra viva; approvazione economica di Claudio. Branch T24/T25 in locale (push/PR da decidere). Restano T15-T22 (UI + collaudo/rilascio/pilotaggio).
+
+### 2026-09-09 · Claude · Motore Evolution: PR #78 MERGIATA + DEPLOY, T23 avviato
+
+**AUTORIZZATO:** Claudio "Merge in main / deploy e procedi t23". Claude owner.
+
+**MERGE + DEPLOY:** PR #78 (G1+G2, backend inerte) **squash-mergiata** in `main` (`924b0908`). Push su main → CI + **Deploy Backend (Cloud Run)** partiti (deploy ~18 min, in watch). Il codice è inerte (capacità non nel DEFAULT) ma T04/T05/T06/T08 cambiano il comportamento del motore/rotte in produzione.
+
+**T23 (nuovo branch `codex/evolution-collaborazioni` da main):** nuovo `services/operational_tasks/collaborations.py` — capacità `collaboration.validate_rules`: schema regole (fixed/hourly/commission/bonus) con clausola+validità+base obbligatorie; campo ambiguo→`non_calcolabile` (mai zero), blocca solo il proprio calcolo; `document_ref` tracciabile (hash/versione/fonte), **contenuto contratto rifiutato nel payload**; nessuna eredità fra collaboratori; `needs_human_validation`. Doc schema `docs/strategy/evolution-collaborazioni-regole.md` (zero dati personali). Riusa `collaborator_settlements.py` esistente (orario), che T25 estenderà.
+
+**VERIFICATO:** `test_operational_collaborations.py` (nuovo, in ci.yml) **11 passed**; compileall OK; flake8 pulito.
+
+**APERTO:** estrazione regole dal contratto (dati personali → storage privato, fuori repo), presentazione a Claudio per validazione, T24 aree personali/ore, T25 calcolo prospetti. Branch T23 in locale (push/PR da decidere). Deploy in verifica.
+
+### 2026-09-09 · Claude · Motore Evolution: T14 coordinatore Luca — GATE G2 coperto (backend)
+
+**AUTORIZZATO:** prosecuzione M2 (Claude owner, Codex fermo). Branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T14. Nuovo `services/operational_tasks/coordinator.py`: `build_direction_briefing` (dalle 4 code, verificati SOLO con prova, blocchi con owner/motivo; `kind:report`, `is_executive_agent:False`); `coordinator_tool_call` con strumenti limitati (`read_state`/`propose_plan`/`create_task`) — tool sconosciuto rifiutato, create solo per task_type CATALOGATO (registry) e valido, budget per ciclo (max_tasks/max_model_calls), doppia richiesta deduplicata; `authorize_proposed_task` (niente delega a nome senza esecutore); `can_start` (dipendenza non risolta → blocked). Vincolo reale rispettato: la chat Luca è senza tool (nota ⛔ in admin_luca.py) → NON cablato qui. **Con T14 il gate G2 (M2) è coperto lato backend.**
+
+**VERIFICATO:** `test_operational_coordinator.py` (nuovo, in ci.yml) **10 passed** (tool sconosciuto, testo malevolo non catalogato, doppia richiesta, dipendenza non risolta, budget esaurito, risultato senza evidenza). **Intera suite motore M1+M2 149 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** cablaggio tool nella chat Luca (richiede riscrivere LUCA_AD_SYSTEM + ciclo LLM), integrazioni runtime (T09 heartbeat, wiring generatori/adapter reali T10-T13, creazione task in coda), attivazione capacità nel DEFAULT (T21). Restano T15-T19 (UI, design-lead), T20-T22 (collaudo/rilascio/pilotaggio), T23-T25 (collaborazioni). Niente push/merge/deploy: locale, branch avanti di 12 su origin.
+
+### 2026-09-09 · Claude · Motore Evolution: T13 flusso Back office
+
+**AUTORIZZATO:** prosecuzione M2 (Claude owner, Codex fermo). Branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T13. Nuovo `services/operational_tasks/back_office.py`: `back_office.check_due_item` legge il piano reale (`PianoPagamento`: rate_totali/rate_pagate/importo_rata/prossima_scadenza) e classifica atteso / incassato_verificato / esito_da_confermare / sospeso / completed + anomalie (rate_incoerenti "rata 9 di 2", importo_mancante ≠ 0, scadenza_mancante). Mai incasso dedotto dalla data, mai pagamento/rimborso/incremento rate. Anomalia o scaduto → UNA attività; sollecito solo bozza, niente se sospeso. Capacità no-approvazione/no-effetti; `register()` esplicito, non nel DEFAULT.
+
+**VERIFICATO:** `test_operational_back_office.py` (nuovo, in ci.yml) **13 passed** (tutti gli scenari del piano + run via motore + idempotenza). Suite operational **139 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** wiring coi piani reali (`db.crediti`/eventi Stripe), aggiornamento amministrativo autorizzato (mai automatico), `reminders_suspended` alimentato da WhatsApp = infra viva. UI Amministrazione → design-lead. Prossimo **T14 Luca** (chiude G2/M2). Niente push/merge/deploy: locale, branch avanti di 11 su origin.
+
+### 2026-09-09 · Claude · Motore Evolution: T12 flusso Delivery
+
+**AUTORIZZATO:** prosecuzione M2 (Claude owner, Codex fermo). Branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T12. Nuovo `services/operational_tasks/delivery.py`, due capacità: `delivery.generate_positioning` (prereq mancanti→richiesta precisa; artefatto versionato per CONTENUTO; disponibile al partner solo se stessa versione approvata+file presente; revisione rifiutata→changes_requested; nuovo input→no riapprovazione automatica; video = attività figlia monitorata `video.render`, non fallback Andrea, idempotente) e `delivery.case_study_evidence_check` (blocked senza consenso o senza `prova` misurata; candidate/verifiable; `published` sempre False, mai pubblicazione automatica). Fonti reali lette: `posizionamento_approval.py`, `case_study_engine.py` (chiave `prova`), `video_pipeline_task.py`. Capacità no-approvazione/no-effetti; `register()` esplicito, non nel DEFAULT.
+
+**VERIFICATO:** `test_operational_delivery.py` (nuovo, in ci.yml) **15 passed** (via motore + tutti gli scenari del piano). Suite operational **126 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** wiring col generatore reale (VALENTINA/case_study_engine), stato journey/coda approvazione, monitoraggio pipeline video = attivazione con DB/infra viva. Casi studio `verifiable` usabili da Acq/Vendite solo se approvati (collegamento successivo). UI → design-lead. Prossimo T13 Back office. Niente push/merge/deploy: locale, branch avanti di 10 su origin.
+
+### 2026-09-09 · Claude · Motore Evolution: T11 flusso Vendite
+
+**AUTORIZZATO:** prosecuzione M2 (Claude owner, Codex fermo). Branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T11. Nuovo `services/operational_tasks/sales.py`: `sales.prepare_next_action` (consuma la handoff di T10). Riusa il gate REALE di `proposta.py::require_partnership_proposal_eligibility` (blueprint pagato → analisi consegnata → call_done → offer_decision=partnership). Propone UN passo = primo gate non soddisfatto (con SLA); decisione negativa → closed_lost; gate completi → chiusura con handoff idempotenti a Delivery (`delivery.generate_positioning`) + Back office (`back_office.check_due_item`, con obligations). Non firma, non incassa. Capacità no-approvazione/no-effetti; `register()` esplicito, non nel DEFAULT.
+
+**VERIFICATO:** `test_operational_sales.py` (nuovo, in ci.yml) **8 passed** (via motore: ordine gate, SLA, closed_lost, chiusura→2 handoff, idempotenza, no firma/incasso). Suite operational **111 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** wiring che legge i flag dalle sorgenti reali (sessione Blueprint, `ciak_analisi.bozza_inviata_at`, `ciak_clients.offer_decision`) e crea i task Delivery/Back office = attivazione con DB/infra viva. Firma/pagamento restano nelle rotte `proposta.py` (umano). UI PipelineList/ClientiCiak → design-lead. Prossimo T12 Delivery. Niente push/merge/deploy: locale, branch avanti di 9 su origin.
+
+### 2026-09-09 · Claude · Motore Evolution: T10 flusso Acquisizione (M2 iniziato)
+
+**AUTORIZZATO:** Claudio ha scelto "B — M2 — T10". Claude owner, Codex fermo. Branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T10, **prima capacità registrata** nel motore. Nuovo `services/operational_tasks/acquisition.py`: `acquisition.qualify_contact` legge un contatto ESISTENTE (campi reali `ciak_leads`: email/nome/telefono/source/tags), produce una qualificazione deterministica e motivata (nessun invio, nessun cold outreach) e la BOZZA del prossimo passo — handoff a Vendite (`sales.prepare_next_action`) se ci sono gli obbligatori (email+source+canale), altrimenti attività `data_integration`. Capacità kind AI, no approvazione, no effetti esterni; `register()` esplicito, NON nel DEFAULT_TASK_REGISTRY (attivazione = scelta T21).
+
+**VERIFICATO:** `test_operational_acquisition.py` (nuovo, in ci.yml) **8 passed** — gira ATTRAVERSO il motore (`execute_and_verify_registered`), dedup per identità, aggiornamento→versione nuova, dato mancante→data_integration, caldo/freddo, nessun invio. Suite operational **103 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** wiring reale (creare il task Vendite dalla handoff, leggere `ciak_leads`, `is_claim_suspended` a monte) = attivazione flusso con DB/infra viva. UI `LeadManager.jsx` → design-lead. Prossimo T11 (Vendite, consuma la handoff). Niente push/merge/deploy: locale, branch avanti di 8 su origin.
+
+### 2026-09-09 · Claude · Motore Evolution: T09 salute runtime — GATE G1 coperto (backend)
+
+**AUTORIZZATO:** prosecuzione motore (Claude owner, Codex fermo). Stesso branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T09 backend. Nuovo `services/operational_tasks/runtime.py`: `classify_runtime_health` distingue istanza API e servizio worker (API senza heartbeat → `UNKNOWN_SEPARATE`, mai `DOWN` — la lezione del monitor che mentiva); `is_claim_suspended` ferma i NUOVI claim per reparto/capacità senza toccare i lease in corso; `claim_periodic_window` = un solo proprietario per finestra (upsert `_id` unico). Con T09 il **gate G1 (T03-T09, affidabilità del motore) è coperto lato backend**.
+
+**VERIFICATO:** `test_operational_runtime_health.py` (nuovo, in ci.yml) **15 passed** (i 4 scenari del piano + anti-bugia API + sospensioni + single-owner). Suite operational completa (G1) **95 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO (integrazioni runtime, servono infra viva):** far scrivere al worker un heartbeat condiviso che l'API rilegge + esporre l'health in `celery_manager`/endpoint + far consultare `is_claim_suspended` al loop; richiede Redis + i 2 servizi Cloud Run. UI `VideoPipelineMonitor.jsx` → design-lead. Poi flussi reparto M2 (T10-T14). Niente push/merge/deploy: tutto locale (branch avanti di 7 su origin).
+
+### 2026-09-08 · Claude · Motore Evolution: T08 (backend) registro + recupero
+
+**AUTORIZZATO:** prosecuzione motore (Claude owner, Codex fermo). Stesso branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T08 solo backend (la pagina `OperationalTasks.jsx` è rimandata: va fatta con design-lead, e vale la scelta backend-first). Nuovo `services/operational_tasks/events.py`: `append_event`/`timeline` (traccia append-only), `escalate` deduplicata per incidente, `record_escalation_delivery` (notifica fallita NON risolve), `can_admin_retry` (vietato ritentare effetti incerti → riconciliare). Nuovo router `routers/operational_tasks.py` (`/api/operational-tasks`): lista+dettaglio con timeline, azioni `retry`/`reconcile`/`assign`/`cancel` con admin auth + controllo concorrenza + evento in timeline. Registrato in `server.py`.
+
+**VERIFICATO:** `test_operational_task_recovery.py` (nuovo, in ci.yml) **10 passed** (incl. AST: i 6 endpoint richiedono admin). Suite operational **80 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** (1) pagina frontend del motore → design-lead. (2) router verificato per struttura (AST)+compileall, non su app FastAPI live (`.venv-ops` minimale senza fastapi; in CI c'è). (3) chi APRE l'escalation (il worker su `blocked`) e chi INVIA la notifica si collegano coi flussi reparto T10-T13. (4) Resta T09 (salute runtime, chiude G1). Niente push/merge/deploy: tutto locale.
+
+### 2026-09-08 · Claude · Motore Evolution: T07 prove/dedup/riconciliazione effetti
+
+**AUTORIZZATO:** prosecuzione motore (Claude owner, Codex fermo). Stesso branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T07. Nuovo `services/operational_tasks/evidence.py`: `classify_effect_outcome` distingue `PRODUCED` (prova riletta) / `FAILED` (mai partito, reinviabile) / `UNKNOWN` (timeout dopo invio → riconciliare, mai reinviare); `channels_to_retry` ripete SOLO i FAILED; `all_effects_verified` completa solo con prova su ogni canale; `EffectLedger` registra l'intento con chiave di idempotenza e deduplica callback/tentativi ripetuti. Letto `social_publisher.py`: già dedup per-canale via permalink; il buco che T07 copre è il **timeout dopo l'invio** oggi trattato come errore → ripubblicazione/doppione.
+
+**VERIFICATO:** `.venv-ops`, `PYTHONPATH=backend`. `test_operational_task_reconciliation.py` (nuovo, in ci.yml) **14 passed**. Suite operational **70 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** wiring in `social_publisher.py` (registrare l'intento prima di pubblicare + cercare l'operazione remota sul timeout prima di ripubblicare) è l'integrazione successiva — tocca un adapter di produzione con test propri e serve logica Graph live. La query di riconciliazione è per-provider (Systeme/Graph/SMTP): la macchina a stati è in `evidence.py`, gli adapter la useranno nei flussi reparto T10-T13. Restano T08/T09. Niente push/merge/deploy: tutto locale.
+
+### 2026-09-08 · Claude · Motore Evolution: T06 autorizzazioni applicate dal server
+
+**AUTORIZZATO:** prosecuzione motore (Claude owner, Codex fermo). Stesso branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T06. Nuovo `services/operational_tasks/policy.py`: `authorize_admin` (identità dal token, non dal body), `approval_authorizes_output` (un'approvazione vale per UNA versione: legata a checksum output + scadenza + reviewer). `approval_workflow.py`: `approve_task` registra checksum+scadenza; `reject_task` al 3° rifiuto va a **`blocked`** (non più `rejected` orfano né raise). `server.py`: `require_admin_role` su approve/reject/dismiss/status/approvals/approval-stats; **reviewer = admin autenticato** (`_admin.email`), non `request.reviewer`; `PATCH /status` non accetta più `completed` (niente bypass del verificatore).
+
+**VERIFICATO:** `.venv-ops`, `PYTHONPATH=backend`. `test_operational_task_policy.py` (nuovo, in ci.yml) **12 passed** — incl. asserzioni AST su server.py (le 6 rotte hanno l'auth; status non accetta completed; reviewer da _admin.email). Suite operational **56 passed, 2 skipped**; compileall OK; flake8 pulito. Frontend `ApprovalsQueue` usa `adminFetch` (Bearer) → auth non rompe la UI.
+
+**APERTO:** (1) `POST /agent-tasks` (create) e `POST /jobs/task` (execute_now) ancora aperte: possibili chiamanti interni, da verificare prima di chiuderle. (2) `approval_authorizes_output` è la primitiva: si collega all'esecuzione del contratto quando quel percorso sarà attivo (oggi gli approvati legacy sono già bloccati da T04). (3) Nessuna prova su app FastAPI autenticata live (auth verificata per struttura + allineamento a 20+ rotte admin identiche). (4) Restano T07/T08/T09. Niente push/merge/deploy: tutto locale.
+
+### 2026-09-08 · Claude · Motore Evolution: T04 messo in sicurezza + T05 claim/lease
+
+**AUTORIZZATO:** Claudio ha riassegnato il MOTORE (M1, T03–T09) a Claude e ha messo **Codex in pausa** su questa traccia ("prendi tu il motore per il momento codex si ferma"). Stesso branch `codex/evolution-autonomia`: Codex era fermo, nessuna scrittura concorrente.
+
+**DICHIARATO:** (1) T04 era stato lasciato da Codex **staged ma non committato** nel worktree — l'ho committato (`58672a4f`) dopo verifica. (2) T05: nuovo `backend/services/operational_tasks/runner.py` — claim atomico via `find_one_and_update`, lease owner+token, rinnovo, completamento e retry solo con token combaciante, recupero dei lease scaduti, policy retry (backoff 60s/300s → `blocked`). Vocabolario di stato legacy `pending`/`in_progress` riusato, nessun terzo sistema di stati. `ensure_task_indexes` idempotente. Nuovo file agganciato alla CI in `ci.yml`.
+
+**VERIFICATO:** `.venv-ops`, `PYTHONPATH=backend` — T04 `test_operational_task_completion.py` esercita il consumer reale `BackgroundJobExecutor` (24 passed con contracts). T05 `test_operational_task_concurrency.py`: **14 passed, 1 skipped**; suite operational completa **38 passed, 1 skipped**; flake8 E9/F821 pulito. La controprova regge (senza `status` il claim torna None e i test cadono).
+
+**CHIUSO in giornata (Claudio ha autorizzato il download di Mongo):** (1) **Atomicità PROVATA su Mongo reale** — avviato `mongod` 8.3.9 usa-e-getta in locale; `test_two_concurrent_workers_exactly_one_wins` e `test_claim_specific_is_atomic_under_contention` (24 worker × 5 round, un solo vincitore) **PASSED**. Non più mock. (2) **Gate cablato nel worker vivo** — nuovo `runner.claim_specific`; `BackgroundJobExecutor` ha un `worker_id` e prende in carico atomicamente ogni task diretto in `process_pending_tasks` prima di eseguirlo. Due worker non eseguono più lo stesso task. Verifica: unit `40 passed, 2 skipped`; real-mongo `2 passed`; flake8 pulito; compileall OK; T04 intatto. `mongod` spento e pacchetto rimosso.
+
+**APERTO:** (1) percorsi di approvazione (generazione/approvati/rigenerazione) restano human-gated → **T06** autorizzazioni lato server. (2) write finale di `execute_task` non passa ancora per `complete_with_lease`/`apply_retry` col token (non serve alla garanzia di singolo esecutore, che il gate dà a monte; retry+rinnovo lease si collegano agli esecutori in T06/T07). (3) Restano T07 riconciliazione, T08 registro/recupero, T09 salute runtime. Niente push, merge o deploy: tutto locale.
+
+### 2026-09-08 · Codex · Backend-first Evolution: fondazione catalogo
+
+**AUTORIZZATO:** Claudio ha chiesto avvio immediato dopo accordo backend-first. Branch `codex/evolution-autonomia`, base `71ce73c9`; checkout condiviso e lavoro concorrente preservati.
+
+**DICHIARATO:** primo blocco T03 inerte: registry esplicito, input/versione/idempotenza, proiezione storica conservativa; nessuna route, consumer, migrazione o nuova automazione. Il motore legacy non è ancora corretto. Architettura e mandati condivisi in `docs/strategy/evolution-architettura-concordata.md` e `evolution-reparti-mandati.md`, richiamati da CLAUDE.md.
+
+**VERIFICATO:** baseline codice/runtime e comandi in `docs/agents/evidence/2026-09-08-autonomia-baseline.md`. Test isolati e review del blocco, con limiti espliciti. Nessun database o provider di produzione usato dai test.
+
+**APERTO:** T01 campioni task e heartbeat; T03 integrazione runtime; T04 falsi completamenti legacy; T05 claim/lease; T06 policy/versioni; T07 evidenze/riconciliazione. Seguono flussi reparti e collaborazioni; UI differita. Contratti non analizzati, nessuna formula economica introdotta. Nuova architettura non distribuita.
+
+### 2026-09-08 · Codex · Area partner serena — mappa implementata
+
+**AREA RISERVATA:** branch codex/partner-sereno, worktree .worktrees/codex-partner-sereno. Nuovo SerenoJourney nel flag esistente, default OFF. Conteggio dei record visibili, ordine canonico F-n, link allo step preciso, stati di attesa/blocco distinti. Preview aggiornata: http://127.0.0.1:4178/partner/percorso.
+
+**VERIFICATO:** 17 test/6 suite passati, preview compilata, percorso demo e cambio stato verificati in browser; mobile senza overflow. Logo originale conservato.
+
+**APERTO:** approvazioni reali e salvataggi legacy da collegare/verificare per singolo flusso: _DOC_APPROVAL_STEPS operativo e vuoto. Materiali, assistenza, servizi/piano e pilota ancora aperti. Nessun merge/deploy o dati reali modificati. Dettagli in PARTNER-SERENO.md.
 
 ### 2026-09-08 · Codex · Area partner serena — primo blocco e anteprima
 
@@ -99,49 +804,7 @@
 
 **APERTO:** preview con fixture dichiarate; dettaglio revisione, materiali, assistenza, catalogo e piano da completare/collegare. Nessun merge, deploy o modifica a dati reali. Prossimo blocco: mappa canonica e approvazioni. Non attivare il flag in produzione prima dei gate del documento.
 
-### 2026-09-08 · Codex · Avvio backend autonomia — in corso
-
-**AUTORIZZATO:** Claudio: "ok iniziamo immediatamente", dopo accordo backend-first con admin attuale operativo.
-
-**AREA RISERVATA:** branch `codex/evolution-autonomia`, worktree `.worktrees/codex-evolution-autonomia`, base `71ce73c9`. Catalogo `backend/services/operational_tasks/`, test dedicati e documentazione strategia/evidenze. Nessun nuovo consumer attivato; non integrare automaticamente i file di questo branch.
-
-**CONTINUAZIONE:** Claudio chiede "proseguiamo". T04 in corso dalla base `8798339e`: `backend/integrated_services.py`, modulo `operational_tasks/completion.py` e test completion. Nessun deploy; il branch resta bozza. Preservare queste aree durante il lavoro concorrente.
-
-**VERIFICATO:** primo blocco pubblicato come commit `8798339e`, bozza PR https://github.com/claudiobertogliatti-spec/appevolution/pull/78. Fondazione catalogo inerte, nessun consumer collegato; 21 test passati, compile/lint/diff-check e review indipendente finale PASS. CI https://github.com/claudiobertogliatti-spec/appevolution/actions/runs/34252991906 conclusa PASS: Backend 1m58s, Frontend 1m15s, Security 15s. Baseline in `docs/agents/evidence/2026-09-08-autonomia-baseline.md` del branch. **APERTO:** T01 campioni runtime, integrazione T03 e T04 falsi completamenti legacy; nessun merge o deploy della nuova architettura. Proseguire dallo stesso worktree/branch.
-
-### 2026-09-08 · Codex · Audit UX area partner (sola lettura)
-
-**VERIFICATO:** fetch origin riuscito, baseline origin/main 5a9b8a21. Browser Chrome, https://www.ciak.io/partner in supervisione Cosimo Filieri: sessione inizialmente AUTH_EXPIRED, login riuscito con credenziali gia compilate; Home F-15 Prezzo + webinar mostra Approva Posizionamento e selettore test accessi. /partner/percorso: 11/21, testo venti passaggi, ordine F-2 prima di F-1 e F-17 prima di F-16, F-15 In coda. /partner/team: sei agenti e cinque referenti, supporto umano sotto agenti. /partner/materiali: tre voci, cartelle Script/Video/Piattaforma vuote; aperto e chiuso dialog upload senza invio. Sorgenti origin/main confermano upload simulato in PartnerFilesPage, falso messaggio di presa in carico nel catch di TeamSupportoPage, CTA mappa verso Home e onOpenStep inutilizzato in GuidedHome.
-
-**DICHIARATO:** proposta di revisione per prossima azione reale, stati coerenti, supporto unico, materiali riconciliati e navigazione uniforme.
-
-**APERTO:** nessuna modifica applicativa, salvataggio partner, invio chat, upload, commit o deploy. Audit live su un partner in vista admin; mobile letto nel codice, non verificato su dispositivo. Preservato lavoro concorrente.
-
 # HANDOFF — staffetta fra agenti
-
-### 2026-09-08 · Codex · Architettura condivisa e collaborazioni — LEGGERE
-
-**DECISIONE DI CLAUDIO:** rendere ben visibile in memoria l'architettura perché lavora anche con Claude. Fonte condivisa: **[evolution-architettura-concordata.md](../strategy/evolution-architettura-concordata.md)**, richiamata in cima a CLAUDE.md. Direzione Claudio/Luca; Acquisizione e Vendite con Mariangela Caccia; Delivery e casi studio con Antonella Rossi; Back office coordina contratti, orari, provvigioni e bonus. Nomi agenti da confermare, nessuna autonomia economica implicita.
-
-**VERIFICATO:** esiste il PDF locale di Mariangela indicato da Claudio (225447 byte); condizioni e firme non ancora lette/verificate. Antonella: contratto già in Ciak secondo Claudio, da reperire. Nessun contenuto contrattuale pubblicato o caricato.
-
-**APERTO:** task collaborazioni aggiunti al piano; architettura documentata, non implementata. Per continuità Claude leggere il documento condiviso, non presumere accesso alla memoria privata Codex.
-
-
-### 2026-09-08 · Codex · Piano organigramma e autonomia Evolution
-
-**DICHIARATO**
-- Richiesta di Claudio: piano operativo dettagliato per Direzione Claudio/Luca e quattro reparti, con completamento verificabile dei compiti degli agenti e admin coerente.
-- Scritti `docs/superpowers/specs/2026-09-08-evolution-organigramma-autonomia-design.md` e `docs/superpowers/plans/2026-09-08-evolution-organigramma-autonomia.md`: 22 task, 5 milestone, dipendenze, mandati, gate, verifiche e rollout progressivo.
-
-**VERIFICATO**
-- File presenti; controllo dei titoli T01–T22 e `git diff --check` eseguiti durante la stesura. Questo prova la consegna documentale, non l'implementazione del piano.
-- Baseline dell'audit precedente: reference locale origin/main `cd07cb56109cc6d4e306eda63d95d5d5da3ffb65`; refresh remoto non riuscito nel turno di audit. Il piano richiede un nuovo baseline prima dell'esecuzione.
-
-**APERTO**
-- T01–T22 da eseguire. Nomi dei capi reparto e nuove autorizzazioni da definire in T02; nessun invio, pagamento o pubblicazione autorizzato implicitamente dal piano.
-- Nessuna modifica applicativa, migrazione, commit o deploy in questa consegna. Conservato il lavoro concorrente.
-
 
 Chi apre una sessione su questo repo **legge questo file per primo** (dopo
 [`PROTOCOL.md`](./PROTOCOL.md)) e **lo aggiorna prima di chiudere**.

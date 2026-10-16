@@ -155,10 +155,12 @@ class HeyGenService:
         avatar_id: str,
         voice_id: str,
         title: str = "Generated Video",
-        test: bool = False
+        test: bool = False,
+        dimension: Optional[Dict[str, int]] = None,
     ) -> Dict[str, Any]:
         """
         Generate a video with avatar and voice
+        dimension: {"width", "height"}; default 1920x1080 (orizzontale). Per i reel 1080x1920.
         
         Args:
             script: The text the avatar will speak
@@ -185,7 +187,7 @@ class HeyGenService:
                             "voice_id": voice_id
                         }
                     }],
-                    "dimension": {
+                    "dimension": dimension or {
                         "width": 1920,
                         "height": 1080
                     },

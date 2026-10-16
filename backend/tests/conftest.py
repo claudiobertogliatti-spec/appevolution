@@ -7,7 +7,18 @@ test vengono saltati automaticamente. Restano eseguiti solo i test marcati `unit
 Quando REACT_APP_BACKEND_URL e' valorizzata, vengono eseguiti TUTTI i test.
 """
 import os
+import sys
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def _reset_admin_type_cache():
+    # routers/ciak_admin.py tiene in memoria l'admin_type letto dal DB: tra un
+    # test e l'altro lo stesso user_id finto cambia tipo, quindi si riparte puliti.
+    mod = sys.modules.get("routers.ciak_admin")
+    if mod is not None:
+        mod._ADMIN_TYPE_CACHE.clear()
+    yield
 
 
 def pytest_collection_modifyitems(config, items):

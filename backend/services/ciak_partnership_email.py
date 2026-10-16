@@ -4,7 +4,9 @@ Ciak — Email transactional Partnership.
 Invia direttamente via SMTP (smtp.register.it, sender info@evolution-pro.it)
 le 3 email del percorso post-call → firma → pagamento → documenti:
 
-  1. send_contratto_firmato_email   (al POST /api/proposta/:token/firma-contratto)
+  1. send_contratto_firmato_email   (al POST /api/proposta/:token/conferma-stripe
+                                     o /conferma-bonifico — dopo il pagamento,
+                                     non più alla firma: vedi task-3move)
      Conferma firma + PDF contratto allegato.
 
   2. send_partnership_benvenuto_email (al POST /api/proposta/:token/conferma-stripe
@@ -459,8 +461,8 @@ async def send_contratto_firmato_async(
 
     if ok:
         try:
-            from services.ciak_systeme import ciak_emit_event
-            asyncio.create_task(ciak_emit_event(
+            from services.ciak_systeme import ciak_emit_event, fire_and_forget
+            fire_and_forget(ciak_emit_event(
                 email=email,
                 event_name="ciak_partnership_contratto_firmato_email_sent",
                 extra_tags=["ciak_partnership_email_sent"],
@@ -498,8 +500,8 @@ async def send_partnership_benvenuto_async(
 
     if ok:
         try:
-            from services.ciak_systeme import ciak_emit_event
-            asyncio.create_task(ciak_emit_event(
+            from services.ciak_systeme import ciak_emit_event, fire_and_forget
+            fire_and_forget(ciak_emit_event(
                 email=email,
                 event_name="ciak_partnership_benvenuto_email_sent",
                 extra_tags=["ciak_partnership_email_sent", "ciak_partner_attivo"],
@@ -530,8 +532,8 @@ async def send_documenti_ricevuti_async(
 
     if ok:
         try:
-            from services.ciak_systeme import ciak_emit_event
-            asyncio.create_task(ciak_emit_event(
+            from services.ciak_systeme import ciak_emit_event, fire_and_forget
+            fire_and_forget(ciak_emit_event(
                 email=email,
                 event_name="ciak_partnership_documenti_email_sent",
                 extra_tags=["ciak_partnership_email_sent"],
@@ -565,8 +567,8 @@ async def register_partnership_email_opened(tracking_token: str) -> Optional[dic
         nome = result.get("nome")
         if email:
             try:
-                from services.ciak_systeme import ciak_emit_event
-                asyncio.create_task(ciak_emit_event(
+                from services.ciak_systeme import ciak_emit_event, fire_and_forget
+                fire_and_forget(ciak_emit_event(
                     email=email,
                     event_name=f"ciak_partnership_{kind}_email_opened",
                     extra_tags=["ciak_partnership_email_opened"],

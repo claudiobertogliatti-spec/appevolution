@@ -3,7 +3,8 @@ routers/onboarding.py
 Gestisce l'onboarding dei nuovi partner: profilo, contratto, pagamento, documenti
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional
@@ -16,7 +17,10 @@ import os
 import json
 import subprocess
 
+from routers.ciak_admin import require_ciak_admin
+
 router = APIRouter(prefix="/api/partner", tags=["onboarding"])
+security = HTTPBearer(auto_error=False)
 
 # Database reference (set from server.py)
 db = None
@@ -72,7 +76,7 @@ DOCUMENTI_DIR.mkdir(parents=True, exist_ok=True)
 IBAN = "LT94 3250 0974 4929 5781"
 BIC = "REVOLT21"
 BANK = "Revolut Bank UAB"
-AMOUNT = "€2.790,00"
+AMOUNT = "€2.990,00"
 PAYMENT_LINK = os.environ.get("PAYMENT_LINK_PARTNERSHIP", "https://pay.evolution-pro.it/partnership")
 
 # ============================================================================
@@ -123,11 +127,18 @@ class ApprovaStep(BaseModel):
 # ============================================================================
 
 @router.post("/{partner_id}/profilo")
-async def salva_profilo(partner_id: str, body: ProfiloRequest):
+async def salva_profilo(
+    partner_id: str,
+    body: ProfiloRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Salva i dati anagrafici e genera il contratto precompilato."""
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
-    
+
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     try:
         # Estrai i dati dal body - accetta sia {"dati":{...}} che {...} direttamente
         if body.dati:
@@ -194,11 +205,17 @@ async def salva_profilo(partner_id: str, body: ProfiloRequest):
 # ============================================================================
 
 @router.get("/{partner_id}/scarica-contratto")
-async def scarica_contratto(partner_id: str):
+async def scarica_contratto(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Download del contratto precompilato."""
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
-    
+
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     try:
         partner = await find_partner(partner_id)
         if not partner:
@@ -233,11 +250,18 @@ async def scarica_contratto(partner_id: str):
 # ============================================================================
 
 @router.post("/{partner_id}/upload-contratto")
-async def upload_contratto_firmato(partner_id: str, file: UploadFile = File(...)):
+async def upload_contratto_firmato(
+    partner_id: str,
+    file: UploadFile = File(...),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Upload del contratto firmato."""
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
-    
+
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     try:
         partner_dir = DOCUMENTI_DIR / partner_id
         partner_dir.mkdir(exist_ok=True)
@@ -267,11 +291,18 @@ async def upload_contratto_firmato(partner_id: str, file: UploadFile = File(...)
 # ============================================================================
 
 @router.post("/{partner_id}/conferma-pagamento")
-async def conferma_pagamento(partner_id: str, body: ConfermaPagamento):
+async def conferma_pagamento(
+    partner_id: str,
+    body: ConfermaPagamento,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Il partner dichiara di aver effettuato il pagamento."""
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
-    
+
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     try:
         await update_partner(partner_id, {"$set": {
                 "onboarding.step_corrente": 4,
@@ -293,12 +324,16 @@ async def upload_documenti(
     partner_id: str,
     ci_fronte: UploadFile = File(...),
     ci_retro: UploadFile = File(...),
-    codice_fiscale: UploadFile = File(...)
+    codice_fiscale: UploadFile = File(...),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """Upload dei documenti d'identità."""
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
-    
+
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     try:
         partner_dir = DOCUMENTI_DIR / partner_id
         partner_dir.mkdir(exist_ok=True)
@@ -333,11 +368,18 @@ async def upload_documenti(
 # ============================================================================
 
 @router.post("/{partner_id}/upload-distinta")
-async def upload_distinta(partner_id: str, file: UploadFile = File(...)):
+async def upload_distinta(
+    partner_id: str,
+    file: UploadFile = File(...),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Upload della distinta di pagamento."""
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
-    
+
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     try:
         partner_dir = DOCUMENTI_DIR / partner_id
         partner_dir.mkdir(exist_ok=True)
@@ -367,11 +409,22 @@ async def upload_distinta(partner_id: str, file: UploadFile = File(...)):
 # ============================================================================
 
 @router.get("/{partner_id}/onboarding")
-async def get_onboarding(partner_id: str):
-    """Carica lo stato dell'onboarding per il partner."""
+async def get_onboarding(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Carica lo stato dell'onboarding per il partner.
+
+    Protetto: prima esponeva a chiunque, senza token, gli URL dei documenti
+    d'identita'/CF e della distinta. Admin/superadmin supervisionano; il
+    partner accede solo al proprio id (require_partner_or_admin_for_partner).
+    """
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
-    
+
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     try:
         partner = await find_partner(partner_id)
         if not partner:
@@ -422,8 +475,16 @@ async def get_onboarding(partner_id: str):
 # ============================================================================
 
 @router.post("/{partner_id}/approva")
-async def approva_step(partner_id: str, body: ApprovaStep):
-    """Admin approva o rifiuta uno step dell'onboarding."""
+async def approva_step(
+    partner_id: str,
+    body: ApprovaStep,
+    admin=Depends(require_ciak_admin),
+):
+    """Admin approva o rifiuta uno step dell'onboarding.
+
+    Solo admin/superadmin: prima era anonimo, chiunque poteva auto-approvare i
+    propri documenti e far avanzare il partner a fase F2 senza controllo umano.
+    """
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
     

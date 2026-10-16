@@ -36,13 +36,19 @@ def _dipendenze(rotta):
     return [d.call.__name__ for d in rotta.dependant.dependencies]
 
 
-@pytest.mark.parametrize("metodo", ["PATCH", "DELETE"])
-def test_le_scritture_sui_lead_richiedono_admin(metodo):
-    rotta = _rotta(metodo, "/leads/{lead_id}")
+@pytest.mark.parametrize("metodo,path", [
+    ("PATCH", "/leads/{lead_id}"),
+    ("DELETE", "/leads/{lead_id}"),
+    ("POST", "/import"),
+    ("POST", "/import-csv"),
+    ("POST", "/search-places"),
+])
+def test_le_scritture_sui_lead_richiedono_admin(metodo, path):
+    rotta = _rotta(metodo, path)
 
     assert rotta is not None, f"{metodo} /leads/{{lead_id}} non registrata"
     assert "require_ciak_admin" in _dipendenze(rotta), (
-        f"{metodo} /leads/{{lead_id}} e' SENZA autenticazione: "
+        f"{metodo} {path} e' SENZA autenticazione: "
         f"chiunque conosca l'URL puo' scrivere sui lead"
     )
 
@@ -62,3 +68,32 @@ def test_il_campo_del_coordinamento_e_modificabile():
     blocco = testo[inizio : testo.find("}", inizio)]
 
     assert '"lavorazione_manuale"' in blocco
+
+
+def test_le_get_lead_discovery_richiedono_admin():
+    """
+    16/9: le GET dei lead discovery (hot/lista/dettaglio) erano PUBBLICHE mentre
+    DELETE/PATCH erano admin → email/telefono/indirizzo/note dei lead scaricabili
+    senza token. Ora anche le GET passano da require_ciak_admin.
+    """
+    import ast
+    from pathlib import Path
+    src = (Path(__file__).resolve().parent.parent / "routers" / "discovery_engine.py").read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    attese = {("get", "/leads/hot"), ("get", "/leads"), ("get", "/leads/{lead_id}")}
+    trovate = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef)):
+            continue
+        for dec in node.decorator_list:
+            if (isinstance(dec, ast.Call) and isinstance(dec.func, ast.Attribute)
+                    and dec.args and isinstance(dec.args[0], ast.Constant)):
+                key = (dec.func.attr, dec.args[0].value)
+                if key in attese:
+                    deps = {s.args[0].id for s in ast.walk(node)
+                            if isinstance(s, ast.Call) and isinstance(s.func, ast.Name)
+                            and s.func.id == "Depends" and s.args and isinstance(s.args[0], ast.Name)}
+                    trovate[key] = deps
+    for key in attese:
+        assert key in trovate, f"route {key} non trovata"
+        assert "require_ciak_admin" in trovate[key], f"{key} senza require_ciak_admin: {trovate[key]}"

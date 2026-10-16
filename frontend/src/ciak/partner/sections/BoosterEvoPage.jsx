@@ -16,6 +16,9 @@ import {
   Zap,
 } from "lucide-react";
 import { BOOSTER_CATALOG, BOOSTER_ORDER } from "../booster/boosterCatalog";
+import { PARTNER_SERENO_ENABLED } from "../sereno/feature";
+import SerenoServizi from "../sereno/SerenoServizi";
+import { authHeaders } from "../api";
 
 /**
  * Booster EVO — vetrina (stile e-commerce) dei servizi extra attivabili durante
@@ -101,7 +104,7 @@ const SERVICE_VISUALS = {
   },
 };
 
-const GROUPS = [
+export const GROUPS = [
   {
     title: "Voglio piu' visibilita'",
     subtitle: "Per portare piu' persone giuste verso masterclass, funnel e contenuti.",
@@ -337,7 +340,7 @@ function Dettaglio({ item, partnerId, onBack, onSupport }) {
       if (item.consultantId) {
         res = await fetch(`/api/consulenza-checkout`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: authHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({
             service_type: "consulenza_marketing",
             consultant_id: item.consultantId,
@@ -561,6 +564,20 @@ export function BoosterEvoPage({ partnerId, basePath = "/partner/booster-evo" })
         onSupport={goSupport}
       />
     );
+  }
+
+  // Sereno skin: restyled catalogue over the real data; the detail page and its
+  // Stripe checkout stay the existing flow (reached via onOpen). Default unchanged.
+  if (PARTNER_SERENO_ENABLED) {
+    const sections = GROUPS.map((g) => ({
+      title: g.title,
+      subtitle: g.subtitle,
+      items: g.ids.map((id) => {
+        const it = BOOSTER_CATALOG[id];
+        return { id, name: it.name, price: it.prezzo, idealePer: it.idealePer };
+      }),
+    }));
+    return <SerenoServizi sections={sections} onOpen={(id) => navigate(`${basePath}/${id}`)} />;
   }
 
   return <Vetrina onOpen={(id) => navigate(`${basePath}/${id}`)} />;

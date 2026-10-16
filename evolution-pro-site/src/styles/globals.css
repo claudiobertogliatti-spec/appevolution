@@ -292,6 +292,9 @@ h2 {
 .ciak-demo__next strong { color: var(--brand-navy); }
 
 .hero-agents {
+  --globe: clamp(30rem, 62vw, 58rem);
+  position: relative;
+  overflow: clip;
   background: var(--surface-white);
 }
 
@@ -312,7 +315,12 @@ h2 {
 .hero-agents__lead { max-width: 34rem; margin: 1.5rem 0 1rem; color: var(--brand-muted); font-size: clamp(1rem, 2vw, 1.25rem); }
 .hero-agents__outcome { max-width: 34rem; margin: 0 0 2rem; padding-left: 1rem; border-left: 3px solid var(--brand-yellow); color: var(--brand-ink); font-size: clamp(1rem, 1.8vw, 1.2rem); font-weight: 600; line-height: 1.45; }
 .hero-agents__visual { position: relative; min-height: 32rem; transform: translateY(-2.25rem); }
-.hero-agents__shape { position: absolute; inset: 4% 0 2% 8%; border-radius: 44% 56% 62% 38% / 42% 37% 63% 58%; background: var(--brand-navy); transform: rotate(-3deg); }
+.hero-agents__shape { position: absolute; inset: 4% 0 2% 8%; overflow: hidden; border-radius: 44% 56% 62% 38% / 42% 37% 63% 58%; background: var(--brand-navy); transform: rotate(-3deg); }
+/* Spirale Evolution: stessa geometria su due strati. Sul bianco un fantasma appena percepibile (il giallo domina),
+   sul blu solo la banda gialla del marchio, che emerge. Decorativo: nessun testo o controllo dipende da qui. */
+.hero-agents__visual::before, .hero-agents__shape::before { content: ""; position: absolute; width: var(--globe); aspect-ratio: 800 / 879; background: center / contain no-repeat; pointer-events: none; }
+.hero-agents__visual::before { left: 50%; top: 50%; z-index: 0; transform: translate(-50%, -50%); background-image: url('/brand/evolution-globe-ghost.webp'); opacity: .2; }
+.hero-agents__shape::before { left: calc(50% - 4.35%); top: calc(50% - 1.06%); transform: translate(-50%, -50%) rotate(3deg); background-image: url('/brand/evolution-globe-yellow.webp'); opacity: .5; }
 .hero-agent { position: absolute; inset: 8% 10%; display: grid; place-items: center; transform-origin: center; }
 .hero-agent img { width: min(19rem, 64vw); aspect-ratio: 1; border: .35rem solid var(--surface-white); border-radius: 50%; object-fit: cover; box-shadow: 0 1.25rem 3rem #10132640; }
 .hero-agent__card { position: absolute; right: 0; bottom: 0; width: min(20rem, 78vw); padding: 1rem; color: var(--text-on-dark); background: var(--brand-ink); }

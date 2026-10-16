@@ -1,6 +1,6 @@
 """Definizione journey per il tier `start` e regole di accesso per tier.
 
-Il cliente Ciak Start (499 EUR) entra nella STESSA area del partner, con una
+Il cliente Ciak Start (390 EUR) entra nella STESSA area del partner, con una
 journey ridotta. Questi test fissano il contratto della definizione separata:
 non tocca i 20 step canonici F-1..F-20, riusa gli step_id dei partner dove
 esistono, e non fa mai sparire nulla a chi sale di livello.
@@ -150,7 +150,7 @@ def test_partner_puo_toccare_tutto_compresi_gli_step_start_ereditati():
 
 
 def test_step_sconosciuto_richiede_partnership():
-    # Default chiuso: uno step non mappato non si apre a un cliente da 499 EUR.
+    # Default chiuso: uno step non mappato non si apre a un cliente da 390 EUR.
     assert tier_allows_step(TIER_START, "step-che-non-esiste") is False
 
 

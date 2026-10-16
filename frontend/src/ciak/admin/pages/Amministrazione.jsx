@@ -19,8 +19,9 @@
  * Lo stato di una rata si legge da `stato_effettivo` (calcolato sulla data), mai
  * dal campo scritto: una rata scaduta senza conferma e' "da confermare".
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Check, Clock, Lock, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
+import { AlertTriangle, Check, Clock, Copy, Lock, X } from "lucide-react";
 import { apiGet, apiPatch } from "../api";
 import { euro } from "../euro";
 
@@ -344,9 +345,17 @@ function prossimaRata(c) {
   return "—";
 }
 
-function Posizioni({ lista, riepilogo }) {
+function Posizioni({ lista, riepilogo, highlightId }) {
   const crediti = lista?.crediti || [];
   const soloCrediti = crediti.filter((c) => (c.tipo || "credito") === "credito");
+  // Deep-link ?credito=<id> (dalla coda Back office): porta in vista e evidenzia
+  // la posizione esatta. Nessun colore nuovo: token esistente bg-slate-100.
+  const highlightRef = useRef(null);
+  useEffect(() => {
+    if (highlightId && typeof highlightRef.current?.scrollIntoView === "function") {
+      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlightId, crediti.length]);
   return (
     <section data-testid="posizioni" className="rounded-xl border border-slate-200 bg-white p-5">
       <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
@@ -368,8 +377,15 @@ function Posizioni({ lista, riepilogo }) {
             {crediti.length === 0 && (
               <tr><td colSpan={6} className="py-6 text-center text-slate-500">Nessuna posizione caricata.</td></tr>
             )}
-            {crediti.map((c) => (
-              <tr key={c.id} className="border-b border-slate-100 last:border-0">
+            {crediti.map((c) => {
+              const isHi = highlightId && String(c.id) === String(highlightId);
+              return (
+              <tr
+                key={c.id}
+                ref={isHi ? highlightRef : null}
+                data-testid={isHi ? "credito-evidenziato" : undefined}
+                className={`border-b border-slate-100 last:border-0 ${isHi ? "bg-slate-100" : ""}`}
+              >
                 <td className="py-2.5 pr-3 font-medium text-slate-900">{c.nome}</td>
                 <td className="py-2.5 pr-3 text-slate-600">{c.tipo || "credito"}</td>
                 <td className="py-2.5 pr-3">
@@ -387,7 +403,8 @@ function Posizioni({ lista, riepilogo }) {
                 <td className="py-2.5 pr-3 text-slate-600">{prossimaRata(c)}</td>
                 <td className="py-2.5 text-slate-600">{c.documento || "—"}</td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -395,31 +412,146 @@ function Posizioni({ lista, riepilogo }) {
   );
 }
 
+// ─── Watchdog 60 giorni ────────────────────────────────────────────────────
+
+const WD_BUCKET = {
+  scaduto:     { label: "Scaduto · saldo dovuto", cls: "bg-red-50 text-red-700 border-red-200" },
+  in_scadenza: { label: "In scadenza",            cls: "bg-amber-50 text-amber-800 border-amber-200" },
+  in_regola:   { label: "Nei tempi",              cls: "bg-slate-50 text-slate-600 border-slate-200" },
+  online:      { label: "Online ✓",               cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  senza_data:  { label: "Senza data attivazione", cls: "bg-slate-50 text-slate-500 border-slate-200" },
+};
+
+// Bozza di richiesta saldo, da rileggere e inviare a mano: il sistema prepara,
+// non addebita. Onesta: se pubblica prima, se ne riparla.
+function bozzaSaldo(r, soglia) {
+  return (
+    `Ciao ${r.nome || ""},\n\n` +
+    `come da accordo la partnership prevedeva di essere online (funnel pubblicato) ` +
+    `entro ${soglia} giorni dall'attivazione. Ad oggi risultano ${r.giorni_trascorsi} ` +
+    `giorni senza pubblicazione: come da contratto procediamo con il saldo ` +
+    `dell'importo residuo di ${euro(r.residuo)}.\n\n` +
+    `Ti giro i dettagli per completare il pagamento. Se nel frattempo pubblichiamo ` +
+    `il funnel, ovviamente ne riparliamo.\n\nUn saluto`
+  );
+}
+
+function Watchdog({ data }) {
+  const [copied, setCopied] = useState(null);
+  if (!data) return null;
+  const rows = data.partner || [];
+  const soglia = data.soglia_giorni || 60;
+  const t = data.totali || {};
+  const copia = async (r) => {
+    try {
+      await navigator.clipboard.writeText(bozzaSaldo(r, soglia));
+      setCopied(r.credito_id);
+      setTimeout(() => setCopied(null), 1500);
+    } catch { /* clipboard non disponibile */ }
+  };
+  return (
+    <section data-testid="watchdog" className="rounded-xl border border-slate-200 bg-white p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Watchdog {soglia} giorni · online o saldo</p>
+        <span className="text-[11.5px] text-slate-500">
+          {t.scaduti || 0} scaduti · {t.in_scadenza || 0} in scadenza · saldo dovuto <b className="text-slate-900">{euro(t.residuo_scaduto)}</b>
+        </span>
+      </div>
+      <p className="mt-1 text-[12px] text-slate-500">
+        Chi paga a rate deve avere il funnel pubblicato entro {soglia} giorni dall'attivazione. Il saldo si prepara qui, non si addebita da solo.
+      </p>
+      {rows.length === 0 ? (
+        <p className="mt-3 text-sm text-slate-500">Nessun partner con piano a rate da monitorare.</p>
+      ) : (
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-[11px] uppercase tracking-widest text-slate-500 border-b border-slate-200">
+                <th className="py-2 pr-3 font-semibold">Partner</th>
+                <th className="py-2 pr-3 font-semibold">Stato {soglia}gg</th>
+                <th className="py-2 pr-3 font-semibold">Online</th>
+                <th className="py-2 pr-3 font-semibold text-right">Residuo</th>
+                <th className="py-2 font-semibold">Azione</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => {
+                const b = WD_BUCKET[r.bucket] || WD_BUCKET.in_regola;
+                return (
+                  <tr key={r.credito_id} data-testid="watchdog-row" className="border-b border-slate-100 last:border-0">
+                    <td className="py-2.5 pr-3">
+                      <p className="font-medium text-slate-900">{r.nome}</p>
+                      <p className="text-[11px] text-slate-500">
+                        {r.giorni_trascorsi != null ? `${r.giorni_trascorsi} gg` : "senza data"}
+                        {r.start_source ? ` · da ${r.start_source}` : ""}
+                      </p>
+                    </td>
+                    <td className="py-2.5 pr-3">
+                      <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11.5px] font-semibold whitespace-nowrap ${b.cls}`}>{b.label}</span>
+                    </td>
+                    <td className="py-2.5 pr-3 text-slate-600">
+                      {r.online ? "Sì" : r.online === false ? "No" : "—"}
+                      <span className="block text-[11px] text-slate-400">{r.online_signal}</span>
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums font-semibold text-slate-900">{euro(r.residuo)}</td>
+                    <td className="py-2.5">
+                      {r.non_sollecitare ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600"><Lock className="w-3 h-3" aria-hidden /> Sospesa</span>
+                      ) : r.bucket === "scaduto" ? (
+                        <button type="button" onClick={() => copia(r)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-900 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400">
+                          <Copy className="w-3 h-3" aria-hidden /> {copied === r.credito_id ? "Copiato" : "Bozza saldo"}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-slate-400">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 // ─── Pagina ────────────────────────────────────────────────────────────────
 
 export function Amministrazione({ onAuthExpired }) {
+  const { search } = useLocation();
   const [ob, setOb] = useState(null);
   const [riepilogo, setRiepilogo] = useState(null);
   const [lista, setLista] = useState(null);
+  const [watchdog, setWatchdog] = useState(null);
   const [errore, setErrore] = useState(null);
   const [caricato, setCaricato] = useState(false);
   const [conferma, setConferma] = useState(null);
   const [busy, setBusy] = useState(false);
   const [busyLeva, setBusyLeva] = useState(null);
+  // Deep-link dalla coda Back office: /admin/amministrazione?credito=<id>
+  const highlightId = useMemo(() => {
+    try { return new URLSearchParams(search).get("credito"); }
+    catch { return null; }
+  }, [search]);
 
   const load = useCallback(async () => {
     const auth = (e) => {
       if (e?.message === "AUTH_EXPIRED") { onAuthExpired?.(); return true; }
       return false;
     };
-    const [o, r, l] = await Promise.all([
+    const [o, r, l, w] = await Promise.all([
       apiGet(`/obiettivo/${OBIETTIVO_ID}`).catch((e) => (auth(e) ? null : null)),
       apiGet("/crediti/riepilogo").catch((e) => { if (!auth(e)) setErrore(e.message); return null; }),
       apiGet("/crediti").catch((e) => { if (!auth(e)) setErrore(e.message); return null; }),
+      // Pannello secondario: se fallisce non blocca la pagina né mostra errore.
+      apiGet("/watchdog/partner-online").catch((e) => (auth(e) ? null : null)),
     ]);
     setOb(o);
     setRiepilogo(r);
     setLista(l);
+    setWatchdog(w);
     setCaricato(true);
   }, [onAuthExpired]);
 
@@ -475,8 +607,9 @@ export function Amministrazione({ onAuthExpired }) {
       ) : (
         <div className="space-y-4">
           <Obiettivo ob={ob} onMovimento={movimento} busyLeva={busyLeva} />
+          <Watchdog data={watchdog} />
           <CassaMese riepilogo={riepilogo} lista={lista} onEsito={(credito, rata, stato) => setConferma({ credito, rata, stato })} />
-          <Posizioni lista={lista} riepilogo={riepilogo} />
+          <Posizioni lista={lista} riepilogo={riepilogo} highlightId={highlightId} />
         </div>
       )}
 

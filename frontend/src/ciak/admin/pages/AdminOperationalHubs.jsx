@@ -10,8 +10,9 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { apiGet } from "../api";
+import { apiGet, getAdminUser } from "../api";
 import { attoEvo } from "../evo";
+import { PageHeader } from "../components/ui/PageHeader";
 
 function euro(v) {
   if (v == null || v === "" || Number(v) === 0) return "-";
@@ -40,18 +41,6 @@ function initials(name) {
     .toUpperCase();
 }
 
-function PageHeader({ eyebrow, title, subtitle, icon: Icon }) {
-  return (
-    <div className="mb-6">
-      <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-yellow-600 mb-2">
-        {Icon && <Icon className="w-4 h-4" />}
-        {eyebrow}
-      </div>
-      <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
-      {subtitle && <p className="text-slate-500 mt-1 max-w-3xl">{subtitle}</p>}
-    </div>
-  );
-}
 
 function ActionCard({ to, title, desc, icon: Icon }) {
   return (
@@ -89,6 +78,9 @@ function OperationalHub({ eyebrow, title, subtitle, icon, cards }) {
 }
 
 export function AcquisizioneCalendarioHub() {
+  // Account commerciale (Mariangela): niente card verso funzioni che il
+  // backend le nega (routers/ciak_admin.py, allowlist Acquisizione).
+  const adminType = getAdminUser()?.admin_type;
   return (
     <OperationalHub
       eyebrow="Acquisizione"
@@ -97,11 +89,10 @@ export function AcquisizioneCalendarioHub() {
       icon={CalendarDays}
       cards={[
         { to: "/admin/acq-campagne-ads", title: "Campagne Ads", desc: "Creativita, hook e traffico paid.", icon: Megaphone },
-        { to: "/admin/lista-fredda", title: "Lista Fredda", desc: "Archivio congelato: custom audience Meta, analisi segmenti e studio mercato.", icon: Users },
-        { to: "/admin/lead-manager", title: "New Lead", desc: "Inserimento e lavorazione nuovi contatti.", icon: ClipboardCheck },
-        { to: "/admin/pipeline", title: "Acquisizione Evolution", desc: "Blueprint, call, recuperi e checkpoint del progetto pilota madre.", icon: TrendingUp },
-        { to: "/admin/template-email", title: "Template Email", desc: "Copy email modificabile senza deploy.", icon: FileText },
-      ]}
+        { to: "/admin/lista-fredda", title: "Lista Fredda", desc: "Archivio congelato: custom audience Meta, analisi segmenti e studio mercato.", icon: Users, hideFor: ["mariangela"] },
+        { to: "/admin/pipeline", title: "Contatti", desc: "Ricerca, inserimento e lavorazione dei contatti, fino alla call.", icon: ClipboardCheck },
+        { to: "/admin/template-email", title: "Template Email", desc: "Copy email modificabile senza deploy.", icon: FileText, hideFor: ["mariangela"] },
+      ].filter((card) => !(card.hideFor || []).includes(adminType))}
     />
   );
 }
@@ -117,7 +108,7 @@ export function DeliveryMasterclassHub() {
         { to: "/admin/documenti-partner", title: "File partner", desc: "Materiali caricati e approvazioni documenti.", icon: FileText },
         { to: "/admin/video-pipeline", title: "Monitor pipeline", desc: "Job video, errori, riavvii e stato elaborazione.", icon: TrendingUp },
         { to: "/admin/video-review", title: "Approvazione video", desc: "Video pronti da controllare e pubblicare.", icon: PlayCircle },
-        { to: "/admin/partner", title: "Pipeline Partner", desc: "Apri scheda e journey del partner.", icon: Users },
+        { to: "/admin/partner", title: "Partner", desc: "Apri scheda e journey del partner.", icon: Users },
       ]}
     />
   );
@@ -143,13 +134,13 @@ export function TrattativeKoHub() {
   return (
     <OperationalHub
       eyebrow="Vendite"
-      title="Trattative KO"
+      title="Trattative perse"
       subtitle="Il backend oggi non ha uno stadio KO separato: per non perdere contesto, questa vista porta alle liste dove si intercettano recuperi e decisioni."
       icon={TrendingUp}
       cards={[
         { to: "/admin/vendite-call", title: "Call di vendita", desc: "Call prenotate o fatte da qualificare.", icon: Users },
         { to: "/admin/vendite-trattativa", title: "In trattativa", desc: "Proposte inviate, viste o accettate.", icon: TrendingUp },
-        { to: "/admin/clienti-ciak", title: "Clienti Ciak", desc: "Blueprint, Start e upgrade Partnership.", icon: ClipboardCheck },
+        { to: "/admin/clienti-ciak", title: "Account Ciak", desc: "Chi ha comprato e chi ha solo il Blueprint gratuito.", icon: ClipboardCheck },
         { to: "/admin/leads", title: "Archivio lead", desc: "Storico contatti e dettaglio diagnostico.", icon: FileText },
       ]}
     />
@@ -266,7 +257,7 @@ export function DateContratti({ onAuthExpired }) {
     <div className="p-8">
       <PageHeader
         eyebrow="Back office"
-        title="Date contratti"
+        title="Scadenze contratti"
         subtitle="Registro operativo dei partner con contratto o pagamento collegato."
         icon={CalendarDays}
       />

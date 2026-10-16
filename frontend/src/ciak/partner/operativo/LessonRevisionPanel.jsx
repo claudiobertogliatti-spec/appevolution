@@ -42,9 +42,15 @@ export default function LessonRevisionPanel({ partnerId, lesson, onUpdated }) {
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   };
 
+  const TEAM_CHECK = {
+    in_controllo: "Il team sta controllando il video e lo carica nel tuo corso.",
+    online: "✓ Il video è online nel tuo corso.",
+    sistemando: "Stiamo sistemando alcuni dettagli del montaggio: ti avvisiamo quando è pronto.",
+  };
   const waiting = ["revision_requested", "revision_processing", "revision_team_review"].includes(lesson.pipeline_status) || lesson.partner_review_status === "revision_requested";
   return <div className="rounded-xl border border-slate-200 p-4 text-[13px]">
     <div className="flex items-center gap-2"><strong className="flex-1">{lesson.title}</strong><span className={lesson.approved ? "text-green-700" : waiting ? "text-amber-700" : "text-blue-700"}>{lesson.approved ? "✓ Approvato da te" : waiting ? "Modifiche in lavorazione" : "Montaggio pronto"}</span></div>
+    {lesson.team_check && TEAM_CHECK[lesson.team_check] && <p className="mt-2 text-slate-700" data-testid="team-check">{TEAM_CHECK[lesson.team_check]}</p>}
     {waiting && <div className="mt-3 rounded-lg bg-amber-50 p-3 text-amber-900">Il team sta preparando una nuova versione. Quando sarà pronta dovrai guardarla e dare un nuovo ok.</div>}
     {lesson.ready_for_review && !lesson.approved && !waiting && lesson.embed_url && <>
       <video ref={player} controls preload="metadata" src={videoUrl(lesson.embed_url)} className="mt-3 w-full aspect-video rounded-lg bg-black" />

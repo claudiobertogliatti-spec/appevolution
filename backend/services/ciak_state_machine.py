@@ -10,35 +10,55 @@ Logica fondamentale:
   - I tag sono additivi: una volta aggiunti, restano nell'array crm_tags.
   - events conserva una traccia di ogni evento (transizioni + eventi puri).
 
-Stati ordinati nel funnel:
+Funnel gratuito (unico processo vivo, 29/9/2026):
   lead_created → ciak_started → ciak_completed → report_generated
-    → clicked_67 → purchased_67 → call_booked → call_done
-    → partner_approved → partner_active
+    → call_booked → call_done
 
-Riferimento: memory/ciak_technical_spec.md sezione 3.
+Gli stati del vecchio funnel a pagamento (clicked_67, purchased_67) e i mai usati
+partner_approved/partner_active non si possono più scrivere. Restano solo sui
+documenti storici: normalize_state() li legge come il gradino equivalente del
+funnel gratuito, così nessuna vista deve conoscerli.
 """
 from datetime import datetime, timezone
 from typing import Optional
 
 
-# Stati principali della state machine (10)
 STATE_LEAD_CREATED = "lead_created"
 STATE_CIAK_STARTED = "ciak_started"
 STATE_CIAK_COMPLETED = "ciak_completed"
 STATE_REPORT_GENERATED = "report_generated"
-STATE_CLICKED_67 = "clicked_67"
-STATE_PURCHASED_67 = "purchased_67"
 STATE_CALL_BOOKED = "call_booked"
 STATE_CALL_DONE = "call_done"
-STATE_PARTNER_APPROVED = "partner_approved"
-STATE_PARTNER_ACTIVE = "partner_active"
 
 ALL_STATES = {
     STATE_LEAD_CREATED, STATE_CIAK_STARTED, STATE_CIAK_COMPLETED,
-    STATE_REPORT_GENERATED, STATE_CLICKED_67, STATE_PURCHASED_67,
-    STATE_CALL_BOOKED, STATE_CALL_DONE, STATE_PARTNER_APPROVED,
-    STATE_PARTNER_ACTIVE,
+    STATE_REPORT_GENERATED, STATE_CALL_BOOKED, STATE_CALL_DONE,
 }
+
+# Ordine del funnel: serve a non far mai retrocedere un lead.
+STATE_RANK = {
+    STATE_LEAD_CREATED: 0,
+    STATE_CIAK_STARTED: 1,
+    STATE_CIAK_COMPLETED: 2,
+    STATE_REPORT_GENERATED: 3,
+    STATE_CALL_BOOKED: 4,
+    STATE_CALL_DONE: 5,
+}
+
+# Stati storici → gradino equivalente del funnel gratuito.
+# clicked_67/purchased_67: chi era arrivato al vecchio checkout €27 aveva già
+# l'analisi pronta. partner_*: mai scritti dal codice, trattati come call fatta.
+LEGACY_STATE_MAP = {
+    "clicked_67": STATE_REPORT_GENERATED,
+    "purchased_67": STATE_REPORT_GENERATED,
+    "partner_approved": STATE_CALL_DONE,
+    "partner_active": STATE_CALL_DONE,
+}
+
+
+def normalize_state(state: Optional[str]) -> Optional[str]:
+    """Stato corrente espresso nel funnel gratuito (mappa gli stati storici)."""
+    return LEGACY_STATE_MAP.get(state, state)
 
 
 # Tag CRM auto-generati per ogni transizione
@@ -47,12 +67,8 @@ _STATE_TAGS = {
     STATE_CIAK_STARTED: ["ciak_started"],
     STATE_CIAK_COMPLETED: ["ciak_completed"],
     STATE_REPORT_GENERATED: [],  # tag stato_X aggiunti separatamente da extra_tags
-    STATE_CLICKED_67: ["ciak_clicked_67"],
-    STATE_PURCHASED_67: ["ciak_bought_67"],
     STATE_CALL_BOOKED: ["ciak_call_booked"],
     STATE_CALL_DONE: ["ciak_call_done"],
-    STATE_PARTNER_APPROVED: ["ciak_partner_approved"],
-    STATE_PARTNER_ACTIVE: ["ciak_partner_active"],
 }
 
 

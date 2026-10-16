@@ -11,10 +11,12 @@ services/ciak_client_accounts.py): importabile anche in test ermetici, senza
 fastapi/stripe.
 
 Prezzi definitivi (LOCK):
-  - CIAK-BLUEPRINT   €27   una tantum   (MAI €67)
-  - CIAK-START       €499  una tantum
-  - CIAK-PARTNERSHIP €2.790 una tantum
-  - CIAK-UPGRADE     €2.291 una tantum  (Partnership - credito Start)
+  - CIAK-BLUEPRINT   €27   una tantum   (STORICO per fatturazione; il funnel nuovo è gratuito, checkout ritirato)
+  - CIAK-START       €390  una tantum
+  - CIAK-PARTNERSHIP €2.990 una tantum
+  - CIAK-UPGRADE     €2.600 una tantum  (Partnership - credito Start)
+  - CIAK-START-PLUS  €790   una tantum  (credito intero sulla Partnership entro 60 giorni)
+  - CIAK-UPGRADE-PLUS €2.200 una tantum (Partnership - credito Start Plus, entro 60 giorni)
   - EVO-S recover/start/grow/scale = 147/297/497/797 €/mese
 """
 from __future__ import annotations
@@ -24,12 +26,14 @@ from typing import Any, Optional
 from services.ciak_client_accounts import (
     BLUEPRINT_AMOUNT_CENTS,
     START_AMOUNT_CENTS,
+    START_PLUS_AMOUNT_CENTS,
     PARTNERSHIP_AMOUNT_CENTS,
 )
 
 # Upgrade = Partnership al netto del credito Ciak Start gia' versato.
 # NON duplicare il calcolo altrove: deriva dai valori canonici.
-UPGRADE_AMOUNT_CENTS = PARTNERSHIP_AMOUNT_CENTS - START_AMOUNT_CENTS  # 279000 - 49900 = 229100
+UPGRADE_AMOUNT_CENTS = PARTNERSHIP_AMOUNT_CENTS - START_AMOUNT_CENTS  # 299000 - 39000 = 260000
+UPGRADE_PLUS_AMOUNT_CENTS = PARTNERSHIP_AMOUNT_CENTS - START_PLUS_AMOUNT_CENTS  # 299000 - 79000 = 220000
 
 # Condizioni EVO-S (abbonamenti post 12 mesi Partnership).
 EVO_S_MIN_MONTHS = 6              # permanenza minima
@@ -58,7 +62,7 @@ MAIN_OFFERS: dict[str, dict[str, Any]] = {
     "CIAK-BLUEPRINT": {
         "code": "CIAK-BLUEPRINT",
         "nome": "Ciak Blueprint",
-        "amount_cents": BLUEPRINT_AMOUNT_CENTS,  # 2700 -> €27 (MAI €67)
+        "amount_cents": BLUEPRINT_AMOUNT_CENTS,  # 2700 storico per fatturazione (funnel nuovo gratuito, checkout ritirato)
         "periodicita": "una_tantum",
         "descrizione": (
             "Analisi strategica digitale e roadmap personalizzata per "
@@ -68,7 +72,7 @@ MAIN_OFFERS: dict[str, dict[str, Any]] = {
     "CIAK-START": {
         "code": "CIAK-START",
         "nome": "Ciak Start",
-        "amount_cents": START_AMOUNT_CENTS,  # 49900 -> €499
+        "amount_cents": START_AMOUNT_CENTS,  # 39000 -> €390
         "periodicita": "una_tantum",
         "descrizione": (
             "Percorso iniziale per definizione del posizionamento, brand, "
@@ -78,17 +82,37 @@ MAIN_OFFERS: dict[str, dict[str, Any]] = {
     "CIAK-PARTNERSHIP": {
         "code": "CIAK-PARTNERSHIP",
         "nome": "Partnership Ciak",
-        "amount_cents": PARTNERSHIP_AMOUNT_CENTS,  # 279000 -> €2.790
+        "amount_cents": PARTNERSHIP_AMOUNT_CENTS,  # 299000 -> €2.990
         "periodicita": "una_tantum",
         "descrizione": (
             "Progettazione, produzione e lancio dell'offerta digitale secondo "
             "il percorso Ciak."
         ),
     },
+    "CIAK-START-PLUS": {
+        "code": "CIAK-START-PLUS",
+        "nome": "Start Plus",
+        "amount_cents": START_PLUS_AMOUNT_CENTS,  # 79000 -> €790
+        "periodicita": "una_tantum",
+        "descrizione": (
+            "Percorso iniziale per posizionamento, brand, profili, sito e contenuti, "
+            "con un primo prodotto da vendere, pagina di vendita, checkout e messaggio di lancio."
+        ),
+    },
+    "CIAK-UPGRADE-PLUS": {
+        "code": "CIAK-UPGRADE-PLUS",
+        "nome": "Upgrade Partnership Ciak da Start Plus",
+        "amount_cents": UPGRADE_PLUS_AMOUNT_CENTS,  # 220000 -> €2.200
+        "periodicita": "una_tantum",
+        "descrizione": (
+            "Upgrade alla Partnership Ciak, al netto del credito Start Plus "
+            "gia' versato."
+        ),
+    },
     "CIAK-UPGRADE": {
         "code": "CIAK-UPGRADE",
         "nome": "Upgrade Partnership Ciak",
-        "amount_cents": UPGRADE_AMOUNT_CENTS,  # 229100 -> €2.291
+        "amount_cents": UPGRADE_AMOUNT_CENTS,  # 260000 -> €2.600
         "periodicita": "una_tantum",
         "descrizione": (
             "Upgrade alla Partnership Ciak, al netto del credito Ciak Start "

@@ -2,6 +2,16 @@ import {
   ArrowRight, CalendarDays, CheckCircle2, LockKeyhole, Sparkles,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import "../../insider/postcall.css";
+import PostCallHero from "../../insider/PostCallHero";
+import BlueprintDiagnosis from "../../insider/BlueprintDiagnosis";
+import DecisionTimeline from "../../insider/DecisionTimeline";
+import CostOfWaiting from "../../insider/CostOfWaiting";
+import RoadmapSteps from "../../insider/RoadmapSteps";
+import { formatDeadline } from "../../insider/timeline";
+import { pickThankYouVideo } from "../../insider/ThankYouVideo";
+import { HomePaths } from "../HomePaths";
+import { SalesChat } from "../SalesChat";
 
 function nextAction(dashboard) {
   const access = dashboard.client?.access_level;
@@ -24,20 +34,20 @@ function nextAction(dashboard) {
   if (diagnostic.state === "call_booked") {
     return {
       title: "Call prenotata",
-      body: "Troverai qui analisi e roadmap prima della sessione strategica.",
+      body: "Troverai qui la tua analisi prima della call.",
       to: "/cliente/blueprint",
     };
   }
   if (diagnostic.state === "call_done") {
     return {
       title: "Prossimo passo disponibile",
-      body: "Guarda il percorso consigliato dopo la call.",
-      to: diagnostic.offer_decision === "ciak_start" ? "/cliente/start" : "/cliente/partnership",
+      body: "La tua analisi è pronta: puoi iniziare da Ciak Start o passare alla Partnership.",
+      to: diagnostic.recommended_offer === "partnership" ? "/cliente/partnership" : "/cliente/start",
     };
   }
   return {
-    title: "Prenota la sessione strategica",
-    body: "Il Blueprint serve a preparare una call concreta, non una vendita al buio.",
+    title: "Prenota la call con noi",
+    body: "L'analisi serve a preparare una call concreta, non una vendita al buio.",
     to: "/cliente/blueprint",
   };
 }
@@ -49,7 +59,7 @@ function statusLabel(state) {
   return "Da prenotare";
 }
 
-export function ClientHome({ dashboard }) {
+function HomeStato({ dashboard }) {
   const action = nextAction(dashboard);
   const diagnostic = dashboard.diagnostic || {};
   const analysis = dashboard.analysis || {};
@@ -75,19 +85,19 @@ export function ClientHome({ dashboard }) {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4">
           <CheckCircle2 className="mb-3 h-5 w-5 text-emerald-600" />
-          <p className="font-semibold text-slate-900">Blueprint</p>
+          <p className="font-semibold text-slate-900">La tua analisi</p>
           <p className="mt-1 text-sm text-slate-500">
             {analysis.status === "inviata"
-              ? `Analisi pronta${roadmapCount ? `, roadmap con ${roadmapCount} tappe.` : "."}`
-              : "Analisi e roadmap in preparazione."}
+              ? `Pronta${roadmapCount ? `, con ${roadmapCount} passi da seguire.` : "."}`
+              : "La stiamo preparando per te."}
           </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
           <CalendarDays className="mb-3 h-5 w-5 text-blue-600" />
-          <p className="font-semibold text-slate-900">Call strategica</p>
+          <p className="font-semibold text-slate-900">La call con noi</p>
           <p className="mt-1 text-sm text-slate-500">
             {statusLabel(diagnostic.state)}
-            {diagnostic.state === "call_booked" ? ". Arriva qui tutto cio' che serve prima della sessione." : "."}
+            {diagnostic.state === "call_booked" ? ". Qui trovi tutto quello che serve prima della call." : "."}
           </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -95,18 +105,67 @@ export function ClientHome({ dashboard }) {
           <p className="font-semibold text-slate-900">Ciak Start</p>
           <p className="mt-1 text-sm text-slate-500">
             {startActive
-              ? "Area di lavoro attiva con servizi, avanzamento e credito sempre garantito."
-              : "Si apre dopo il Blueprint e la call, se il team conferma che serve consolidare le fondazioni."}
+              ? "Attivo: qui trovi i tuoi materiali e il prossimo passo."
+              : diagnostic.state === "call_done"
+                ? "Puoi attivarlo per costruire le basi del tuo progetto. Quello che spendi viene riconosciuto se poi scegli la Partnership."
+                : "Si apre dopo la call in cui ti consegniamo l'analisi."}
           </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
           <LockKeyhole className="mb-3 h-5 w-5 text-slate-600" />
-          <p className="font-semibold text-slate-900">Area partner</p>
+          <p className="font-semibold text-slate-900">Percorso Partner</p>
           <p className="mt-1 text-sm text-slate-500">
-            {partnershipActive ? "Attiva." : "Disponibile dopo attivazione."}
+            {partnershipActive ? "Attiva." : "Si attiva dopo la Partnership."}
           </p>
         </div>
       </div>
     </div>
   );
+}
+
+/**
+ * Home persuasiva, per chi ha fatto la call e non ha ancora un percorso attivo.
+ *
+ * E' personalizzata sul Blueprint di questa persona (le sue parole: nodo principale, diagnosi, costo del
+ * restare fermi, tappe). Senza Blueprint pronto le sezioni personali NON compaiono: mai testo generico
+ * spacciato per personale. Da qui si sceglie fra Start e Partnership; ognuno ha la sua pagina.
+ */
+function HomePostCall({ dashboard }) {
+  const blueprint = dashboard.blueprint || null;
+  const name = dashboard.client?.name || "";
+  const proposta = dashboard.proposta;
+  const deadlineLabel = proposta?.token ? formatDeadline(proposta.scadenza) : null;
+  const video = pickThankYouVideo(null);
+  const offer = dashboard.offer || {};
+  const bonusAttiva = !!offer.bonus_guida_attiva && !!offer.bonus_expires_at;
+  const recPartnership = dashboard.raccomandata === "partnership";
+
+  return (
+    <>
+      <div className="pc pc-embed">
+        <PostCallHero
+          name={name}
+          blueprint={blueprint}
+          videoUrl={video.url}
+          captionsUrl={video.captionsUrl}
+          posterUrl={video.poster}
+          pdfUrl={blueprint?.pdf_url || null}
+          note="Puoi fermarti e fare domande in qualsiasi momento: l'assistente è in basso a destra."
+        />
+        {blueprint ? <BlueprintDiagnosis blueprint={blueprint} /> : null}
+        <DecisionTimeline deadlineLabel={deadlineLabel} />
+        {blueprint ? <CostOfWaiting blueprint={blueprint} /> : null}
+        {blueprint ? <RoadmapSteps steps={blueprint.roadmap} /> : null}
+        <HomePaths dashboard={dashboard} />
+      </div>
+      <SalesChat bonusAttiva={bonusAttiva} recPartnership={recPartnership} />
+    </>
+  );
+}
+
+export function ClientHome({ dashboard }) {
+  const access = dashboard.client?.access_level;
+  const attivo = access === "cliente_start" || access === "partner" || dashboard.partner_area?.status === "attiva";
+  if (!attivo && dashboard.diagnostic?.state === "call_done") return <HomePostCall dashboard={dashboard} />;
+  return <HomeStato dashboard={dashboard} />;
 }

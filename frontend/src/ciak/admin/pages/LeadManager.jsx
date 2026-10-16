@@ -9,11 +9,12 @@ import { useState, useEffect, useRef } from "react";
 import {
   Users, Search, RefreshCw, Plus, Upload, Edit3, Trash2,
   X, Save, Loader2, Globe, Phone, Snowflake, TrendingUp,
-  Flame, ExternalLink, UserPlus, MapPin, Check,
+  Flame, ExternalLink, UserPlus, MapPin, Check, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminFetch } from "../api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { LeadScriptPanel } from "../components/LeadScriptPanel";
 
 // ─────────────────────────────────────────────────────────────
 // COSTANTI
@@ -25,11 +26,33 @@ const DISCOVERY_STATUSES = {
   scored:         { label: "Scorato",       cls: "bg-yellow-100 text-yellow-700" },
   message_ready:  { label: "Msg pronto",    cls: "bg-yellow-100 text-yellow-600" },
   message_sent:   { label: "Msg inviato",   cls: "bg-emerald-100 text-emerald-600" },
-  contacted:      { label: "Contattato",    cls: "bg-emerald-100 text-emerald-600" },
-  interested:     { label: "Interessato",   cls: "bg-red-100 text-red-500" },
-  not_interested: { label: "Non interes.",  cls: "bg-gray-100 text-slate-500" },
-  pending:        { label: "In attesa",     cls: "bg-gray-100 text-slate-500" },
+  contacted:          { label: "Contattato",    cls: "bg-emerald-100 text-emerald-600" },
+  responded_positive: { label: "Ha risposto",   cls: "bg-red-100 text-red-500" },
+  qualified:          { label: "Qualificato",   cls: "bg-indigo-100 text-indigo-600" },
+  converted:          { label: "Cliente",       cls: "bg-emerald-100 text-emerald-700" },
+  responded_negative: { label: "Non interes.",  cls: "bg-gray-100 text-slate-500" },
+  rejected:           { label: "Scartato",      cls: "bg-gray-100 text-slate-500" },
+  pending:            { label: "In attesa",     cls: "bg-gray-100 text-slate-500" },
 };
+
+// Pipeline di LAVORAZIONE (avanzamento del lead): l'ordine con cui un contatto
+// outbound si muove verso la vendita. La freccia "avanza" passa allo stadio dopo;
+// "Non interessato" è l'uscita laterale. Scrive su discovery_leads.status.
+const WORK_STAGES = [
+  { key: "discovered",         label: "Nuovo" },
+  { key: "contacted",          label: "Contattato" },
+  { key: "responded_positive", label: "Ha risposto" },
+  { key: "qualified",          label: "Qualificato" },
+  { key: "converted",          label: "Cliente" },
+];
+const WORK_ORDER = WORK_STAGES.map(s => s.key);
+// Colonne del board: TUTTA la pipeline, da Nuovo (Scoperto) fino a Cliente, così i
+// lead compaiono come card fin dal primo stadio.
+const BOARD_STAGES = WORK_STAGES;
+
+// Commerciali assegnabili a un lead (owner). Mariangela = setter acquisizione;
+// Claudio conduce le call; Gaia = vendite. Scrive su discovery_leads.owner.
+const COMMERCIALI = ["Mariangela", "Claudio", "Gaia"];
 
 const SOURCES = {
   instagram:     { label: "Instagram",      cls: "bg-pink-100 text-pink-600" },
@@ -86,145 +109,6 @@ function StatusBadge({ status, map }) {
     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${cfg.cls}`}>
       {cfg.label}
     </span>
-  );
-}
-
-function ScoreBadge({ score }) {
-  const cls =
-    score >= 80 ? "bg-emerald-100 text-emerald-600"
-    : score >= 50 ? "bg-yellow-100 text-yellow-600"
-    : "bg-gray-100 text-slate-500";
-  return (
-    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg ${cls}`}>
-      {score || 0}
-    </span>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// EDIT MODAL — DISCOVERY LEAD
-// ─────────────────────────────────────────────────────────────
-
-function DiscoveryEditModal({ lead, onClose, onSaved, onAuthExpired }) {
-  const isPlaces = lead.source === "google_places";
-  const [form, setForm] = useState({
-    display_name: lead.display_name || "",
-    email: lead.email || "",
-    bio: lead.bio || "",
-    website_url: lead.website_url || "",
-    platform_url: lead.platform_url || "",
-    platform_username: lead.platform_username || "",
-    phone: lead.phone || lead.business_phone || "",
-    niche_detected: lead.niche_detected || "",
-    source: lead.source || "manual",
-    status: lead.status || "discovered",
-    score_total: lead.score_total || 0,
-    temperatura: lead.temperatura || "",
-    notes_admin: lead.notes_admin || "",
-    business_phone: lead.business_phone || "",
-    business_address: lead.business_address || "",
-    profession_category: lead.profession_category || "",
-  });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
-
-  const save = async () => {
-    setSaving(true);
-    setError(null);
-    try {
-      const res = await adminFetch(`/api/discovery/leads/${lead.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) throw new Error("Errore salvataggio");
-      onSaved({ ...lead, ...form });
-    } catch (e) {
-      if (e.message === "AUTH_EXPIRED") onAuthExpired();
-      else setError(e.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const F = ({ label, k, multiline, type = "text", options }) => (
-    <div>
-      <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">{label}</label>
-      {options ? (
-        <select value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
-          className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900">
-          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-      ) : multiline ? (
-        <textarea value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
-          rows={3} className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900 resize-y" />
-      ) : (
-        <input type={type} value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
-          className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900" />
-      )}
-    </div>
-  );
-
-  return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/75" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5 bg-slate-900">
-          <div>
-            <div className="font-semibold text-white">{lead.display_name || lead.platform_username}</div>
-            <div className="text-xs text-white/50">{lead.source} · {lead.id}</div>
-          </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-5 space-y-3">
-          {isPlaces && (
-            <div className="p-3 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              Google Attività · {lead.google_rating ? `★ ${lead.google_rating}` : ""} · {lead.google_review_count || 0} recensioni · {lead.has_website ? "ha sito" : "no sito web ✓"}
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-3">
-            <F label="Nome" k="display_name" />
-            <F label="Email" k="email" type="email" />
-            {isPlaces ? (
-              <>
-                <F label="Telefono (Google)" k="business_phone" />
-                <F label="Categoria professionale" k="profession_category" />
-                <div className="col-span-2">
-                  <F label="Indirizzo" k="business_address" />
-                </div>
-              </>
-            ) : (
-              <>
-                <F label="Username piattaforma" k="platform_username" />
-                <F label="Telefono" k="phone" />
-                <F label="Sito web" k="website_url" />
-                <F label="URL profilo" k="platform_url" />
-              </>
-            )}
-            <F label="Nicchia rilevata" k="niche_detected" />
-            <F label="Score (0-100)" k="score_total" type="number" />
-            <F label="Fonte" k="source" options={Object.entries(SOURCES).map(([v, c]) => ({ value: v, label: c.label }))} />
-            <F label="Stato" k="status" options={Object.entries(DISCOVERY_STATUSES).map(([v, c]) => ({ value: v, label: c.label }))} />
-            <F label="Temperatura ELENA" k="temperatura" options={[
-              { value: "", label: "— non classificato —" },
-              ...Object.entries(TEMPERATURE).map(([v, c]) => ({ value: v, label: c.label })),
-            ]} />
-          </div>
-          {!isPlaces && <F label="Bio / Descrizione" k="bio" multiline />}
-          <F label="Note admin (interne)" k="notes_admin" multiline />
-        </div>
-        <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-          {error ? <span className="text-sm text-red-600">{error}</span> : <span />}
-          <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-slate-600 hover:bg-gray-100">Annulla</button>
-            <button onClick={save} disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-yellow-400 text-slate-900">
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Salva
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -332,8 +216,12 @@ function FreddaEditModal({ lead, onClose, onSaved, onAuthExpired }) {
 // IMPORT MODAL — Discovery (CSV + manuale)
 // ─────────────────────────────────────────────────────────────
 
-function ImportModal({ type, onClose, onImported, onAuthExpired }) {
-  const [tab, setTab] = useState("csv");
+function ImportModal({ type, initialTab = "csv", editLead = null, onClose, onImported, onAuthExpired }) {
+  // Modalità modifica: stesso form di "Nuovo lead", precompilato, che salva in
+  // PATCH sul lead esistente invece di crearne uno nuovo. Si apre cliccando un
+  // lead nella coda di ingresso o la matita di una card in pipeline.
+  const isEdit = !!editLead;
+  const [tab, setTab] = useState(isEdit ? "manual" : initialTab);
   const [csvFile, setCsvFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState(null);
@@ -342,7 +230,20 @@ function ImportModal({ type, onClose, onImported, onAuthExpired }) {
   const emptyForm = type === "discovery"
     ? { display_name: "", email: "", source: "manual", platform_username: "", bio: "", website_url: "", niche_detected: "", phone: "" }
     : { first_name: "", last_name: "", email: "", phone: "", tag: "lista-fredda-2025" };
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(
+    isEdit
+      ? {
+          display_name: editLead.display_name || "",
+          email: editLead.email || "",
+          source: editLead.source || "manual",
+          platform_username: editLead.platform_username || "",
+          bio: editLead.bio || "",
+          website_url: editLead.website_url || "",
+          niche_detected: editLead.niche_detected || "",
+          phone: editLead.phone || editLead.business_phone || "",
+        }
+      : emptyForm
+  );
   const [manualSaving, setManualSaving] = useState(false);
   const [manualError, setManualError] = useState(null);
 
@@ -372,6 +273,17 @@ function ImportModal({ type, onClose, onImported, onAuthExpired }) {
     setManualSaving(true);
     setManualError(null);
     try {
+      if (isEdit) {
+        const res = await adminFetch(`/api/discovery/leads/${editLead.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || "Errore salvataggio");
+        onImported({ ...editLead, ...form });
+        return;
+      }
       let url, body;
       if (type === "discovery") {
         url = "/api/discovery/import";
@@ -387,9 +299,16 @@ function ImportModal({ type, onClose, onImported, onAuthExpired }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Errore");
+      if (type === "discovery" && data.success === false) {
+        const detail = Array.isArray(data.errors)
+          ? data.errors.map((item) => item?.error || item).filter(Boolean).join(", ")
+          : "";
+        setResult(data);
+        throw new Error(detail || data.message || "Il lead non è stato salvato");
+      }
       setForm(emptyForm);
       onImported();
-      setResult({ imported: 1, skipped: 0 });
+      setResult(type === "discovery" ? data : { imported: 1, skipped: 0 });
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired();
       else setManualError(e.message);
@@ -407,22 +326,24 @@ function ImportModal({ type, onClose, onImported, onAuthExpired }) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 bg-slate-900">
           <div>
-            <div className="font-semibold text-white">Importa Lead</div>
+            <div className="font-semibold text-white">{isEdit ? "Modifica lead" : tab === "manual" ? "Nuovo lead" : "Importa lista"}</div>
             <div className="text-xs text-white/50">
               {type === "discovery" ? "Discovery Leads" : "Lista Fredda"}
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button>
+          <button onClick={onClose} aria-label="Chiudi inserimento lead" className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button>
         </div>
 
-        <div className="flex border-b border-gray-200 bg-gray-50">
-          {[["csv", "CSV Upload"], ["manual", "Inserimento manuale"]].map(([id, label]) => (
-            <button key={id} onClick={() => setTab(id)}
-              className={`px-5 py-3 text-sm font-medium border-b-2 transition-all ${tab === id ? "border-yellow-400 text-slate-900 bg-white" : "border-transparent text-slate-500"}`}>
-              {label}
-            </button>
-          ))}
-        </div>
+        {!isEdit && (
+          <div className="flex border-b border-gray-200 bg-gray-50">
+            {[["csv", "CSV Upload"], ["manual", "Inserimento manuale"]].map(([id, label]) => (
+              <button key={id} onClick={() => setTab(id)}
+                className={`px-5 py-3 text-sm font-medium border-b-2 transition-all ${tab === id ? "border-yellow-400 text-slate-900 bg-white" : "border-transparent text-slate-500"}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="p-5">
           {tab === "csv" && (
@@ -444,13 +365,31 @@ function ImportModal({ type, onClose, onImported, onAuthExpired }) {
                 <input ref={fileRef} type="file" accept=".csv" className="hidden"
                   onChange={e => setCsvFile(e.target.files[0])} />
               </div>
-              {result && (
-                <div className={`p-3 rounded-xl text-sm ${result.error ? "bg-red-50" : "bg-emerald-50"}`}>
-                  {result.error
-                    ? <span className="text-red-600">Errore: {result.error}</span>
-                    : <span className="text-emerald-700">✓ Importati: {result.imported || result.success} · Saltati: {result.skipped || 0}</span>}
-                </div>
-              )}
+              {result && (() => {
+                // Esito onesto: rosso (errore/fallito) / ambra (parziale) / verde (ok).
+                // Retrocompatibile: senza `status` e senza `error` = ok (verde).
+                const status = result.error ? "failed" : (result.status || "ok");
+                const box = status === "failed"
+                  ? "bg-red-50 border border-red-200"
+                  : status === "partial"
+                    ? "bg-amber-50 border border-amber-200"
+                    : "bg-emerald-50 border border-emerald-200";
+                const txt = status === "failed" ? "text-red-700" : status === "partial" ? "text-amber-800" : "text-emerald-700";
+                const saltati = result.skipped ?? result.duplicates ?? 0;
+                return (
+                  <div className={`p-3 rounded-xl text-sm ${box}`}>
+                    {result.error ? (
+                      <span className="text-red-600">Errore: {result.error}</span>
+                    ) : (
+                      <span className={txt}>
+                        {status === "failed"
+                          ? "Import non riuscito"
+                          : `Importati: ${result.imported || 0} · Saltati: ${saltati}${status === "partial" ? " · alcuni errori" : ""}`}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
               <button onClick={handleCsvUpload} disabled={!csvFile || uploading}
                 className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${csvFile && !uploading ? "bg-slate-900 text-yellow-400" : "bg-gray-100 text-slate-400"}`}>
                 {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
@@ -466,7 +405,7 @@ function ImportModal({ type, onClose, onImported, onAuthExpired }) {
                   {[["Nome completo", "display_name"], ["Email", "email"], ["Username", "platform_username"], ["Telefono", "phone"], ["Sito web", "website_url"], ["Nicchia", "niche_detected"]].map(([label, k]) => (
                     <div key={k}>
                       <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">{label}</label>
-                      <input type="text" value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
+                      <input aria-label={label} type="text" value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
                         className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900" />
                     </div>
                   ))}
@@ -497,8 +436,8 @@ function ImportModal({ type, onClose, onImported, onAuthExpired }) {
               {manualError && <p className="text-sm text-red-600">{manualError}</p>}
               <button onClick={handleManualSave} disabled={manualSaving || !form.email}
                 className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm ${!form.email || manualSaving ? "bg-gray-100 text-slate-400" : "bg-slate-900 text-yellow-400"}`}>
-                {manualSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserPlus className="w-5 h-5" />}
-                Aggiungi lead
+                {manualSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : isEdit ? <Save className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
+                {isEdit ? "Salva modifiche" : "Aggiungi lead"}
               </button>
             </div>
           )}
@@ -519,7 +458,11 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
     use_group: true,
     city: "Milano",
     max_results: 20,
-    all_italy: true,
+    // Default: ricerca MIRATA sulla città (veloce). "Tutta Italia" resta un
+    // opt-in esplicito col toggle: da sola faceva 24 città × N query in una
+    // richiesta → timeout (e costo API alto). Backend ora parallelizza, ma il
+    // default targeted resta la scelta giusta per l'uso quotidiano.
+    all_italy: false,
     only_with_website: true,
   });
   const [loading, setLoading] = useState(false);
@@ -640,19 +583,40 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
             Richiede <code>GOOGLE_PLACES_API_KEY</code> nelle variabili d'ambiente.
           </div>
 
-          {result && (
-            <div className="p-3 rounded-xl text-sm bg-emerald-50 border border-emerald-200">
-              <div className="font-semibold text-emerald-700">
-                ✓ {result.new_leads} nuovi lead · {result.hot_leads} HOT (score ≥75)
+          {result && (() => {
+            // Esito onesto: ok (verde) / parziale (ambra) / fallito (rosso).
+            // Retrocompatibile: senza `status` si comporta come prima (ok).
+            const status = result.status || "ok";
+            const box = status === "failed"
+              ? "bg-red-50 border-red-200"
+              : status === "partial"
+                ? "bg-amber-50 border-amber-200"
+                : "bg-emerald-50 border-emerald-200";
+            const head = status === "failed"
+              ? "text-red-700"
+              : status === "partial"
+                ? "text-amber-800"
+                : "text-emerald-700";
+            const errs = result.errors || [];
+            return (
+              <div className={`p-3 rounded-xl text-sm border ${box}`}>
+                <div className={`font-semibold ${head}`}>
+                  {status === "failed"
+                    ? "Ricerca non riuscita"
+                    : `${result.new_leads} nuovi lead · ${result.hot_leads} HOT (score ≥75)${status === "partial" ? " · parziale" : ""}`}
+                </div>
+                {result.message && <div className="text-xs mt-1 text-slate-600">{result.message}</div>}
+                {result.duplicates_skipped > 0 && (
+                  <div className="text-xs mt-1 text-slate-400">{result.duplicates_skipped} già presenti, saltati</div>
+                )}
+                {errs.length > 0 && (
+                  <div className="text-xs mt-1 text-red-500">
+                    Errori: {errs.slice(0, 5).join(", ")}{errs.length > 5 ? ` +${errs.length - 5}` : ""}
+                  </div>
+                )}
               </div>
-              {result.duplicates_skipped > 0 && (
-                <div className="text-xs mt-1 text-slate-400">{result.duplicates_skipped} già presenti, saltati</div>
-              )}
-              {result.errors?.length > 0 && (
-                <div className="text-xs mt-1 text-red-500">Errori: {result.errors.join(", ")}</div>
-              )}
-            </div>
-          )}
+            );
+          })()}
           {error && (
             <div className="p-3 rounded-xl text-sm bg-red-50">
               <span className="text-red-600">Errore: {error}</span>
@@ -673,12 +637,257 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// LEAD WORKSPACE — fase di LAVORAZIONE (click sul lead)
+// Lo stato avanza in base a ciò che viene svolto sul contatto: "Contatta" (email
+// Brevo) porta a Contattato da solo; gli stadi di giudizio (ha risposto,
+// qualificato, cliente) si avanzano a mano. Scrive su discovery_leads.status.
+// ─────────────────────────────────────────────────────────────
+
+function LeadWorkspaceModal({ lead, onClose, onChanged, onAuthExpired }) {
+  const [status, setStatus] = useState(lead.status || "discovered");
+  const [notes, setNotes] = useState(lead.notes_admin || "");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [lastContact, setLastContact] = useState(lead.last_contacted_at || null);
+  const [showContact, setShowContact] = useState(false);
+  const nome = (lead.display_name || "").split(" ")[0] || "";
+  const [subject, setSubject] = useState(nome ? `Un'idea per te, ${nome}` : "Un'idea per la tua attività");
+  const [html, setHtml] = useState(
+    `Ciao${nome ? " " + nome : ""},<br><br>ho dato un'occhiata alla tua attività e credo ci sia un modo concreto per portarti più clienti dal digitale.<br><br>Ti va se ti mando un'analisi gratuita, senza impegno?<br><br>Un saluto,<br>Evolution PRO`
+  );
+  const [sending, setSending] = useState(false);
+  const [contactMsg, setContactMsg] = useState(null);
+
+  const patchLead = async (body) => {
+    const res = await adminFetch(`/api/discovery/leads/${lead.id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error("Errore salvataggio");
+  };
+
+  const setStage = async (key) => {
+    if (busy || key === status) return;
+    setBusy(true); setMsg(null);
+    try {
+      const res = await adminFetch(`/api/admin/ciak/leads/${lead.id}/avanza`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stage: key }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setMsg({ err: true, text: data.detail || "Errore nel cambio stato." }); return; }
+      setStatus(key); onChanged({ ...lead, status: key });
+      setMsg({ err: false, text: data.systeme ? "Stato aggiornato · sequenza/community Systeme applicata." : "Stato aggiornato." });
+    } catch (e) { if (e.message === "AUTH_EXPIRED") onAuthExpired(); else setMsg({ err: true, text: "Errore nel cambio stato." }); }
+    finally { setBusy(false); }
+  };
+
+  const saveNotes = async () => {
+    setBusy(true); setMsg(null);
+    try { await patchLead({ notes_admin: notes }); onChanged({ ...lead, notes_admin: notes }); setMsg({ err: false, text: "Note salvate." }); }
+    catch (e) { if (e.message === "AUTH_EXPIRED") onAuthExpired(); else setMsg({ err: true, text: "Errore nel salvataggio note." }); }
+    finally { setBusy(false); }
+  };
+
+  const sendContact = async () => {
+    if (sending || !subject.trim() || !html.trim()) return;
+    setSending(true); setContactMsg(null);
+    try {
+      const res = await adminFetch(`/api/admin/ciak/leads/${lead.id}/contatta`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subject, html }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setContactMsg({ err: true, text: data.detail || "Invio non riuscito." }); return; }
+      if (data.ok) {
+        const now = new Date().toISOString();
+        setContactMsg({ err: false, text: data.systeme ? "Email inviata (Brevo) · lead in sequenza/community Systeme." : "Email inviata (Brevo)." });
+        setStatus("contacted"); setLastContact(now); setShowContact(false);
+        onChanged({ ...lead, status: "contacted", last_contacted_at: now });
+        return;
+      }
+      setContactMsg({ err: true, text: data.error === "SMTP non configurato" ? "Canale email non collegato (SMTP)." : (data.error || "Invio non riuscito.") });
+    } catch (e) { if (e.message === "AUTH_EXPIRED") onAuthExpired(); else setContactMsg({ err: true, text: "Errore di rete." }); }
+    finally { setSending(false); }
+  };
+
+  const email = lead.email || "";
+  const phone = lead.business_phone || lead.phone || "";
+  const curIdx = WORK_ORDER.indexOf(status);
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/75" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 bg-slate-900">
+          <div className="min-w-0">
+            <div className="font-semibold text-white truncate">{lead.display_name || email || "Lead"}</div>
+            <div className="text-xs text-white/50 truncate">
+              {[SOURCES[lead.source]?.label || lead.source, lead.niche_detected, lead.business_address].filter(Boolean).join(" · ")}
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wide mb-2 text-slate-400">Avanzamento lavorazione</div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {WORK_STAGES.map((s, i) => {
+                const active = s.key === status;
+                const done = curIdx > -1 && i < curIdx;
+                return (
+                  <button key={s.key} onClick={() => setStage(s.key)} disabled={busy}
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition disabled:opacity-60 ${active ? "bg-yellow-400 border-yellow-400 text-slate-900" : done ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-white border-gray-200 text-slate-500 hover:bg-gray-50"}`}>
+                    {s.label}
+                  </button>
+                );
+              })}
+              <span className="mx-1 text-gray-300">·</span>
+              <button onClick={() => setStage("responded_negative")} disabled={busy}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition disabled:opacity-60 ${status === "responded_negative" ? "bg-gray-200 border-gray-300 text-slate-600" : "bg-white border-gray-200 text-slate-400 hover:bg-gray-50"}`}>
+                Non interessato
+              </button>
+            </div>
+            {msg && <p className={`text-xs mt-2 ${msg.err ? "text-red-600" : "text-emerald-600"}`}>{msg.text}</p>}
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Contatto</div>
+              {lastContact && <span className="text-[11px] text-slate-400">ultimo contatto: {new Date(lastContact).toLocaleDateString("it-IT")}</span>}
+            </div>
+            <div className="flex items-center gap-4 mt-1 text-sm text-slate-700 flex-wrap">
+              {email ? <span className="flex items-center gap-1"><Globe className="w-3.5 h-3.5 text-slate-400" />{email}</span> : <span className="text-slate-400">senza email</span>}
+              {phone && <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5 text-emerald-600" />{phone}</span>}
+            </div>
+            {!showContact ? (
+              <button onClick={() => setShowContact(true)} disabled={!email}
+                title={email ? "Invia email via Brevo" : "Aggiungi un'email per scrivergli"}
+                className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-slate-900 bg-yellow-400 rounded-lg px-4 py-2 hover:bg-yellow-300 transition disabled:opacity-40">
+                <Send className="w-4 h-4" /> Scrivi email
+              </button>
+            ) : (
+              <div className="mt-2 space-y-2">
+                <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Oggetto"
+                  className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900" />
+                <textarea value={html} onChange={e => setHtml(e.target.value)} rows={5}
+                  className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900 font-mono text-[12.5px] resize-y" />
+                <div className="flex items-center gap-2">
+                  <button onClick={sendContact} disabled={sending}
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900 bg-yellow-400 rounded-lg px-4 py-2 disabled:opacity-50">
+                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Invia via Brevo
+                  </button>
+                  <button onClick={() => setShowContact(false)} className="text-sm text-slate-600 px-3 py-2 rounded-lg hover:bg-gray-100">Annulla</button>
+                </div>
+                {contactMsg && <p className={`text-xs ${contactMsg.err ? "text-red-600" : "text-emerald-600"}`}>{contactMsg.text}</p>}
+              </div>
+            )}
+          </div>
+
+          {/* Script nella scheda: scegli il testo, copia, segna come inviato (non invia nulla). */}
+          <LeadScriptPanel lead={lead} onChanged={(l) => { setStatus(l.status || status); onChanged(l); }} onAuthExpired={onAuthExpired} />
+
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Note di lavorazione</div>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Cosa è stato fatto, prossimo passo…"
+              className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900 resize-y" />
+            <button onClick={saveNotes} disabled={busy}
+              className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-slate-700 border border-gray-200 rounded-lg px-4 py-2 hover:bg-gray-50 disabled:opacity-50">
+              <Save className="w-4 h-4" /> Salva note
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// SYNC SYSTEME → CIAK — porta un segmento (per tag) in lavorazione
+// ─────────────────────────────────────────────────────────────
+
+function SystemeSyncModal({ onClose, onImported, onAuthExpired }) {
+  const [tagId, setTagId] = useState(2073868); // ciak_cold_outreach_places
+  const [limit, setLimit] = useState(200);
+  const [label, setLabel] = useState("systeme_places");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const run = async () => {
+    setBusy(true); setResult(null);
+    try {
+      const res = await adminFetch("/api/discovery/worker/sync-from-systeme", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tag_id: Number(tagId), limit: Number(limit), source_label: label || undefined }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setResult({ err: true, text: data.detail || "Errore sync." }); return; }
+      if (data.configured === false) { setResult({ err: true, text: "Systeme non collegato (SYSTEME_API_KEY)." }); return; }
+      if (data.error) { setResult({ err: true, text: data.error }); return; }
+      setResult({ err: false, text: `Importati ${data.imported} · ${data.skipped_existing} già in Ciak · ${data.excluded} esclusi (disiscritti/bounce). Sono nella lista, pronti da lavorare.` });
+      if (data.imported > 0) onImported();
+    } catch (e) { if (e.message === "AUTH_EXPIRED") onAuthExpired(); else setResult({ err: true, text: "Errore di rete." }); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/75" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 bg-slate-900">
+          <div>
+            <div className="font-semibold text-white">Porta lead da Systeme</div>
+            <div className="text-xs text-white/50">Un segmento (per tag) entra in lavorazione. Nessun invio.</div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button>
+        </div>
+        <div className="p-5 space-y-3">
+          <div>
+            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Preset</label>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => { setTagId(2073868); setLabel("systeme_places"); }}
+                className={`flex-1 py-2 rounded-lg text-xs font-semibold border transition ${String(tagId) === "2073868" ? "bg-slate-900 text-yellow-400 border-slate-900" : "bg-white text-slate-600 border-gray-200 hover:border-slate-400"}`}>
+                Places (freddi)
+              </button>
+              <button type="button" onClick={() => { setTagId(2004404); setLabel("masterclass"); }}
+                className={`flex-1 py-2 rounded-lg text-xs font-semibold border transition ${String(tagId) === "2004404" ? "bg-slate-900 text-yellow-400 border-slate-900" : "bg-white text-slate-600 border-gray-200 hover:border-slate-400"}`}>
+                Masterclass (da svegliare)
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Tag Systeme (ID)</label>
+              <input type="number" value={tagId} onChange={e => setTagId(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Max per volta</label>
+              <input type="number" value={limit} onChange={e => setLimit(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Etichetta fonte</label>
+            <input value={label} onChange={e => setLabel(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900" />
+          </div>
+          <p className="text-[11px] text-slate-400"><b>Places</b> (2073868) = professionisti scrapati, freddi. <b>Masterclass</b> (2004404) = opt-in fermi alla masterclass → entrano in colonna <b>Nuovo</b>, da svegliare con una chiamata verso il questionario. Esclude disiscritti/bounce e chi è già in Ciak; conteggio esatto nel dashboard Systeme.</p>
+          {result && <p className={`text-sm ${result.err ? "text-red-600" : "text-emerald-600"}`}>{result.text}</p>}
+          <button onClick={run} disabled={busy}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm bg-slate-900 text-yellow-400 disabled:opacity-60">
+            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Snowflake className="w-5 h-5" />}
+            {busy ? "Importo…" : "Porta in lavorazione"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
 
 const PER_PAGE = 50;
 
-export function LeadManager({ onAuthExpired }) {
+export function LeadManager({ onAuthExpired, embedded = false }) {
   // Solo Discovery Leads: lo switch alla Lista Fredda è stato rimosso
   // (la Lista Fredda ha la sua pagina dedicata /admin/lista-fredda).
   const activeTab = "discovery";
@@ -691,8 +900,13 @@ export function LeadManager({ onAuthExpired }) {
   const [filterScore, setFilterScore] = useState(0);
   const [page, setPage] = useState(0);
   const [editLead, setEditLead] = useState(null);
+  const [workspaceLead, setWorkspaceLead] = useState(null);
+  const [board, setBoard] = useState({});
+  const [boardCounts, setBoardCounts] = useState({});
   const [showImport, setShowImport] = useState(false);
+  const [importTab, setImportTab] = useState("csv");
   const [showPlacesSearch, setShowPlacesSearch] = useState(false);
+  const [showSystemeSync, setShowSystemeSync] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [approvingId, setApprovingId] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
@@ -700,7 +914,8 @@ export function LeadManager({ onAuthExpired }) {
   const load = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ limit: PER_PAGE, skip: page * PER_PAGE });
+      // Tabella = coda di INGRESSO: solo i lead non ancora approvati/in lavorazione.
+      const params = new URLSearchParams({ limit: PER_PAGE, skip: page * PER_PAGE, in_lavorazione: "false" });
       if (filterStatus) params.set("status", filterStatus);
       if (filterSource) params.set("source", filterSource);
       if (filterScore > 0) params.set("min_score", filterScore);
@@ -727,6 +942,40 @@ export function LeadManager({ onAuthExpired }) {
 
   useEffect(() => { load(); }, [filterStatus, filterSource, filterScore, page]);
 
+  // Board "In lavorazione": i lead con stato avanzato (contattato → cliente),
+  // raggruppati per stadio. Fetch a parte (indipendente da pagina/filtri).
+  const loadBoard = async () => {
+    try {
+      const [res, cc] = await Promise.all([
+        adminFetch(`/api/discovery/leads?limit=300&in_lavorazione=true`),
+        adminFetch(`/api/admin/ciak/acquisizione-command-center`),
+      ]);
+      const data = await res.json();
+      const grouped = {};
+      for (const s of BOARD_STAGES) grouped[s.key] = [];
+      // Solo i lead APPROVATI (in_lavorazione) entrano nel board. Filtro anche
+      // lato client: se il backend non ha ancora il filtro in_lavorazione (deploy
+      // in corso), la coda di ingresso non "sfonda" comunque nel board.
+      for (const l of (data.leads || [])) {
+        if (l.in_lavorazione === true && grouped[l.status]) grouped[l.status].push(l);
+      }
+      setBoard(grouped);
+      const ccData = await cc.json().catch(() => ({}));
+      setBoardCounts(ccData.lavorazione_pipeline || {});
+    } catch (e) { if (e.message === "AUTH_EXPIRED") onAuthExpired(); }
+  };
+  useEffect(() => { loadBoard(); /* eslint-disable-next-line */ }, []);
+
+  // Deep-link dalle scorciatoie della home Acquisizione: apre subito il modale
+  // giusto (?apri=importa|nuovo|ricerca) riusando gli stessi flussi/endpoint.
+  useEffect(() => {
+    let apri = null;
+    try { apri = new URLSearchParams(window.location.search).get("apri"); } catch { /* no-op */ }
+    if (apri === "importa") { setImportTab("csv"); setShowImport(true); }
+    else if (apri === "nuovo") { setImportTab("manual"); setShowImport(true); }
+    else if (apri === "ricerca") { setShowPlacesSearch(true); }
+  }, []);
+
   // L'eliminazione passa da una conferma in pagina (ConfirmDialog) col nome del
   // lead, non da un window.confirm() anonimo.
   const confirmDelete = async () => {
@@ -749,14 +998,26 @@ export function LeadManager({ onAuthExpired }) {
     }
   };
 
+  // Approva = assegna + approva. Il lead esce dalla coda di ingresso (tabella) ed
+  // entra nel board di lavorazione, nella colonna del suo stato (un lead nuovo →
+  // "Nuovo"), così può essere lavorato. Richiede un commerciale già assegnato.
   const handleApprove = async (lead) => {
     if (!lead.id) return;
+    if (!lead.owner) {
+      toast.error("Assegna prima un commerciale, poi approva.");
+      return;
+    }
     setApprovingId(lead.id);
     try {
-      const res = await adminFetch(`/api/lista-fredda/approve-from-discovery/${lead.id}`, { method: "POST" });
+      const res = await adminFetch(`/api/discovery/leads/${lead.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ in_lavorazione: true }),
+      });
       if (!res.ok) throw new Error("Errore approvazione");
       setLeads(prev => prev.filter(l => l.id !== lead.id));
       setTotal(t => Math.max(0, t - 1));
+      loadBoard();
+      toast.success(`"${lead.display_name || lead.email}" è in lavorazione · ${lead.owner}.`);
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired();
       else toast.error("Errore nell'approvazione del lead.");
@@ -768,14 +1029,35 @@ export function LeadManager({ onAuthExpired }) {
   const handleSaved = (updated) => {
     setLeads(prev => prev.map(l => (l.id || l.email) === (updated.id || updated.email) ? updated : l));
     setEditLead(null);
+    loadBoard();
+  };
+
+  // Assegna il commerciale (owner) al lead. Ottimistico: aggiorna subito, rollback su errore.
+  const updateOwner = async (lead, owner) => {
+    const prev = lead.owner || "";
+    setLeads(ls => ls.map(l => l.id === lead.id ? { ...l, owner } : l));
+    try {
+      const res = await adminFetch(`/api/discovery/leads/${lead.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ owner }),
+      });
+      if (!res.ok) throw new Error("patch fallita");
+    } catch (e) {
+      setLeads(ls => ls.map(l => l.id === lead.id ? { ...l, owner: prev } : l));
+      if (e.message === "AUTH_EXPIRED") onAuthExpired();
+      else toast.error("Non sono riuscito ad assegnare il commerciale.");
+    }
   };
 
   const isDiscovery = true;
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-slate-900 mb-1">Lead Manager</h1>
-      <p className="text-slate-500 mb-6">Discovery Leads — scraping, scoring e promozione controllata nel Motore Vendite Evolution.</p>
+    <div className={embedded ? "" : "p-8"}>
+      {!embedded && (
+        <>
+          <h1 className="text-2xl font-semibold text-slate-900 mb-1">Lead Manager</h1>
+          <p className="text-slate-500 mb-6">Discovery Leads — scraping, scoring e promozione controllata nel Motore Vendite Evolution.</p>
+        </>
+      )}
 
       {/* Header / toolbar */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
@@ -824,15 +1106,27 @@ export function LeadManager({ onAuthExpired }) {
         <button onClick={() => setShowPlacesSearch(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-600 text-white">
           <MapPin className="w-4 h-4" />
-          Google Attività
+          Ricerca automatica
         </button>
 
-        <button onClick={() => setShowImport(true)}
+        <button onClick={() => { setImportTab("manual"); setShowImport(true); }}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-slate-900 text-yellow-400">
           <Plus className="w-4 h-4" />
-          Importa
+          Nuovo lead
+        </button>
+        <button onClick={() => { setImportTab("csv"); setShowImport(true); }}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-slate-900 text-yellow-400">
+          <Upload className="w-4 h-4" />
+          Importa lista
+        </button>
+        <button onClick={() => setShowSystemeSync(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">
+          <Snowflake className="w-4 h-4 text-blue-500" />
+          Da Systeme
         </button>
       </div>
+
+      <p className="text-[12.5px] text-slate-400 mb-2">Coda di ingresso: clicca un lead per completarne i dati, assegna un commerciale, poi <strong className="text-slate-500">Approva</strong> — passa nella pipeline sotto, pronto da lavorare.</p>
 
       {/* Table */}
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
@@ -846,27 +1140,31 @@ export function LeadManager({ onAuthExpired }) {
             <p className="text-sm text-slate-400">Nessun lead trovato</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-fixed">
             <thead>
               <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
-                {["Nome", "Email / Username", "Fonte", "Nicchia", "Score", "Stato", "Temp.", ""].map(h => (
-                  <th key={h} className="px-4 py-3 font-semibold">{h}</th>
-                ))}
+                <th className="px-4 py-3 font-semibold w-[24%]">Nome</th>
+                <th className="px-4 py-3 font-semibold w-[26%]">Email / Username</th>
+                <th className="px-4 py-3 font-semibold w-[13%]">Fonte</th>
+                <th className="px-4 py-3 font-semibold w-[17%]">Nicchia</th>
+                <th className="px-4 py-3 font-semibold w-[12%]">Commerciale</th>
+                <th className="px-4 py-3 font-semibold w-[8%]"></th>
               </tr>
             </thead>
             <tbody>
               {leads.map((lead, i) => (
-                <tr key={lead.id || i} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
+                <tr key={lead.id || i} onClick={() => setEditLead(lead)}
+                  className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors cursor-pointer">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-slate-900">{lead.display_name || "—"}</div>
+                    <div className="font-medium text-slate-900 truncate" title={lead.display_name || ""}>{lead.display_name || "—"}</div>
                     {lead.source === "google_places" ? (
-                      <div className="text-[11px] mt-0.5 text-slate-400">
+                      <div className="text-[11px] mt-0.5 text-slate-400 truncate">
                         {lead.business_address?.split(",").slice(0, 2).join(",")}
                       </div>
                     ) : lead.website_url ? (
-                      <a href={lead.website_url} target="_blank" rel="noopener noreferrer"
-                        className="text-[11px] flex items-center gap-1 text-slate-400">
-                        <Globe className="w-3 h-3" /> {lead.website_url.replace(/^https?:\/\//, "").slice(0, 30)}
+                      <a href={lead.website_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                        className="text-[11px] flex items-center gap-1 text-slate-400 truncate">
+                        <Globe className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{lead.website_url.replace(/^https?:\/\//, "")}</span>
                       </a>
                     ) : null}
                   </td>
@@ -887,10 +1185,10 @@ export function LeadManager({ onAuthExpired }) {
                         )}
                       </div>
                     ) : (
-                      <div>
-                        <div className="text-xs text-slate-600">{lead.email}</div>
-                        {lead.platform_username && (
-                          <div className="text-[11px] text-slate-400">@{lead.platform_username}</div>
+                      <div className="min-w-0">
+                        <div className="text-xs text-slate-600 truncate">{lead.email || "—"}</div>
+                        {lead.platform_username && lead.platform_username !== lead.email && (
+                          <div className="text-[11px] text-slate-400 truncate">@{lead.platform_username}</div>
                         )}
                       </div>
                     )}
@@ -901,15 +1199,15 @@ export function LeadManager({ onAuthExpired }) {
                   <td className="px-4 py-3 max-w-[150px]">
                     <span className="text-xs truncate block text-slate-600">{lead.niche_detected || "—"}</span>
                   </td>
-                  <td className="px-4 py-3"><ScoreBadge score={lead.score_total} /></td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={lead.status} map={DISCOVERY_STATUSES} />
+                  <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                    <select value={lead.owner || ""} onChange={e => updateOwner(lead, e.target.value)}
+                      className={`text-[12px] border rounded-lg px-2 py-1 bg-white ${lead.owner ? "border-gray-200 text-slate-700 font-medium" : "border-gray-200 text-slate-400"}`}>
+                      <option value="">— assegna</option>
+                      {COMMERCIALI.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
                   </td>
                   <td className="px-4 py-3">
-                    {lead.temperatura && <StatusBadge status={lead.temperatura} map={TEMPERATURE} />}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 justify-end">
+                    <div className="flex items-center gap-1 justify-end" onClick={e => e.stopPropagation()}>
                       {lead.platform_url && (
                         <a href={lead.platform_url} target="_blank" rel="noopener noreferrer"
                           className="p-1.5 rounded-lg hover:bg-gray-100">
@@ -923,10 +1221,6 @@ export function LeadManager({ onAuthExpired }) {
                           ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           : <Check className="w-3.5 h-3.5" />}
                         Approva
-                      </button>
-                                            <button onClick={() => setEditLead(lead)}
-                        className="p-1.5 rounded-lg hover:bg-yellow-50 transition-colors">
-                        <Edit3 className="w-3.5 h-3.5 text-yellow-600" />
                       </button>
                       <button onClick={() => setPendingDelete(lead)} disabled={deletingId === lead.id}
                         aria-label={`Elimina ${lead.display_name || lead.email}`}
@@ -942,6 +1236,55 @@ export function LeadManager({ onAuthExpired }) {
             </tbody>
           </table>
         )}
+      </div>
+
+      {/* ── PIPELINE DI LAVORAZIONE (la parte sotto): le fasi verso la Vendita ── */}
+      <div className="mt-8">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-yellow-600" />
+          <h2 className="text-lg font-semibold text-slate-900">Pipeline di lavorazione</h2>
+        </div>
+        <p className="text-sm text-slate-500 mt-1 mb-4">
+          Dal primo contatto fino al passaggio in Vendite. Clicca una card per far avanzare il lead.
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {BOARD_STAGES.map((s, i) => {
+            const items = board[s.key] || [];
+            const total = boardCounts[s.key] ?? items.length;
+            const isWin = s.key === "converted";
+            return (
+              <div key={s.key} className={`rounded-2xl border p-3 ${isWin ? "bg-emerald-50 border-emerald-200" : "bg-gray-50 border-gray-200"}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 flex items-center gap-1">
+                    <span className="text-slate-300">{i + 1}</span> {s.label}
+                    {s.key === "qualified" && <span className="text-[9px] font-semibold text-yellow-700 bg-yellow-100 rounded px-1 py-0.5">→ Vendite</span>}
+                  </span>
+                  <span className="text-xs font-bold text-slate-900 bg-white border border-gray-200 rounded-full px-2 py-0.5">{total}</span>
+                </div>
+                <div className="space-y-2 min-h-[40px] max-h-[460px] overflow-y-auto pr-1">
+                  {items.length === 0 ? (
+                    <p className="text-[12px] text-slate-300 py-3 text-center">—</p>
+                  ) : items.map(l => (
+                    <div key={l.id}
+                      className="w-full bg-white rounded-lg border border-gray-200 px-2.5 py-2 hover:border-yellow-300 transition flex items-start gap-1">
+                      <button onClick={() => setWorkspaceLead(l)} className="flex-1 min-w-0 text-left">
+                        <div className="text-[13px] font-medium text-slate-900 truncate">{l.display_name || l.email || "—"}</div>
+                        <div className="text-[11px] text-slate-400 truncate">{l.niche_detected || l.business_phone || l.phone || l.email || ""}</div>
+                        {l.owner && <div className="text-[10px] font-semibold text-yellow-700 truncate mt-0.5">{l.owner}</div>}
+                      </button>
+                      <button onClick={() => setEditLead(l)} title="Modifica i dati del lead"
+                        aria-label={`Modifica ${l.display_name || l.email || "lead"}`}
+                        className="p-1 rounded-md hover:bg-yellow-50 flex-shrink-0">
+                        <Edit3 className="w-3.5 h-3.5 text-yellow-600" />
+                      </button>
+                    </div>
+                  ))}
+                  {total > items.length && <p className="text-[11px] text-slate-400 text-center pt-1">+{total - items.length} oltre i primi 300</p>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Pagination */}
@@ -964,18 +1307,30 @@ export function LeadManager({ onAuthExpired }) {
       )}
 
       {/* Modals */}
+      {workspaceLead && (
+        <LeadWorkspaceModal lead={workspaceLead} onClose={() => setWorkspaceLead(null)} onChanged={handleSaved} onAuthExpired={onAuthExpired} />
+      )}
       {editLead && (
-        <DiscoveryEditModal lead={editLead} onClose={() => setEditLead(null)} onSaved={handleSaved} onAuthExpired={onAuthExpired} />
+        <ImportModal type="discovery" editLead={editLead}
+          onClose={() => setEditLead(null)}
+          onImported={handleSaved}
+          onAuthExpired={onAuthExpired} />
       )}
       {showImport && (
-        <ImportModal type="discovery"
+        <ImportModal type="discovery" initialTab={importTab}
           onClose={() => setShowImport(false)}
-          onImported={() => { load(); }}
+          onImported={() => { load(); loadBoard(); }}
           onAuthExpired={onAuthExpired} />
       )}
       {showPlacesSearch && (
         <PlacesSearchModal
           onClose={() => setShowPlacesSearch(false)}
+          onImported={() => { load(); }}
+          onAuthExpired={onAuthExpired} />
+      )}
+      {showSystemeSync && (
+        <SystemeSyncModal
+          onClose={() => setShowSystemeSync(false)}
           onImported={() => { load(); }}
           onAuthExpired={onAuthExpired} />
       )}

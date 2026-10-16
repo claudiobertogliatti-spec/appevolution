@@ -3,11 +3,12 @@
  *
  * 2 tab:
  *  - Ciak Blueprint €27  → GET /api/admin/ciak/transactions
- *  - Partnership €2.790  → GET /api/admin/ciak/transactions-partnership
+ *  - Partnership €2.990  → GET /api/admin/ciak/transactions-partnership
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiGet } from "../api";
+import { KpiTile as KpiCard } from "../components/ui/KpiTile";
 
 function euroCent(cent) {
   if (cent == null) return "—";
@@ -110,7 +111,7 @@ function BlueprintTable({ onAuthExpired }) {
   );
 }
 
-// ─── Tab 2: Partnership €2.790 ────────────────────────────────────────────
+// ─── Tab 2: Partnership €2.990 ────────────────────────────────────────────
 function PartnershipTable({ onAuthExpired }) {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
@@ -185,26 +186,13 @@ function PartnershipTable({ onAuthExpired }) {
   );
 }
 
-function KpiCard({ label, value, accent }) {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-6">
-      <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">
-        {label}
-      </p>
-      <p className={`text-3xl font-semibold ${accent ? "text-yellow-500" : "text-slate-900"}`}>
-        {value}
-      </p>
-    </div>
-  );
-}
-
 export function AdminTransactions({ onAuthExpired }) {
   const [tab, setTab] = useState("blueprint");
 
   return (
     <div className="p-10">
       <h1 className="text-2xl font-semibold text-slate-900 mb-1">Transazioni</h1>
-      <p className="text-slate-500 mb-6">Acquisti Ciak Blueprint €27 e Partnership €2.790.</p>
+      <p className="text-slate-500 mb-6">Acquisti Ciak Blueprint e Partnership €2.990.</p>
 
       <div className="flex gap-1 mb-6 border-b border-gray-200">
         <button
@@ -215,7 +203,7 @@ export function AdminTransactions({ onAuthExpired }) {
               : "border-transparent text-slate-500 hover:text-slate-700"
           }`}
         >
-          Ciak Blueprint €27
+          Ciak Blueprint
         </button>
         <button
           onClick={() => setTab("partnership")}
@@ -225,7 +213,7 @@ export function AdminTransactions({ onAuthExpired }) {
               : "border-transparent text-slate-500 hover:text-slate-700"
           }`}
         >
-          Partnership €2.790
+          Partnership €2.990
         </button>
       </div>
 

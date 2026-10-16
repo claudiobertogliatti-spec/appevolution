@@ -2,28 +2,28 @@
 Ciak — Admin panel router.
 
 Endpoint admin-only per il pannello di gestione Ciak (ciak.io/admin). MVP:
-  - GET  /api/admin/ciak/stats        → conteggi funnel per la dashboard
-  - GET  /api/admin/ciak/leads        → lista leads (merge ciak_leads + diagnostic + checkpoint)
+  - GET  /api/admin/ciak/leads        → lista unica lead (opt-in masterclass + solo questionario)
   - GET  /api/admin/ciak/lead         → dettaglio singolo lead (by email)
-  - GET  /api/admin/ciak/transactions → transazioni Stripe Ciak Blueprint €27
+  - GET  /api/admin/ciak/transactions → storico pagamenti del vecchio Blueprint €27 (checkout ritirato)
 
 Auth: riusa il role `admin` esistente (Claudio + Antonella). Niente nuovo role.
 Pattern auth identico a routers/admin_stefania.py (require_admin).
 
 Collection lette (sola lettura — questo router non scrive nulla):
   - ciak_leads             (opt-in masterclass)
-  - diagnostic_sessions    (8 Domande Ciak + scoring + report Matteo + state machine)
-  - ciak_checkpoint_events (Checkpoint Strategico 5 domande)
+  - diagnostic_sessions    (10 Domande Ciak + scoring + report Matteo + state machine)
   - ciak_orphan_purchases  (acquisti Stripe senza diagnostic session collegata)
 
 Riferimento: memory/ciak_brand_copy_framework.md (bridge Ciak → Partnership),
 memory/ciak_technical_spec.md (state machine, scoring).
 """
 import logging
+import re
+import time
 from datetime import datetime, timezone, timedelta
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 
@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin/ciak", tags=["ciak-admin"])
 security = HTTPBearer(auto_error=False)
 from report_key_auth import require_admin_or_report_key
+from services.ciak_state_machine import STATE_RANK, normalize_state
 
 # Iniettato da server.py via set_db()
 db = None
@@ -43,14 +44,234 @@ def set_db(database) -> None:
 
 # ─── Auth ──────────────────────────────────────────────────────────────────
 
-async def require_ciak_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Identico pattern a routers/admin_stefania.py — role admin/superadmin."""
+# Account "commerciale" (oggi solo Mariangela): scope volutamente ristretto al
+# reparto Acquisizione, fino a "call fissata" — la consegna del Blueprint e le
+# offerte sono di Vendite, non sue (stesso confine già dichiarato nella pagina
+# Home Acquisizione: "il reparto finisce a call prenotata, poi passa a Vendite").
+# Default-deny: un path non in questa lista risponde 403, anche chiamato
+# direttamente (non basta nascondere il link nel menu). Il confine vero è
+# CommercialScopeMiddleware (in fondo a questa sezione), montato su tutta l'app
+# in server.py: vale per OGNI /api/*, qualunque dependency abbia la route
+# (require_admin_role di server.py, require_admin_or_report_key, le guardie
+# proprie di admin_luca, partner_journey, email_campaigns...). Agisce sulle
+# richieste con un token admin valido: una route che non valida il token è
+# aperta a chiunque, e va chiusa nella route stessa. Le dependency
+# require_ciak_admin, ciak_clients.require_admin_or_internal e
+# ciak_analisi_admin ripetono lo stesso controllo (enforce_commercial_scope):
+# secondo livello, e copertura nei test che montano un router da solo.
+COMMERCIAL_ADMIN_TYPES = {"mariangela"}
+# Testo esatto: frontend/src/ciak/admin/api.js (SCOPE_DENIED_DETAIL) lo usa per
+# distinguere questo 403 da un token scaduto e non fare logout.
+COMMERCIAL_SCOPE_DETAIL = "Questo account ha accesso solo al reparto Acquisizione."
+
+_COMMERCIAL_EXACT_PATHS = {
+    "/api/admin/ciak/acquisizione-command-center",
+    "/api/admin/ciak/leads",
+    "/api/admin/ciak/lead",
+    "/api/admin/ciak/lead/mark-call-booked",
+    "/api/admin/ciak/cerca",  # ricerca per persona: per lei SOLO tra i lead (vedi ciak_cerca_persone)
+    "/api/admin/ciak/funnel-metrics",
+    "/api/admin/ciak/editorial/brands",
+    "/api/admin/ciak/editorial/contents",
+    "/api/admin/ciak/editorial/contents/generate",
+    "/api/admin/ciak/editorial/contents/approve-month",
+    "/api/admin/ciak/ads/overview",
+    # Router diverso (ciak_clients.py, dependency require_admin_or_internal),
+    # ma stesso allowlist condiviso: vedi il commento su COMMERCIAL_ADMIN_TYPES.
+    # Download PDF senza side-effect (non manda email, non crea account, non
+    # sblocca offerte) — a differenza di consegna-blueprint nello stesso file.
+    "/api/ciak/client/admin/blueprint-pdf",
+    "/api/ciak/client/admin/blueprint/stato",
+}
+# Path con id dinamico: /api/admin/ciak/leads/{lead_id}/contatta|avanza|tocco
+_COMMERCIAL_PATTERN_PATHS = [
+    re.compile(r"^/api/admin/ciak/leads/[^/]+/(contatta|avanza|tocco)$"),
+    re.compile(r"^/api/admin/ciak/editorial/brands/[^/]+$"),
+]
+_COMMERCIAL_PREFIX_PATHS = ("/api/discovery/",)  # motore Pipeline Prospect, tutto suo
+
+
+# Metodi vietati all'account commerciale anche su path consentiti: può leggere
+# e modificare un lead inbound, non eliminarlo (le eliminazioni restano a Claudio).
+# La pulizia duplicati Discovery cancella in blocco: solo lancio manuale di Claudio.
+_COMMERCIAL_FORBIDDEN_METHODS = {
+    "/api/admin/ciak/lead": {"DELETE"},
+    "/api/discovery/worker/cleanup-duplicates": {"POST"},
+}
+
+
+def _path_allowed_for_commercial(path: str, method: str = "GET") -> bool:
+    # Caratteri di controllo mai ammessi: "%0A" in fondo diventa "\n" nel path,
+    # le regex delle route Starlette (…$) lo accettano, ma il confronto esatto
+    # dei metodi vietati no (cleanup-duplicates%0A passava come consentito).
+    if any(ord(c) < 0x20 or c == "\x7f" for c in path):
+        return False
+    if method.upper() in _COMMERCIAL_FORBIDDEN_METHODS.get(path, set()):
+        return False
+    if path in _COMMERCIAL_EXACT_PATHS:
+        return True
+    if any(path.startswith(p) for p in _COMMERCIAL_PREFIX_PATHS):
+        return True
+    return any(rx.fullmatch(path) for rx in _COMMERCIAL_PATTERN_PATHS)
+
+
+def _routing_path(request) -> str:
+    """Il path su cui lavora il router (scope["path"]), non request.url.path.
+
+    request.url si ricostruisce anche dall'header Host: un Host come
+    "host/api/admin/ciak/leads?" farebbe vedere al controllo un path consentito
+    mentre il router esegue quello vero.
+    """
+    scope = getattr(request, "scope", None)
+    if isinstance(scope, dict) and scope.get("path"):
+        return scope["path"]
+    return request.url.path
+
+
+# user_id -> (admin_type, scadenza). Un solo worker uvicorn: la cache in
+# memoria basta a non leggere users a ogni richiesta di un token senza
+# admin_type (i token emessi prima del 29/9 durano al massimo 24 ore).
+_ADMIN_TYPE_CACHE: dict = {}
+_ADMIN_TYPE_CACHE_TTL = 60.0
+
+
+async def resolve_admin_type(token_data) -> Optional[str]:
+    """admin_type dell'account: dal token se c'è, altrimenti dal database.
+
+    I token emessi prima del 29/9/2026 non contengono admin_type (vedi
+    auth.py::AuthService.login): senza questo fallback l'account commerciale
+    resterebbe senza limiti fino al prossimo login.
+    """
+    value = getattr(token_data, "admin_type", None)
+    if value:
+        return value
+    user_id = getattr(token_data, "user_id", None)
+    if not user_id or db is None:
+        return None
+    cached = _ADMIN_TYPE_CACHE.get(user_id)
+    now = time.monotonic()
+    if cached and cached[1] > now:
+        return cached[0]
+    try:
+        user = await db.users.find_one({"id": user_id}, {"_id": 0, "admin_type": 1})
+    except Exception:  # noqa: BLE001 — un errore di lettura non deve aprire l'accesso
+        logger.exception("[CIAK_ADMIN] lettura admin_type fallita per %s", user_id)
+        raise HTTPException(status_code=503, detail="Verifica permessi non disponibile, riprova.")
+    value = (user or {}).get("admin_type")
+    _ADMIN_TYPE_CACHE[user_id] = (value, now + _ADMIN_TYPE_CACHE_TTL)
+    return value
+
+
+async def enforce_commercial_scope(request: Request, token_data) -> None:
+    """403 se l'account è a scope commerciale e il path/metodo è fuori allowlist.
+
+    Usata dalle dependency admin di ciak_admin, ciak_clients e
+    ciak_analisi_admin. Il confine su tutto il resto dell'app è
+    CommercialScopeMiddleware: stessa allowlist, stesso path di routing.
+    """
+    admin_type = await resolve_admin_type(token_data)
+    if admin_type in COMMERCIAL_ADMIN_TYPES and not _path_allowed_for_commercial(
+        _routing_path(request), getattr(request, "method", "GET")
+    ):
+        raise HTTPException(status_code=403, detail=COMMERCIAL_SCOPE_DETAIL)
+
+
+def _bearer_from_scope(scope) -> Optional[str]:
+    for name, value in scope.get("headers") or []:
+        if name == b"authorization":
+            raw = value.decode("latin-1").strip()
+            if raw[:7].lower() == "bearer ":
+                return raw[7:].strip() or None
+            return None
+    return None
+
+
+def _decode_admin_token_quiet(token: str):
+    """Come auth.decode_token, ma senza log d'errore: un token scaduto o di un
+    partner non è affare del filtro, ci pensa la dependency della route."""
+    from jose import JWTError, jwt
+    from auth import JWT_ALGORITHM, JWT_SECRET_KEY, TokenData
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+    except JWTError:
+        return None
+    if not payload.get("sub") or payload.get("role") not in ("admin", "superadmin"):
+        return None
+    return TokenData(
+        user_id=payload.get("sub"),
+        email=payload.get("email"),
+        role=payload.get("role"),
+        admin_type=payload.get("admin_type"),
+    )
+
+
+async def commercial_scope_denial(scope) -> Optional[tuple]:
+    """(status, detail) se la richiesta va negata all'account commerciale, altrimenti None.
+
+    Solo token admin validi: nessun token, token non validi o di altri ruoli
+    passano oltre e li giudica la dependency della route (401/403 come prima).
+    """
+    path = scope.get("path") or ""
+    if not path.startswith("/api/"):
+        return None
+    token = _bearer_from_scope(scope)
+    if not token:
+        return None
+    data = _decode_admin_token_quiet(token)
+    if data is None:
+        return None
+    try:
+        admin_type = await resolve_admin_type(data)
+    except HTTPException as exc:
+        return exc.status_code, exc.detail
+    if admin_type in COMMERCIAL_ADMIN_TYPES and not _path_allowed_for_commercial(
+        path, scope.get("method") or "GET"
+    ):
+        return 403, COMMERCIAL_SCOPE_DETAIL
+    return None
+
+
+class CommercialScopeMiddleware:
+    """Scope commerciale su tutta l'app, prima di qualunque route.
+
+    ASGI puro (niente BaseHTTPMiddleware: non tocca streaming e background
+    task). Legge scope["path"], lo stesso valore su cui lavora il router.
+    In server.py va aggiunto PRIMA di CORSMiddleware, così il CORS resta lo
+    strato esterno e anche questo 403 porta gli header CORS.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") == "http":
+            denied = await commercial_scope_denial(scope)
+            if denied:
+                from starlette.responses import JSONResponse
+                status, detail = denied
+                response = JSONResponse(status_code=status, content={"detail": detail})
+                await response(scope, receive, send)
+                return
+        await self.app(scope, receive, send)
+
+
+async def require_ciak_admin(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Identico pattern a routers/admin_stefania.py — role admin/superadmin.
+
+    Più: un account con admin_type nel set COMMERCIAL_ADMIN_TYPES è comunque
+    role="admin" (stessa autenticazione), ma può toccare solo l'allowlist
+    Acquisizione sopra — 403 su tutto il resto, indipendentemente dal metodo.
+    """
     from auth import decode_token
     if not credentials:
         raise HTTPException(status_code=401, detail="Token non fornito")
     data = decode_token(credentials.credentials)
     if not data or data.role not in ("admin", "superadmin"):
         raise HTTPException(status_code=403, detail="Accesso riservato agli admin")
+    await enforce_commercial_scope(request, data)
     return data
 
 
@@ -68,14 +289,6 @@ def _email(value: Optional[str]) -> str:
     return (value or "").strip().lower()
 
 
-def _event_ts(doc: dict, event_name: str) -> Optional[str]:
-    events = doc.get("events") or []
-    for event in reversed(events):
-        if event.get("event") == event_name:
-            return event.get("timestamp")
-    return None
-
-
 def _state_ts(doc: dict, state: str) -> Optional[str]:
     history = doc.get("state_history") or []
     for item in reversed(history):
@@ -84,21 +297,38 @@ def _state_ts(doc: dict, state: str) -> Optional[str]:
     return None
 
 
+def _call_starts_at(doc: dict) -> Optional[str]:
+    """Data/ora della call dall'ultima prenotazione Cal.com (creata o spostata).
+
+    Il webhook salva `starts_at` / `new_starts_at` negli eventi (booking.py). Se la
+    prenotazione e' stata annullata dopo, la call non c'e' piu' → None. Le call
+    segnate a mano non hanno una data: anche qui None, non un valore inventato.
+    """
+    starts = None
+    for ev in doc.get("events") or []:
+        name = ev.get("event")
+        meta = ev.get("metadata") or {}
+        if name == "calcom_booking_created":
+            starts = meta.get("starts_at") or starts
+        elif name == "calcom_booking_rescheduled":
+            starts = meta.get("new_starts_at") or starts
+        elif name == "calcom_booking_cancelled":
+            starts = None
+    return starts
+
+
 def _qualified_for_partnership_proposal(
     diagnostic: Optional[dict],
     client: Optional[dict],
     analysis: Optional[dict],
 ) -> bool:
+    # Funnel gratuito: niente più pagamento Blueprint €27 da verificare (prima la
+    # condizione lo pretendeva e il pannello non poteva mai comparire).
     diagnostic = diagnostic or {}
     client = client or {}
     analysis = analysis or {}
-    paid = any(
-        event.get("event") == "stripe_payment_completed"
-        for event in diagnostic.get("events", [])
-    )
     return bool(
-        paid
-        and diagnostic.get("current_state") == "call_done"
+        diagnostic.get("current_state") == "call_done"
         and analysis.get("bozza_inviata_at")
         and client.get("offer_decision") == "partnership"
     )
@@ -213,7 +443,6 @@ _CLIENTI_CIAK_PUBLIC_FIELDS = {
     "offer_decision",
     "start_credit_amount",
     "start_purchased_at",
-    "start_progress",
     "analysis_status",
     "created_at",
     "updated_at",
@@ -305,11 +534,13 @@ def _public_clienti_ciak_item(doc: dict, user: Optional[dict] = None) -> dict:
     return payload
 
 
-# Stati funnel "post-acquisto" (hanno pagato i €27)
-_PURCHASED_STATES = {
-    "purchased_67", "call_booked", "call_done",
-    "partner_approved", "partner_active",
-}
+def _funnel_rank(doc: Optional[dict]) -> int:
+    """Gradino raggiunto da una diagnostic_session nel funnel gratuito.
+
+    Gli stati storici del vecchio funnel €27 (clicked_67/purchased_67) si leggono
+    come "analisi pronta": vedi services.ciak_state_machine.normalize_state.
+    """
+    return STATE_RANK.get(normalize_state((doc or {}).get("current_state")), -1)
 
 
 # ─── Partners list (per la "vista admin" dell'area partner Ciak) ──────────
@@ -578,107 +809,480 @@ async def ciak_delete_partner(partner_id: str, admin=Depends(require_ciak_admin)
 @router.delete("/lead")
 async def ciak_delete_lead(
     email: str = Query(..., description="Email del lead da eliminare"),
+    elimina_account: bool = Query(False, description="Elimina anche l'account Blueprint gratuito, se non ha acquistato"),
     admin=Depends(require_ciak_admin),
 ):
     """
     Elimina un lead Ciak a cascata: record `ciak_leads` + tutte le
-    `diagnostic_sessions` (8 Domande) + tutti i `ciak_checkpoint_events`
+    `diagnostic_sessions` (10 Domande) + tutti i `ciak_checkpoint_events`
     per quell'email. Operazione irreversibile — il frontend chiede conferma
     esplicita. Stesse collezioni della vista dettaglio (GET /lead).
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
     email = email.strip().lower()
-    leads_r = await db.ciak_leads.delete_many({"email": email})
-    diag_r = await db.diagnostic_sessions.delete_many({"user_email": email})
-    chk_r = await db.ciak_checkpoint_events.delete_many({"email": email})
+    # L'account Blueprint (gratuito) si elimina solo su richiesta e solo se NON ha
+    # acquistato: il controllo viene PRIMA di cancellare qualunque cosa, cosi' un
+    # rifiuto non lascia un lead mezzo eliminato.
+    account = None
+    # `is True`: chiamata direttamente (test, altri moduli) il default e' un oggetto Query, sempre "vero".
+    if elimina_account is True:
+        from services.ciak_client_accounts import ACCESS_PARTNER, has_start_entitlement
+
+        account = await db.ciak_clients.find_one({"email": _email_ci(email)}, {"_id": 0})
+        if account and (has_start_entitlement(account) or account.get("access_level") == ACCESS_PARTNER):
+            raise HTTPException(
+                409,
+                "Ha gia' acquistato: l'account non si elimina da qui. Eliminalo da Clienti se serve davvero.",
+            )
+    # Stesso confronto della scheda (GET /lead): l'email dei record è come l'ha
+    # digitata il lead, anche in maiuscolo.
+    leads_r = await db.ciak_leads.delete_many({"email": _email_ci(email)})
+    diag_r = await db.diagnostic_sessions.delete_many({"user_email": _email_ci(email)})
+    chk_r = await db.ciak_checkpoint_events.delete_many({"email": _email_ci(email)})
     total = leads_r.deleted_count + diag_r.deleted_count + chk_r.deleted_count
     if total == 0:
         raise HTTPException(404, "Lead non trovato")
+    account_eliminato = None
+    if account:
+        account_eliminato = await _cascade_delete_client(account["id"], email)
     return {
         "ok": True,
         "email": email,
         "ciak_leads_deleted": leads_r.deleted_count,
         "diagnostic_sessions_deleted": diag_r.deleted_count,
         "ciak_checkpoint_events_deleted": chk_r.deleted_count,
+        "account_deleted": account_eliminato,
     }
 
 
-# ─── Stats ─────────────────────────────────────────────────────────────────
+@router.delete("/clients/{client_id}")
+async def elimina_ciak_client(
+    client_id: str,
+    email: str = Query(..., description="Email del cliente: deve combaciare col record (salvaguardia anti-errore)"),
+    admin=Depends(require_ciak_admin),
+):
+    """Elimina a cascata un cliente Ciak e tutto il suo footprint identita'/percorso.
 
-# --- Mark EUR 27 paid (manuale) ---
+    Speculare a `DELETE /lead` e `DELETE /partner/{id}`: colma il buco per cui un
+    cliente Ciak Start (record `ciak_clients` + ponte partner + journey) non era
+    rimovibile, lasciando residui in Consegne Start e nella lista clienti.
 
-class MarkPurchasedRequest(BaseModel):
-    email: str = Field(..., description="Email del lead da segnare come acquirente EUR 27")
-    amount_cent: int = Field(2700, ge=0, description="Importo in centesimi (default 2700 = EUR 27)")
-    metodo: Optional[str] = Field("manuale", description="Metodo pagamento (manuale|bonifico|contanti|offline)")
-    note: Optional[str] = Field(None, description="Nota interna facoltativa sul pagamento")
+    Collezioni toccate (tutte legate all'id del cliente / al ponte):
+    `ciak_clients`, `partners`, `users`, `partner_journey_steps`,
+    `ciak_start_deliverables`, `ciak_client_login_tokens`,
+    `ciak_client_access_recovery`, `ciak_onboarding_emails`.
+
+    ⛔ NON tocca i record finanziari (`payment_transactions`, `payments`,
+    `crediti`): la contabilita' e' un registro storico, non si cancella
+    eliminando un account.
+
+    Salvaguardia: `email` deve combaciare col record, cosi' un id sbagliato non
+    cancella il cliente altrui. Operazione irreversibile — il frontend chiede
+    conferma esplicita.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    client = await db.ciak_clients.find_one({"id": client_id}, {"_id": 0})
+    if not client:
+        raise HTTPException(404, "Cliente Ciak non trovato")
+
+    email_norm = (email or "").strip().lower()
+    if email_norm != (client.get("email") or "").strip().lower():
+        raise HTTPException(400, "L'email non combacia col cliente: eliminazione annullata")
+
+    deleted = await _cascade_delete_client(client_id, email_norm)
+
+    logger.info(
+        "[CIAK_ADMIN] Cliente Ciak eliminato a cascata: %s (%s) -> %s",
+        client_id, email_norm, deleted,
+    )
+    return {"ok": True, "client_id": client_id, "email": email_norm, "deleted": deleted}
 
 
-@router.post("/lead/mark-purchased")
-async def ciak_mark_lead_purchased(
-    payload: MarkPurchasedRequest,
+async def _cascade_delete_client(client_id: str, email_norm: str) -> dict[str, int]:
+    """Account cliente + ponte partner + journey + accessi. Mai i record contabili."""
+    deleted: dict[str, int] = {}
+    deleted["ciak_clients"] = (await db.ciak_clients.delete_one({"id": client_id})).deleted_count
+    deleted["partners"] = (await db.partners.delete_one({"id": client_id})).deleted_count
+    deleted["users"] = (await db.users.delete_many(
+        {"$or": [{"id": client_id}, {"partner_id": client_id}, {"ciak_client_id": client_id}]}
+    )).deleted_count
+    deleted["partner_journey_steps"] = (
+        await db.partner_journey_steps.delete_many({"partner_id": client_id})
+    ).deleted_count
+    deleted["ciak_start_deliverables"] = (
+        await db.ciak_start_deliverables.delete_many({"partner_id": client_id})
+    ).deleted_count
+    deleted["ciak_client_login_tokens"] = (
+        await db.ciak_client_login_tokens.delete_many({"client_id": client_id})
+    ).deleted_count
+    deleted["ciak_client_access_recovery"] = (
+        await db.ciak_client_access_recovery.delete_many(
+            {"$or": [{"client_id": client_id}, {"email": email_norm}]}
+        )
+    ).deleted_count
+    deleted["ciak_onboarding_emails"] = (
+        await db.ciak_onboarding_emails.delete_many(
+            {"$or": [{"client_id": client_id}, {"email": email_norm}]}
+        )
+    ).deleted_count
+    return deleted
+
+
+class LinkAccessoRequest(BaseModel):
+    email: str = Field(..., description="Email del cliente: deve combaciare col record (salvaguardia)")
+
+
+@router.post("/clients/{client_id}/link-accesso")
+async def link_accesso_cliente(
+    client_id: str,
+    body: LinkAccessoRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """Un link d'accesso nuovo, da mandare a mano. NON invia nessuna email.
+
+    Serve quando la mail del sistema non arriva (verso hotmail il mittente dei
+    servizi transazionali finisce spesso in spam): l'admin copia il link e lo manda
+    lui, dalla sua posta o da WhatsApp. Stesso link di quello delle mail: vale 30
+    giorni ed e' riutilizzabile. Non tocca niente del cliente, ne' i link gia'
+    emessi (restano validi).
+    """
+    import os
+
+    from services.ciak_client_accounts import create_magic_login_token
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    client = await db.ciak_clients.find_one({"id": client_id}, {"_id": 0})
+    if not client:
+        raise HTTPException(404, "Cliente Ciak non trovato")
+    email_norm = (body.email or "").strip().lower()
+    if email_norm != (client.get("email") or "").strip().lower():
+        raise HTTPException(400, "L'email non combacia col cliente: nessun link creato")
+
+    login = await create_magic_login_token(db, client_id, email_norm)
+    base = (os.environ.get("CIAK_BASE_URL") or os.environ.get("FRONTEND_URL_PROD") or "https://www.ciak.io").rstrip("/")
+    link = f"{base}/cliente/accesso?token={login['token']}"
+
+    now = datetime.now(timezone.utc).isoformat()
+    actor = getattr(admin, "email", None) or getattr(admin, "user_id", None) or "admin"
+    events = [dict(e) for e in (client.get("events") or [])]
+    # Nell'evento NON finisce il link: solo chi e quando.
+    events.append({"event": "link_accesso_generato_da_admin", "timestamp": now, "by": actor})
+    await db.ciak_clients.update_one({"id": client_id}, {"$set": {"events": events}})
+    logger.info("[CIAK_ADMIN] Link d'accesso generato per %s da %s", email_norm, actor)
+    return {"ok": True, "link": link, "scade_il": login["expires_at"]}
+
+
+class AnnullaStartRequest(BaseModel):
+    email: str = Field(..., description="Email del cliente: deve combaciare col record (salvaguardia)")
+
+
+@router.post("/clients/{client_id}/annulla-start-non-pagato")
+async def annulla_start_non_pagato(
+    client_id: str,
+    body: AnnullaStartRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """Toglie un Ciak Start attivato per errore dal form admin, TENENDO il cliente.
+
+    Il cliente torna al livello Blueprint: il link d'accesso che ha già ricevuto
+    resta valido e apre la sales page con le due opzioni (Ciak Start / Partnership)
+    invece del percorso Start. Caso Francesco Donati, 29/9/2026.
+
+    Toglie: incassi Start con riferimento `admin:…`, livello Start e credito, il
+    ponte partner creato dall'attivazione (partners/users/journey/deliverable Start)
+    e le email di accesso Start. Tiene: scheda cliente, token di accesso, consegna
+    del Blueprint, finestra bonus 48h.
+
+    Rifiuta (409) se c'è un pagamento vero (Stripe o riferimento reale) o una
+    Partnership attiva.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    from services.ciak_client_accounts import ACCESS_BLUEPRINT, ACCESS_START
+
+    client = await db.ciak_clients.find_one({"id": client_id}, {"_id": 0})
+    if not client:
+        raise HTTPException(404, "Cliente Ciak non trovato")
+    email_norm = (body.email or "").strip().lower()
+    if email_norm != (client.get("email") or "").strip().lower():
+        raise HTTPException(400, "L'email non combacia col cliente: operazione annullata")
+    if client.get("partnership_attiva") or client.get("access_level") == "partner":
+        raise HTTPException(409, "Il cliente è già partner: non si annulla lo Start da qui.")
+    if client.get("access_level") != ACCESS_START and not client.get("start_purchased_at"):
+        raise HTTPException(409, "Questo cliente non ha Ciak Start attivo.")
+
+    finti, veri, attivato_da = _riferimenti_start_admin(client)
+    if veri:
+        raise HTTPException(
+            409,
+            "Risulta un pagamento Start reale (" + ", ".join(veri)
+            + "): non lo annullo. Verifica su Stripe prima di procedere.",
+        )
+
+    tolti: dict[str, int] = {}
+    if finti:
+        tolti["payments"] = (await db.payments.delete_many(
+            {"session_id": {"$in": finti}, "tipo": "ciak_start"}
+        )).deleted_count
+        tolti["payment_transactions"] = (await db.payment_transactions.delete_many(
+            {"session_id": {"$in": finti}, "tipo": "ciak_start"}
+        )).deleted_count
+    # Ponte partner creato dall'attivazione Start (start_partner_bridge): senza
+    # questo il cliente resterebbe un "partner tier start" per i motori.
+    tolti["partners"] = (await db.partners.delete_one({"id": client_id})).deleted_count
+    tolti["users"] = (await db.users.delete_many(
+        {"$or": [{"id": client_id}, {"partner_id": client_id}, {"ciak_client_id": client_id}]}
+    )).deleted_count
+    tolti["partner_journey_steps"] = (
+        await db.partner_journey_steps.delete_many({"partner_id": client_id})
+    ).deleted_count
+    tolti["ciak_start_deliverables"] = (
+        await db.ciak_start_deliverables.delete_many({"partner_id": client_id})
+    ).deleted_count
+    tolti["ciak_onboarding_emails"] = (
+        await db.ciak_onboarding_emails.delete_many({"client_id": client_id, "tier": "start"})
+    ).deleted_count
+
+    actor = getattr(admin, "email", None) or getattr(admin, "user_id", None) or "admin"
+    now = datetime.now(timezone.utc).isoformat()
+    events = [dict(e) for e in (client.get("events") or [])]
+    events.append({"event": "ciak_start_annullato_non_pagato", "timestamp": now, "by": actor,
+                   "riferimenti": finti})
+    await db.ciak_clients.update_one(
+        {"id": client_id},
+        {
+            "$set": {"access_level": ACCESS_BLUEPRINT, "start_credit_amount": 0,
+                     "events": events, "updated_at": now},
+            "$unset": {"start_purchased_at": "", "start_payments": "", "last_checkout_session_id": ""},
+        },
+    )
+    logger.info(
+        "[CIAK_ADMIN] Start non pagato annullato per %s da %s: %s (attivato da %s)",
+        email_norm, actor, tolti, attivato_da,
+    )
+    return {"ok": True, "client_id": client_id, "tolti": tolti, "start_attivato_da": attivato_da}
+
+
+class RiportaCallFattaRequest(BaseModel):
+    email: str = Field(..., description="Email del lead (quella del questionario)")
+
+
+# Riferimenti che NON sono pagamenti veri: quelli generati dal form admin e quelli
+# che si danno a mano a un collaudo (convenzione `collaudo-…`). Un riferimento
+# Stripe o di bonifico non inizia mai cosi'.
+PREFISSI_RIFERIMENTO_DI_PROVA = ("admin:", "collaudo-")
+
+
+def _riferimento_di_prova(riferimento) -> bool:
+    return str(riferimento or "").startswith(PREFISSI_RIFERIMENTO_DI_PROVA)
+
+
+def _riferimenti_start_admin(client: dict) -> tuple[list[str], list[str], list[str]]:
+    """(riferimenti creati dal form admin, riferimenti di pagamenti veri, chi ha attivato).
+
+    Il form "Attiva Ciak Start" registra un incasso con riferimento `admin:<hex>`
+    quando non gli si passa un riferimento reale. Tutto il resto (sessione
+    Stripe, riferimento di un bonifico) è un pagamento vero e non si tocca.
+    """
+    refs = {p.get("reference_id") for p in (client.get("start_payments") or []) if p.get("reference_id")}
+    chi = []
+    for ev in client.get("events") or []:
+        if ev.get("event") == "ciak_start_activated_by_admin":
+            if ev.get("reference_id"):
+                refs.add(ev["reference_id"])
+            if ev.get("by"):
+                chi.append(f"{ev.get('by')} ({str(ev.get('timestamp') or '')[:16]})")
+    if client.get("last_checkout_session_id"):
+        refs.add(client["last_checkout_session_id"])
+    finti = sorted(r for r in refs if _riferimento_di_prova(r))
+    veri = sorted(r for r in refs if not _riferimento_di_prova(r))
+    return finti, veri, chi
+
+
+@router.post("/lead/riporta-a-call-fatta")
+async def riporta_lead_a_call_fatta(
+    body: RiportaCallFattaRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """Riporta un lead al punto "call appena fatta, Blueprint da inviare a mano".
+
+    Nato dal caso Francesco Donati (29/9/2026): un Ciak Start mai pagato attivato
+    dal form admin gli aveva creato account, percorso Start e un incasso finto da
+    €390, e il link nella mail del Blueprint apriva un'area da cliente Start
+    invece delle due opzioni. Qui si torna indietro in un colpo solo:
+
+      1. toglie gli incassi Start creati dal form admin (riferimento `admin:…`);
+      2. elimina a cascata l'account cliente (si ricrea pulito all'invio);
+      3. azzera la registrazione degli invii del Blueprint (il contenuto resta);
+      4. lascia il lead a `call_done`.
+
+    Rifiuta (409) se trova un pagamento vero (Stripe o riferimento reale) o un
+    partner già attivo: quelli non si annullano da qui.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    from services.ciak_state_machine import STATE_CALL_DONE, add_event
+
+    email = body.email.strip().lower()
+    diag = await db.diagnostic_sessions.find_one(
+        {"user_email": _email_ci(email)}, sort=[("created_at", -1)]
+    )
+    if not diag:
+        raise HTTPException(404, "Lead non trovato: nessun questionario per questa email.")
+    if normalize_state(diag.get("current_state")) != STATE_CALL_DONE:
+        raise HTTPException(
+            409,
+            "Il lead non è a \"call fatta\": questa azione serve solo dopo la call.",
+        )
+    session_token = diag.get("session_token")
+
+    client = await db.ciak_clients.find_one({"email": _email_ci(email)}, {"_id": 0})
+    incassi_tolti = {"payments": 0, "payment_transactions": 0}
+    attivato_da: list[str] = []
+    account_eliminato: dict[str, int] = {}
+    if client:
+        if client.get("partnership_attiva") or client.get("access_level") == "partner":
+            raise HTTPException(409, "Il cliente è già partner: non si riporta indietro da qui.")
+        finti, veri, attivato_da = _riferimenti_start_admin(client)
+        if veri:
+            raise HTTPException(
+                409,
+                "Risulta un pagamento Start reale (" + ", ".join(veri)
+                + "): non lo annullo. Verifica su Stripe prima di procedere.",
+            )
+        if finti:
+            incassi_tolti["payments"] = (await db.payments.delete_many(
+                {"session_id": {"$in": finti}, "tipo": "ciak_start"}
+            )).deleted_count
+            incassi_tolti["payment_transactions"] = (await db.payment_transactions.delete_many(
+                {"session_id": {"$in": finti}, "tipo": "ciak_start"}
+            )).deleted_count
+        account_eliminato = await _cascade_delete_client(client["id"], (client.get("email") or email).lower())
+
+    invio_azzerato = {
+        "ciak_analisi": (await db.ciak_analisi.update_one(
+            {"session_token": session_token},
+            {"$unset": {"bozza_inviata_at": "", "bozza_errore": "", "deliverable_kind": "", "bozza.pdf_url": ""}},
+        )).modified_count if session_token else 0,
+        "ciak_blueprints": (await db.ciak_blueprints.update_one(
+            {"session_token": session_token},
+            {"$unset": {"consegna_inviata_at": "", "consegna_errore": "", "pdf_url": ""}},
+        )).modified_count if session_token else 0,
+    }
+
+    actor = getattr(admin, "email", None) or getattr(admin, "user_id", None) or "admin"
+    add_event(diag, "admin_riportato_a_call_fatta", {
+        "by": actor,
+        "incassi_tolti": incassi_tolti,
+        "start_attivato_da": attivato_da,
+    })
+    await db.diagnostic_sessions.replace_one({"_id": diag["_id"]}, diag)
+
+    logger.info(
+        "[CIAK_ADMIN] Lead %s riportato a call fatta da %s: incassi=%s account=%s invio=%s",
+        email, actor, incassi_tolti, account_eliminato, invio_azzerato,
+    )
+    return {
+        "ok": True,
+        "email": email,
+        "incassi_tolti": incassi_tolti,
+        "start_attivato_da": attivato_da,
+        "account_eliminato": account_eliminato,
+        "invio_azzerato": invio_azzerato,
+    }
+
+
+class MarkCallBookedRequest(BaseModel):
+    email: str = Field(..., description="Email del lead di cui confermare la call fissata")
+    starts_at: Optional[str] = Field(None, description="Data/ora della call, se nota (ISO 8601)")
+    note: Optional[str] = Field(None, description="Nota interna facoltativa (es. canale/chi ha fissato)")
+
+
+@router.post("/lead/mark-call-booked")
+async def ciak_mark_call_booked(
+    payload: MarkCallBookedRequest,
     admin=Depends(require_ciak_admin),
 ):
     """
-    Segna MANUALMENTE l'acquisto dell'analisi EUR 27 per un lead, senza passare
-    da Stripe. Replica l'effetto del webhook checkout.session.completed:
-    transizione diagnostic_session a purchased_67 + evento
-    stripe_payment_completed (flag manual=True). Cosi' il lead compare in
-    GET /transactions e nei conteggi acquisti_67. Serve a ricreare acquisti
-    avvenuti offline.
+    Segna MANUALMENTE la call come fissata per un lead, senza passare dal
+    webhook Cal.com. Replica l'effetto del webhook (`BOOKING_CREATED`):
+    transizione diagnostic_session a call_booked + evento equivalente
+    (flag manual=True) + stesso tag Systeme `ciak_call_booked` (aziona
+    reminder pre-call e le altre automazioni collegate a quel tag).
 
-    Idempotente: se la sessione e' gia' in uno stato post-acquisto non fa nulla.
-    Richiede una diagnostic_session esistente per l'email (il lead deve aver
-    completato almeno le 8 Domande Ciak). NON esegue alcun pagamento reale.
+    Serve al canale Mariangela: lei fissa la call a voce nel gruppo WhatsApp,
+    non tramite il popup Cal.com self-service (disattivato per quel canale,
+    vedi diagnostic.py::complete) — senza questa conferma manuale quei lead
+    restavano bloccati per sempre a "report_generated" nella pipeline.
+
+    Idempotente: se la sessione è già call_booked o oltre, non fa nulla.
+    Richiede una diagnostic_session esistente per l'email.
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
     from services.ciak_state_machine import (
-        transition_to, add_event, STATE_PURCHASED_67,
+        transition_to, add_event, STATE_CALL_BOOKED, STATE_CIAK_COMPLETED,
     )
 
     email = payload.email.strip().lower()
-    diag = await db.diagnostic_sessions.find_one(
-        {"user_email": email}, sort=[("created_at", -1)]
-    )
+    # Un lead può avere più sessioni (questionario rifatto, link riaperto): la
+    # più recente può essere un questionario appena iniziato mentre l'analisi
+    # sta in una sessione precedente. Si agisce su quella più avanzata nel
+    # funnel (a parità, la più recente): è la stessa che la scheda mostra con
+    # il bottone «Conferma call fissata».
+    sessions = await db.diagnostic_sessions.find(
+        {"user_email": _email_ci(email)}
+    ).sort("created_at", -1).to_list(100)
+    diag = max(sessions, key=_funnel_rank, default=None)  # max: primo = più recente
     if not diag:
         raise HTTPException(
             404,
             "Nessuna diagnostic session per questa email: il lead deve aver "
-            "completato le 8 Domande Ciak prima di poter segnare l'acquisto.",
+            "completato il questionario prima di poter confermare la call.",
+        )
+    # Un questionario iniziato e mai finito non ha l'analisi: la call non si fissa.
+    if _funnel_rank(diag) < STATE_RANK[STATE_CIAK_COMPLETED]:
+        raise HTTPException(
+            409,
+            "Il lead non ha ancora completato il questionario: prima serve "
+            "l'analisi, poi si conferma la call.",
         )
 
     admin_id = getattr(admin, "email", None) or getattr(admin, "user_id", None)
-    already = diag.get("current_state") in _PURCHASED_STATES
+    # Idempotente: già a call fissata o oltre non si tocca (mai retrocedere).
+    already = _funnel_rank(diag) >= STATE_RANK[STATE_CALL_BOOKED]
 
     if not already:
         now = datetime.now(timezone.utc)
-        manual_id = "manual-" + now.strftime("%Y%m%d%H%M%S")
         meta = {
-            "stripe_session_id": manual_id,
-            "amount_total": payload.amount_cent,
+            "booking_id": "manual-" + now.strftime("%Y%m%d%H%M%S"),
+            "starts_at": payload.starts_at,
             "manual": True,
-            "marked_by": admin_id,
-            "metodo": payload.metodo,
+            "confirmed_by": admin_id,
             "note": payload.note,
         }
-        transition_to(diag, STATE_PURCHASED_67, event_metadata=meta)
-        add_event(diag, "stripe_payment_completed", meta)
-        diag["manual_purchase"] = {
-            "marked_by": admin_id,
-            "marked_at": now.isoformat(),
-            "amount_total": payload.amount_cent,
-            "metodo": payload.metodo,
-            "note": payload.note,
-        }
+        transition_to(diag, STATE_CALL_BOOKED, event_metadata=meta)
+        add_event(diag, "calcom_booking_created", meta)
         await db.diagnostic_sessions.replace_one({"_id": diag["_id"]}, diag)
+
+        user_email = diag.get("user_email") or email
+        if user_email:
+            from services.ciak_systeme import ciak_emit_event, fire_and_forget
+            fire_and_forget(ciak_emit_event(
+                email=user_email,
+                event_name="ciak_call_booked",
+                metadata={"manual": True, "starts_at": payload.starts_at},
+            ))
 
     return {
         "ok": True,
         "email": email,
         "current_state": diag.get("current_state"),
-        "already_purchased": already,
+        "already_booked": already,
         "manual": True,
         "session_token": diag.get("session_token"),
     }
@@ -698,47 +1302,6 @@ async def clienti_ciak(limit: int = 100, admin=Depends(require_ciak_admin)):
         user = await _canonical_user_for_client(item)
         items.append(_public_clienti_ciak_item(item, user))
     return {"items": items, "count": len(items)}
-
-
-@router.get("/stats")
-async def ciak_stats(admin=Depends(require_ciak_admin)):
-    """Conteggi rapidi per la dashboard admin (header KPI + funnel)."""
-    if db is None:
-        raise HTTPException(503, "Database non configurato")
-
-    leads_total = await db.ciak_leads.count_documents({})
-    checkpoint_total = len(await db.ciak_checkpoint_events.distinct("email"))
-    diagnostic_total = await db.diagnostic_sessions.count_documents({})
-
-    # Funnel per current_state della diagnostic session
-    funnel = {}
-    async for row in db.diagnostic_sessions.aggregate([
-        {"$group": {"_id": "$current_state", "n": {"$sum": 1}}},
-    ]):
-        funnel[row["_id"] or "unknown"] = row["n"]
-
-    # Distribuzione Stato finale (1-4)
-    stati = {}
-    async for row in db.diagnostic_sessions.aggregate([
-        {"$match": {"scoring.stato_finale": {"$ne": None}}},
-        {"$group": {"_id": "$scoring.stato_finale", "n": {"$sum": 1}}},
-    ]):
-        stati[str(row["_id"])] = row["n"]
-
-    purchased = await db.diagnostic_sessions.count_documents(
-        {"current_state": {"$in": list(_PURCHASED_STATES)}}
-    )
-    orphan_purchases = await db.ciak_orphan_purchases.count_documents({})
-
-    return {
-        "leads_total": leads_total,
-        "checkpoint_completati": checkpoint_total,
-        "diagnostiche_avviate": diagnostic_total,
-        "acquisti_67": purchased,
-        "acquisti_orfani": orphan_purchases,
-        "funnel_by_state": funnel,
-        "distribuzione_stati": stati,
-    }
 
 
 @router.get("/acquisizione-command-center")
@@ -763,6 +1326,20 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
     discovery_total = await db.discovery_leads.count_documents({})
     discovery_hot = await db.discovery_leads.count_documents({"score_total": {"$gte": 75}})
     discovery_google_places = await db.discovery_leads.count_documents({"source": "google_places"})
+
+    # Pipeline di LAVORAZIONE per stato: fonte unica dei numeri, condivisa da Home e
+    # dal board del Lead Manager (così i KPI della Home coincidono con la pipeline).
+    lavorazione_pipeline = {
+        "discovered": 0, "contacted": 0, "responded_positive": 0,
+        "qualified": 0, "converted": 0, "responded_negative": 0,
+    }
+    async for _row in db.discovery_leads.aggregate([
+        {"$match": {"in_lavorazione": True}},
+        {"$group": {"_id": "$status", "n": {"$sum": 1}}},
+    ]):
+        _st = _row.get("_id")
+        if _st in lavorazione_pipeline:
+            lavorazione_pipeline[_st] = int(_row.get("n", 0) or 0)
     queue_pending = await db.systeme_daily_queue.count_documents({"status": "pending", "source": {"$ne": "lista_fredda"}})
     queue_imported = await db.systeme_daily_queue.count_documents({"status": "imported"})
     queue_failed = await db.systeme_daily_queue.count_documents({"status": "failed"})
@@ -772,11 +1349,17 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
         {"_id": 0},
         sort=[("executed_at", -1)],
     )
+    last_autosearch = await db.celery_job_logs.find_one(
+        {"job": "daily_lead_autosearch"},
+        {"_id": 0},
+        sort=[("executed_at", -1)],
+    )
 
     # Attività reale di oggi (input metrics: cosa si è mosso oggi vs target 20/giorno).
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
     leads_today = await db.ciak_leads.count_documents({"created_at": {"$gte": today_start}})
     diagnostics_today = await db.diagnostic_sessions.count_documents({"created_at": {"$gte": today_start}})
+    leads_month = await db.ciak_leads.count_documents({"created_at": {"$gte": month_start}})
 
     diagnostics_by_email: dict[str, dict] = {}
     async for d in db.diagnostic_sessions.find({}).sort("created_at", -1):
@@ -795,61 +1378,68 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             return doc.get("user_name") or doc.get("nome") or lead_names.get(em) or em
         return lead_names.get(em) or em
 
-    blueprint_month = 0
     call_booked_month = 0
     call_done_month = 0
-    clicked_no_purchase = []
+    questionnaire_month = 0
+    report_ready_month = 0
     completed_no_purchase = []
-    purchased_no_call = []
+    # Split commerciale del mese (la spina Vendite): tra chi ha completato il
+    # questionario questo mese, quanti sono instradati a Partnership (pronti) vs
+    # Ciak Start (non pronti) vs nurturing — dal verdetto dello scoring.
+    vendite_split = {"partnership": 0, "start": 0, "nurture": 0}
+
+    # Funnel diviso per fonte: traffico organico (sito, self-service) vs canale
+    # Mariangela (outbound umano, link con ?utm_source=mariangela). Le due pipeline
+    # non sono paragonabili — mescolarle nasconde se il sito converte davvero.
+    # Per il canale Mariangela "leads" = questionari avviati questo mese (non esiste
+    # un record ciak_leads: il suo link salta l'opt-in, vedi diagnostic.py::complete).
+    funnel_by_source = {
+        "organico": {"leads": leads_month, "questionnaire_completed": 0, "report_ready": 0, "call_booked": 0},
+        "mariangela": {"leads": 0, "questionnaire_completed": 0, "report_ready": 0, "call_booked": 0},
+    }
 
     for em, d in diagnostics_by_email.items():
-        state = d.get("current_state")
-        purchased_ts = _state_ts(d, "purchased_67") or _event_ts(d, "stripe_payment_completed")
+        _utm_source = ((d.get("tracking") or {}).get("utm_source") or "").strip().lower()
+        _bucket = funnel_by_source["mariangela"] if _utm_source == "mariangela" else funnel_by_source["organico"]
+        _created_ts = d.get("created_at")
+        if _created_ts and _created_ts >= month_start and _utm_source == "mariangela":
+            funnel_by_source["mariangela"]["leads"] += 1
+        state = normalize_state(d.get("current_state"))
         call_booked_ts = _state_ts(d, "call_booked")
         call_done_ts = _state_ts(d, "call_done")
 
-        if purchased_ts and purchased_ts >= month_start:
-            blueprint_month += 1
         if call_booked_ts and call_booked_ts >= month_start:
             call_booked_month += 1
+            _bucket["call_booked"] += 1
         if call_done_ts and call_done_ts >= month_start:
             call_done_month += 1
 
-        if state == "clicked_67":
-            clicked_no_purchase.append(
-                _lead_item(
-                    em,
-                    _name(em, d),
-                    _state_ts(d, "clicked_67") or d.get("created_at"),
-                    "Ha cliccato il checkout del Blueprint ma non risulta pagamento.",
-                )
-            )
-        elif state in ("ciak_completed", "report_generated"):
+        completed_ts = _state_ts(d, "ciak_completed")
+        if completed_ts and completed_ts >= month_start:
+            questionnaire_month += 1
+            _bucket["questionnaire_completed"] += 1
+            _instr = ((d.get("scoring") or {}).get("instradamento") or "").lower()
+            if _instr in vendite_split:
+                vendite_split[_instr] += 1
+        report_ready_ts = _state_ts(d, "report_generated")
+        if report_ready_ts and report_ready_ts >= month_start:
+            report_ready_month += 1
+            _bucket["report_ready"] += 1
+
+        if state in ("ciak_completed", "report_generated"):
             completed_no_purchase.append(
                 _lead_item(
                     em,
                     _name(em, d),
                     _state_ts(d, "report_generated") or d.get("created_at"),
-                    "Ha completato le 8 domande: va riportato al Blueprint da 27 euro.",
-                )
-            )
-        elif state == "purchased_67":
-            purchased_no_call.append(
-                _lead_item(
-                    em,
-                    _name(em, d),
-                    purchased_ts or d.get("created_at"),
-                    "Ha acquistato il Blueprint ma non ha ancora prenotato la call.",
+                    "Ha l'analisi gratuita pronta ma non ha ancora prenotato la call di consegna.",
                 )
             )
 
-    # ⚠️ La priorita' "checkpoint fatto, 8 domande mancanti" e' stata rimossa il
-    # 4/9/2026: il Checkpoint e' ritirato dal funnel (vedi _PROSPECT_COLUMNS), quindi
-    # quella lista conteneva solo i fantasmi di giugno e mandava Luca a ricontattare
-    # persone su uno stadio che non esiste piu'.
-
+    week_start = _week_start()
     proposal_month = 0
     paid_contract_month = 0
+    paid_contract_week = 0
     async for p in db.proposte.find({}):
         status = p.get("stato")
         proposal_ts = p.get("created_at") or p.get("inviata_at") or p.get("visto_at")
@@ -858,8 +1448,11 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             proposal_month += 1
         if p.get("pagamento_completato") and (not paid_ts or paid_ts >= month_start):
             paid_contract_month += 1
+        if p.get("pagamento_completato") and paid_ts and paid_ts >= week_start:
+            paid_contract_week += 1
 
     partner_closed_emails = set()
+    partner_closed_week = set()
     async for p in db.partners.find(
         {
             "$or": [
@@ -871,35 +1464,37 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
         {"email": 1, "created_at": 1, "contract_signed_at": 1, "partnership_pagata_at": 1},
     ):
         created = p.get("partnership_pagata_at") or p.get("contract_signed_at") or p.get("created_at")
-        if created and created >= month_start:
-            em = _email(p.get("email"))
-            if em:
-                partner_closed_emails.add(em)
+        em = _email(p.get("email"))
+        if created and created >= month_start and em:
+            partner_closed_emails.add(em)
+        if created and created >= week_start and em:
+            partner_closed_week.add(em)
 
     partnerships_month = max(paid_contract_month, len(partner_closed_emails))
+    partnerships_week = max(paid_contract_week, len(partner_closed_week))
     gap = max(target_partnerships - partnerships_month, 0)
 
     def _sort_limit(items: list[dict], limit: int = 8) -> list[dict]:
         return sorted(items, key=lambda x: x.get("updated_at") or "", reverse=True)[:limit]
 
     bottlenecks = []
-    if blueprint_month < max(target_partnerships * 3, 8):
+    if questionnaire_month < max(target_partnerships * 3, 8):
         bottlenecks.append({
             "level": "warning",
-            "title": "Servono piu' Blueprint acquistati",
-            "message": "Per chiudere 4 partnership al mese, la pipeline deve generare abbastanza call qualificate. Spingi Stato 3-4 verso il Blueprint.",
+            "title": "Servono piu' analisi completate",
+            "message": "Per chiudere 4 partnership al mese, la pipeline deve produrre abbastanza analisi gratuite qualificate. Spingi Stato 3-4 a completare le 10 Domande.",
         })
     if call_booked_month < target_partnerships * 2:
         bottlenecks.append({
             "level": "warning",
             "title": "Call sotto ritmo",
-            "message": "Il collo di bottiglia non e' solo traffico: chi acquista il Blueprint deve arrivare velocemente alla call con Claudio.",
+            "message": "Il collo di bottiglia non e' solo traffico: chi ha l'analisi pronta deve arrivare velocemente a prenotare la call di consegna.",
         })
-    if clicked_no_purchase:
+    if completed_no_purchase:
         bottlenecks.append({
             "level": "hot",
-            "title": "Checkout caldo non recuperato",
-            "message": "Ci sono lead che hanno cliccato il checkout ma non hanno pagato. Sono i recuperi piu' vicini al fatturato.",
+            "title": "Analisi pronte senza call",
+            "message": "Ci sono lead con l'analisi gratuita pronta ma senza call prenotata. Sono i recuperi piu' vicini alla vendita.",
         })
 
     luca_routine = [
@@ -911,25 +1506,25 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             "priority": "alta",
         },
         {
-            "id": "hot_recoveries",
-            "title": "Recupera checkout cliccati e Blueprint non pagati",
-            "owner": "Luca + Marco",
-            "metric": f"{len(clicked_no_purchase)} recuperi caldi",
-            "priority": "critica" if clicked_no_purchase else "normale",
-        },
-        {
-            "id": "diagnostic_recoveries",
-            "title": "Porta chi ha completato le 8 Domande verso il Blueprint",
-            "owner": "Luca + Andrea",
-            "metric": f"{len(completed_no_purchase)} diagnosi da convertire",
-            "priority": "alta" if completed_no_purchase else "normale",
-        },
-        {
             "id": "call_recoveries",
-            "title": "Fai prenotare la call a chi ha acquistato il Blueprint",
-            "owner": "Luca + Gaia",
-            "metric": f"{len(purchased_no_call)} Blueprint senza call",
-            "priority": "alta" if purchased_no_call else "normale",
+            "title": "Fai prenotare la call di consegna a chi ha l'analisi pronta",
+            "owner": "Carlo + Gaia",
+            "metric": f"{len(completed_no_purchase)} analisi senza call",
+            "priority": "critica" if completed_no_purchase else "normale",
+        },
+        {
+            "id": "content_nurture",
+            "title": "Contenuti Claudio con CTA verso l'analisi gratuita",
+            "owner": "Andrea",
+            "metric": "conversazioni e nuove 10 Domande",
+            "priority": "alta",
+        },
+        {
+            "id": "source_check",
+            "title": "Controlla le fonti: taglia chi porta questionari ma zero call",
+            "owner": "Carlo",
+            "metric": "qualita' delle fonti",
+            "priority": "normale",
         },
         {
             "id": "evening_report",
@@ -944,7 +1539,7 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
         "allowed": [
             "rete calda, WhatsApp, referral ed ex clienti",
             "LinkedIn organico con DM mirati",
-            "contenuti Claudio con CTA verso Ciak Blueprint",
+            "contenuti Claudio con CTA verso l'analisi gratuita Ciak",
             "custom audience Meta dalla lista fredda",
         ],
         "blocked": [
@@ -980,21 +1575,29 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             "optimal_monthly": target_optimal,
             "partnerships_monthly": target_partnerships,
             "partnerships_closed": partnerships_month,
+            "partnerships_week": partnerships_week,
+            "week_start": week_start,
             "gap": gap,
             "month_start": month_start,
             "target_label": "minimo 3, ottimale 4 ingressi Metodo EVO/mese",
         },
         "funnel": {
-            "blueprint_purchased": blueprint_month,
             "call_booked": call_booked_month,
             "call_done": call_done_month,
             "proposals_open": proposal_month,
             "contracts_paid": paid_contract_month,
         },
+        "funnel_stages": {
+            "leads": leads_month,
+            "questionnaire_completed": questionnaire_month,
+            "report_ready": report_ready_month,
+            "call_booked": call_booked_month,
+        },
+        "funnel_by_source": funnel_by_source,
+        "lavorazione_pipeline": lavorazione_pipeline,
+        "vendite_split": vendite_split,
         "priorities": {
             "diagnostic_no_purchase": _sort_limit(completed_no_purchase),
-            "clicked_no_purchase": _sort_limit(clicked_no_purchase),
-            "purchased_no_call": _sort_limit(purchased_no_call),
         },
         "bottlenecks": bottlenecks,
         "routine": {
@@ -1014,6 +1617,7 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             "queued_systeme_failed": queue_failed,
             "lista_fredda_pending_blocked": lista_fredda_pending_blocked,
             "last_import": last_systeme_import,
+            "last_autosearch": last_autosearch,
         },
         "activity_today": {
             "new_leads": leads_today,
@@ -1023,104 +1627,374 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
     }
 
 
+# ─── Call di oggi (cal.com) ──────────────────────────────────────────────────
+
+@router.get("/calls-today")
+async def calls_today(admin=Depends(require_admin_or_report_key)):
+    """
+    Le call di consegna prenotate per OGGI (cal.com), il cuore operativo di Vendite.
+
+    Fonte: gli eventi cal.com sulle diagnostic_sessions (`booking.py`):
+    `calcom_booking_created.starts_at`, aggiornato da `calcom_booking_rescheduled.
+    new_starts_at`, azzerato da `calcom_booking_cancelled`. Solo lo stato
+    `call_booked` (non ancora fatta). Accetta la chiave report per il briefing.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    oggi = datetime.now(timezone.utc).date().isoformat()
+    calls = []
+    async for d in db.diagnostic_sessions.find({"current_state": "call_booked"}):
+        start = None
+        for ev in d.get("events", []):
+            name = ev.get("event")
+            md = ev.get("metadata") or {}
+            if name == "calcom_booking_created":
+                start = md.get("starts_at") or start
+            elif name == "calcom_booking_rescheduled":
+                start = md.get("new_starts_at") or start
+            elif name == "calcom_booking_cancelled":
+                start = None
+        if start and str(start)[:10] == oggi:
+            calls.append({
+                "email": d.get("user_email"),
+                "nome": d.get("user_name"),
+                "starts_at": start,
+                "session_token": d.get("session_token"),
+            })
+    calls.sort(key=lambda c: c.get("starts_at") or "")
+    return {"date": oggi, "count": len(calls), "calls": calls}
+
+
 # ─── Leads list ────────────────────────────────────────────────────────────
+
+def _email_ci(email: str) -> dict:
+    """Filtro Mongo su email esatta ma senza distinguere maiuscole/minuscole:
+    user_email in diagnostic_sessions è salvata come l'ha digitata il lead."""
+    return {"$regex": f"^{re.escape(email.strip())}$", "$options": "i"}
+
+
+def _lead_source(lead: Optional[dict], diag: Optional[dict]) -> str:
+    """Da dove arriva il lead: la fonte dell'opt-in se c'è, altrimenti il canale
+    del questionario (Mariangela o accesso diretto)."""
+    if lead and lead.get("source"):
+        return lead["source"]
+    utm = (((diag or {}).get("tracking") or {}).get("utm_source") or "").strip().lower()
+    return utm or "questionario_diretto"
+
+
+def _synthetic_lead(diag: dict) -> dict:
+    """Anagrafica ricavata dal questionario per chi non è passato dall'opt-in
+    masterclass (canale Mariangela, link diretto al questionario)."""
+    tracking = diag.get("tracking") or {}
+    return {
+        "email": (diag.get("user_email") or "").strip().lower(),
+        "nome": diag.get("user_name"),
+        "source": _lead_source(None, diag),
+        # stesse chiavi dell'opt-in (routers/ciak_leads.py), così la UI le legge uguali
+        "utm": {
+            "utm_source": tracking.get("utm_source"),
+            "utm_campaign": tracking.get("utm_campaign"),
+            "utm_medium": tracking.get("utm_medium"),
+        },
+        "sources_seen": [_lead_source(None, diag)],
+        "created_at": diag.get("created_at"),
+        "solo_questionario": True,
+    }
+
 
 @router.get("/leads")
 async def ciak_leads_list(
     admin=Depends(require_ciak_admin),
-    q: Optional[str] = Query(None, description="Ricerca per email (substring)"),
+    q: Optional[str] = Query(None, description="Ricerca per email o nome (substring)"),
     state: Optional[str] = Query(None, description="Filtra per current_state diagnostic"),
     stato: Optional[int] = Query(None, ge=1, le=4, description="Filtra per Stato finale 1-4"),
-    only_purchased: bool = Query(False, description="Solo chi ha acquistato i €27"),
+    only_call: bool = Query(False, description="Solo chi ha la call fissata o fatta"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
     """
-    Lista leads. Entità primaria = ciak_leads (opt-in masterclass), arricchita
-    in-app con la diagnostic_session e il checkpoint event per la stessa email.
+    Lista unica dei lead inbound: chi si è iscritto alla masterclass (ciak_leads)
+    PIÙ chi ha compilato il questionario senza passare dall'opt-in (canale
+    Mariangela, link diretto). Prima c'era solo ciak_leads: un lead che faceva il
+    questionario con un'altra email, o senza opt-in, spariva dalla lista.
 
-    Strategia: 1 query paginata su ciak_leads + 2 query batch ($in sulle email)
-    su diagnostic_sessions e ciak_checkpoint_events. Merge in memoria.
+    Una riga per email (minuscola), con l'ultima diagnostic_session. Ordinata per
+    ultima attività, poi filtrata e paginata in memoria (volumi da centinaia).
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
 
-    lead_filter: dict = {}
-    if q:
-        lead_filter["email"] = {"$regex": q.strip().lower(), "$options": "i"}
+    needle = (q or "").strip()
+    rx = {"$regex": re.escape(needle), "$options": "i"} if needle else None
 
-    total = await db.ciak_leads.count_documents(lead_filter)
+    leads_by_email: dict = {}
+    async for doc in db.ciak_leads.find({"$or": [{"email": rx}, {"nome": rx}]} if rx else {}):
+        em = (doc.get("email") or "").strip().lower()
+        if em and em not in leads_by_email:
+            leads_by_email[em] = _clean(doc)
 
-    leads = []
-    async for doc in (
-        db.ciak_leads.find(lead_filter)
-        .sort("created_at", -1)
-        .skip(offset)
-        .limit(limit)
-    ):
-        leads.append(_clean(doc))
-
-    emails = [l["email"] for l in leads if l.get("email")]
-
-    # Batch: ultima diagnostic_session per email
     diag_by_email: dict = {}
-    if emails:
+    async for d in db.diagnostic_sessions.find(
+        {"$or": [{"user_email": rx}, {"user_name": rx}]} if rx else {}
+    ).sort("created_at", -1):
+        em = (d.get("user_email") or "").strip().lower()
+        if em and em not in diag_by_email:  # tieni la più recente
+            diag_by_email[em] = d
+
+    # Una ricerca può matchare solo uno dei due lati (es. il nome sta solo nel
+    # questionario): si recupera l'altro lato per non spezzare la riga.
+    missing_leads = [em for em in diag_by_email if em not in leads_by_email]
+    if rx and missing_leads:
+        async for doc in db.ciak_leads.find({"email": {"$in": missing_leads}}):
+            leads_by_email[(doc.get("email") or "").strip().lower()] = _clean(doc)
+    missing_diags = [em for em in leads_by_email if em not in diag_by_email]
+    if rx and missing_diags:
         async for d in db.diagnostic_sessions.find(
-            {"user_email": {"$in": emails}}
+            {"user_email": {"$in": missing_diags}}
         ).sort("created_at", -1):
-            em = d.get("user_email")
-            if em and em not in diag_by_email:  # tieni la più recente
+            em = (d.get("user_email") or "").strip().lower()
+            if em and em not in diag_by_email:
                 diag_by_email[em] = d
 
-    # Batch: ultimo checkpoint event per email
-    cp_by_email: dict = {}
-    if emails:
-        async for c in db.ciak_checkpoint_events.find(
-            {"email": {"$in": emails}}
-        ).sort("created_at", -1):
-            em = c.get("email")
-            if em and em not in cp_by_email:
-                cp_by_email[em] = c
-
     items = []
-    for lead in leads:
-        em = lead.get("email")
+    for em in set(leads_by_email) | set(diag_by_email):
+        lead = leads_by_email.get(em)
         diag = diag_by_email.get(em)
-        cp = cp_by_email.get(em)
         scoring = (diag or {}).get("scoring", {}) or {}
         report = (diag or {}).get("report", {}) or {}
+        history = (diag or {}).get("state_history") or []
+        timestamps = [
+            (lead or {}).get("created_at"),
+            (diag or {}).get("created_at"),
+            *[h.get("timestamp") for h in history],
+        ]
+        timestamps = [str(t) for t in timestamps if t]
         items.append({
             "email": em,
-            "nome": lead.get("nome"),
-            "source": lead.get("source"),
-            "utm": lead.get("utm", {}),
-            "created_at": lead.get("created_at"),
-            # Checkpoint (pre-acquisto)
-            "checkpoint_stato": (cp or {}).get("stato_server"),
-            "checkpoint_at": (cp or {}).get("created_at"),
-            # Diagnostic / 8 Domande (post-acquisto)
-            "diagnostic_state": (diag or {}).get("current_state"),
+            "nome": (lead or {}).get("nome") or (diag or {}).get("user_name"),
+            "phone": (lead or {}).get("phone") or (lead or {}).get("telefono"),
+            "source": _lead_source(lead, diag),
+            "utm": (lead or {}).get("utm", {}),
+            "created_at": (lead or {}).get("created_at") or (diag or {}).get("created_at"),
+            "last_activity_at": max(timestamps) if timestamps else None,
+            "solo_questionario": lead is None,
+            "diagnostic_state": normalize_state((diag or {}).get("current_state")),
             "stato_finale": scoring.get("stato_finale"),
             "score_numerico": scoring.get("score_numerico"),
+            "instradamento": scoring.get("instradamento"),
             "has_report": bool(report.get("report_markdown")),
             "session_token": (diag or {}).get("session_token"),
-            "purchased": (diag or {}).get("current_state") in _PURCHASED_STATES,
+            # Le 4 tappe del percorso, con data reale da state_history — non dedotte
+            # dal solo current_state (che è un singolo valore e nasconde le tappe
+            # precedenti). Vedi _state_ts().
+            "questionario_at": _state_ts(diag or {}, "ciak_completed"),
+            "report_at": _state_ts(diag or {}, "report_generated"),
+            "call_booked_at": _state_ts(diag or {}, "call_booked"),
+            "call_done_at": _state_ts(diag or {}, "call_done"),
         })
 
-    # Filtri post-merge (su campi derivati dalla diagnostic)
     if state:
         items = [i for i in items if i["diagnostic_state"] == state]
     if stato is not None:
         items = [i for i in items if i["stato_finale"] == stato]
-    if only_purchased:
-        items = [i for i in items if i["purchased"]]
+    if only_call:
+        items = [i for i in items if i["call_booked_at"] or i["call_done_at"]]
 
+    items.sort(key=lambda i: i.get("last_activity_at") or "", reverse=True)
     return {
-        "total": total,
+        "total": len(items),
         "limit": limit,
         "offset": offset,
-        "items": items,
+        "items": items[offset:offset + limit],
     }
+
+
+# ─── Ricerca per persona (sola lettura) ─────────────────────────────────────
+
+_CERCA_MIN = 2           # sotto i 2 caratteri non si cerca: troppi risultati inutili
+_CERCA_PER_FONTE = 8     # tetto per collezione
+_CERCA_MAX = 12          # tetto sulla risposta
+
+
+@router.get("/cerca")
+async def ciak_cerca_persone(
+    q: str = Query(..., max_length=80, description="Nome o email, anche parziali"),
+    admin=Depends(require_ciak_admin),
+):
+    """
+    Ricerca unica per persona: lead, clienti Ciak Start e partner in un solo elenco,
+    una riga per email, col ruolo calcolato dalla stessa funzione della scheda lead
+    (`ruolo_contatto`). Sola lettura.
+
+    ⛔ Account commerciale (Mariangela): il suo accesso e' ai soli lead inbound, quindi
+    qui cerca SOLO tra i lead (ciak_leads + questionari) e non vede nemmeno se la
+    persona e' cliente o partner: niente righe ne' etichette oltre a quelle che gia'
+    leggerebbe da /leads.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    term = (q or "").strip()
+    if len(term) < _CERCA_MIN:
+        return {"q": term, "items": []}
+    rx = {"$regex": re.escape(term), "$options": "i"}
+    commerciale = (await resolve_admin_type(admin)) in COMMERCIAL_ADMIN_TYPES
+
+    people: dict = {}
+
+    def _riga(email):
+        em = _email(email)
+        if not em:
+            return None
+        return people.setdefault(em, {
+            "email": em, "nome": None, "stato": None, "ha_scheda": False,
+            "client": None, "partner": None,
+        })
+
+    async for lead in db.ciak_leads.find(
+        {"$or": [{"nome": rx}, {"email": rx}]}, {"_id": 0, "email": 1, "nome": 1}
+    ).limit(_CERCA_PER_FONTE):
+        r = _riga(lead.get("email"))
+        if r is not None:
+            r["nome"] = r["nome"] or lead.get("nome")
+            r["ha_scheda"] = True
+
+    async for diag in db.diagnostic_sessions.find(
+        {"$or": [{"user_name": rx}, {"user_email": rx}]},
+        {"_id": 0, "user_email": 1, "user_name": 1, "current_state": 1},
+    ).limit(_CERCA_PER_FONTE):
+        r = _riga(diag.get("user_email"))
+        if r is not None:
+            r["nome"] = r["nome"] or diag.get("user_name")
+            r["stato"] = normalize_state(diag.get("current_state"))
+            r["ha_scheda"] = True
+
+    if not commerciale:
+        async for client in db.ciak_clients.find(
+            {"$or": [{"name": rx}, {"email": rx}]}
+        ).limit(_CERCA_PER_FONTE):
+            r = _riga(client.get("email"))
+            if r is not None:
+                r["nome"] = r["nome"] or client.get("name")
+                r["client"] = client
+        async for partner in db.partners.find(
+            {"$or": [{"name": rx}, {"email": rx}]}
+        ).limit(_CERCA_PER_FONTE):
+            r = _riga(partner.get("email"))
+            if r is not None:
+                r["nome"] = r["nome"] or partner.get("name")
+                r["partner"] = partner
+
+    if not commerciale:
+        # Chi e' gia' presente come lead puo' essere cliente/partner anche se la
+        # ricerca non l'ha trovato tra i clienti (nome diverso): si completa per email.
+        mancanti = [em for em, r in people.items() if r["client"] is None and r["partner"] is None]
+        for em in mancanti:
+            people[em]["client"] = await db.ciak_clients.find_one({"email": _email_ci(em)})
+            people[em]["partner"] = await db.partners.find_one({"email": _email_ci(em)})
+
+    from services.ciak_client_accounts import ruolo_contatto
+
+    items = []
+    for em, r in people.items():
+        if commerciale:
+            tipo, label = "lead", "Lead"
+        else:
+            ruolo = ruolo_contatto(r["client"], r["partner"])
+            tipo, label = ruolo["tipo"], ruolo["label"]
+        items.append({
+            "email": em,
+            "nome": r["nome"] or em,
+            "tipo": tipo,
+            "label": label,
+            "stato": r["stato"],
+            "ha_scheda": r["ha_scheda"],
+            "partner_id": (r["partner"] or {}).get("id") if r["partner"] else None,
+        })
+
+    low = term.lower()
+    items.sort(key=lambda i: (
+        0 if (i["nome"] or "").lower().startswith(low) or i["email"].startswith(low) else 1,
+        (i["nome"] or "").lower(),
+    ))
+    return {"q": term, "items": items[:_CERCA_MAX]}
+
+
+# ─── Lead edit ─────────────────────────────────────────────────────────────
+
+class LeadEditIn(BaseModel):
+    email: str
+    nome: Optional[str] = None
+    cognome: Optional[str] = None
+    phone: Optional[str] = None
+    nuova_email: Optional[str] = None
+
+
+@router.patch("/lead")
+async def ciak_lead_edit(body: LeadEditIn, admin=Depends(require_ciak_admin)):
+    """
+    Modifica di un lead: nome, cognome, telefono e (con controlli) email.
+
+    Le regole di scrittura stanno in `services/lead_edit.py`: `nome` resta il nome
+    per intero (lo leggono tutte le pagine), il cognome si salva in piu', il
+    telefono in `telefono` e `phone`.
+
+    ⛔ Email: cambia solo se il lead NON ha un account Ciak (ha un login legato a
+    quell'indirizzo), NON ha una proposta (la pipeline Trattative la lega per email)
+    e il nuovo indirizzo non e' gia' di un altro lead. Se passa, si aggiorna insieme
+    scheda, questionari e cronologia (le tre collezioni legate all'email).
+    """
+    from services.lead_edit import ModificaNonValida, prepara_modifica
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email = (body.email or "").strip()
+    if not email:
+        raise HTTPException(400, "Email mancante")
+    try:
+        mod = prepara_modifica(
+            nome=body.nome, cognome=body.cognome, telefono=body.phone, nuova_email=body.nuova_email
+        )
+    except ModificaNonValida as exc:
+        raise HTTPException(400, str(exc))
+
+    nuova = mod["email"]
+    if nuova and nuova == email.lower():
+        nuova = None  # stessa email: niente da cambiare
+    if not mod["lead"] and not nuova:
+        raise HTTPException(400, "Niente da aggiornare")
+
+    if nuova:
+        if await db.ciak_clients.find_one({"email": _email_ci(email)}, {"_id": 1}):
+            raise HTTPException(409, "Ha gia' un account Ciak: l'email dell'account non si cambia da qui.")
+        if await db.proposte.find_one(
+            {"$or": [{"prospect_email": _email_ci(email)}, {"email": _email_ci(email)}, {"user_email": _email_ci(email)}]},
+            {"_id": 1},
+        ):
+            raise HTTPException(409, "Ha una proposta collegata a questo indirizzo: l'email non si cambia da qui.")
+        if (
+            await db.ciak_leads.find_one({"email": _email_ci(nuova)}, {"_id": 1})
+            or await db.diagnostic_sessions.find_one({"user_email": _email_ci(nuova)}, {"_id": 1})
+            or await db.ciak_clients.find_one({"email": _email_ci(nuova)}, {"_id": 1})
+        ):
+            raise HTTPException(409, "Questo indirizzo e' gia' di un altro lead o cliente.")
+
+    touched = 0
+    if mod["lead"]:
+        r1 = await db.ciak_leads.update_one({"email": _email_ci(email)}, {"$set": mod["lead"]})
+        touched += r1.matched_count
+    if mod["nome_completo"] is not None:
+        r2 = await db.diagnostic_sessions.update_many(
+            {"user_email": _email_ci(email)}, {"$set": {"user_name": mod["nome_completo"]}}
+        )
+        touched += r2.matched_count
+    if nuova:
+        r3 = await db.ciak_leads.update_many({"email": _email_ci(email)}, {"$set": {"email": nuova}})
+        r4 = await db.diagnostic_sessions.update_many({"user_email": _email_ci(email)}, {"$set": {"user_email": nuova}})
+        r5 = await db.ciak_checkpoint_events.update_many({"email": _email_ci(email)}, {"$set": {"email": nuova}})
+        touched += r3.matched_count + r4.matched_count + r5.matched_count
+    if touched == 0:
+        raise HTTPException(404, "Lead non trovato")
+    return {"success": True, "email": nuova or email, **mod["lead"]}
 
 
 # ─── Lead detail ───────────────────────────────────────────────────────────
@@ -1131,33 +2005,31 @@ async def ciak_lead_detail(
     admin=Depends(require_ciak_admin),
 ):
     """
-    Dettaglio completo di un lead: record ciak_leads + tutte le diagnostic_sessions
-    + tutti i checkpoint events + transazioni. Vista 360° per la call e per
-    decidere se generare la Proposta Partnership.
+    Dettaglio completo di un lead: opt-in (ciak_leads) + tutte le
+    diagnostic_sessions. Vista 360° per la call e per decidere se generare la
+    Proposta Partnership. Chi non è passato dall'opt-in ha l'anagrafica ricavata
+    dal questionario (vedi _synthetic_lead).
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
 
     email = email.strip().lower()
-    lead = _clean(await db.ciak_leads.find_one({"email": email}))
+    lead = _clean(await db.ciak_leads.find_one({"email": _email_ci(email)}))
 
     diagnostics = []
     async for d in db.diagnostic_sessions.find(
-        {"user_email": email}
+        {"user_email": _email_ci(email)}
     ).sort("created_at", -1):
         diagnostics.append(_clean(d))
 
-    checkpoints = []
-    async for c in db.ciak_checkpoint_events.find(
-        {"email": email}
-    ).sort("created_at", -1):
-        checkpoints.append(_clean(c))
-
-    if not lead and not diagnostics and not checkpoints:
+    if not lead and not diagnostics:
         raise HTTPException(404, "Lead non trovato")
+    if not lead:
+        lead = _synthetic_lead(diagnostics[0])
 
-    latest_diag = diagnostics[0] if diagnostics else None
-    client = await db.ciak_clients.find_one({"email": email}, {"_id": 0})
+    from services.ciak_client_accounts import pick_diagnostic_session
+    latest_diag = pick_diagnostic_session(diagnostics)
+    client = await db.ciak_clients.find_one({"email": _email_ci(email)}, {"_id": 0})
     session_token = (latest_diag or {}).get("session_token")
     analysis = (
         await db.ciak_analisi.find_one({"session_token": session_token}, {"_id": 0})
@@ -1166,14 +2038,33 @@ async def ciak_lead_detail(
     qualified_for_proposta = _qualified_for_partnership_proposal(
         latest_diag, client, analysis
     )
+    from services import ciak_blueprint_store
+    blueprint = ciak_blueprint_store.stato_pubblico(
+        await ciak_blueprint_store.leggi(db, session_token) if session_token else None
+    )
+    # Consegne fatte prima del Blueprint salvato (#230): non c'è un documento in
+    # ciak_blueprints, ma l'invio è registrato su ciak_analisi. Senza questo la
+    # scheda diceva "Da generare" a chi il Blueprint l'aveva già ricevuto.
+    if blueprint.get("stato") == "mancante" and (analysis or {}).get("bozza_inviata_at"):
+        blueprint = {
+            "stato": "inviato_prima",
+            "consegna_inviata_at": analysis["bozza_inviata_at"],
+            "pdf_url": ((analysis.get("bozza") or {}).get("pdf_url")),
+        }
+
+    from services.ciak_client_accounts import ruolo_contatto
+    partner_doc = await db.partners.find_one({"email": _email_ci(email)}, {"_id": 0, "id": 1, "tier": 1})
 
     return {
         "email": email,
         "lead": lead,
         "diagnostics": diagnostics,
-        "checkpoints": checkpoints,
         "latest_diagnostic": latest_diag,
         "qualified_for_proposta": qualified_for_proposta,
+        "blueprint": blueprint,
+        "ruolo": ruolo_contatto(client, partner_doc),
+        # Serve alla scheda per offrire "Link di accesso" (recupero accesso).
+        "client_id": (client or {}).get("id"),
     }
 
 
@@ -1223,6 +2114,38 @@ async def ciak_video_pipeline_health(admin=Depends(require_ciak_admin)):
         items.extend(vh.items_from_videocorso(doc, partner_names, now))
 
     return vh.build_summary(items, now)
+
+
+class VideoIntakeRequest(BaseModel):
+    items: List[Dict[str, Any]]
+
+
+@router.post("/video-intake/{partner_id}")
+async def ciak_video_intake(partner_id: str, req: VideoIntakeRequest, admin=Depends(require_ciak_admin)):
+    """Registra nel videocorso lezioni già caricate nello storage (da Drive), SENZA montarle.
+
+    Body: {"items":[{"lesson_id":"lez-34","title":"…","gcs_path":"gs://…/raw_videos/<partner>/videocorso/lez-34/x.mp4"}]}.
+    La lezione compare con il suo titolo in stato "caricato": nessuna pipeline parte. Il montaggio si lancia dopo,
+    una lezione alla volta, con /video-pipeline-retry (force_phase "a": trascrizione e revisione dei tagli)."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    from services.ciak_video_intake import IntakeError, intake_fields, resolve_items
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0, "id": 1})
+    if not partner:
+        raise HTTPException(404, "Partner non trovato")
+    vc = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
+    try:
+        items = resolve_items(partner_id, vc, req.items)
+    except IntakeError as exc:
+        raise HTTPException(exc.status, exc.message)
+    now = datetime.now(timezone.utc).isoformat()
+    actor = getattr(admin, "email", None) or getattr(admin, "user_id", None) or "admin"
+    sets: Dict[str, Any] = {"updated_at": now}
+    for it in items:
+        sets.update(intake_fields(it, now, actor))
+    await db.partner_videocorso.update_one({"partner_id": partner_id}, {"$set": sets}, upsert=True)
+    return {"success": True, "partner_id": partner_id,
+            "lessons": [{"lesson_id": i["lesson_id"], "title": i["title"], "status": "caricato"} for i in items]}
 
 
 class VideoRetryRequest(BaseModel):
@@ -1515,17 +2438,14 @@ async def ciak_transactions(
 
 # ─── Pipeline kanban (da memory: ciak_technical_spec.md, state machine 10 stati) ──
 
-# Pipeline Prospect — pre-acquisto €27. Colonne in ordine di funnel.
-# ⚠️ Il "Checkpoint" (5 domande) e' stato RITIRATO dal funnel vivo con il refactor
-# del 22/7/2026 (commit a79a84de): nessuna pagina ci linka piu' e l'email che lo
-# consegnava e' stata rimossa. Tenerlo come stadio faceva leggere "iscritto ->
-# checkpoint, zero da giugno" — un gradino fantasma, non un guasto. Il funnel vivo
-# e': iscritto -> 8 Domande -> report -> click. Verificato pagina per pagina il 4/9/2026.
+# Pipeline Prospect (Acquisizione) — dal lead all'analisi pronta. Finisce dove
+# inizia Vendite: la call prenotata. Il vecchio funnel a pagamento (Checkpoint,
+# click checkout €27) non esiste più: gli stati storici si leggono con
+# normalize_state come "analisi pronta".
 _PROSPECT_COLUMNS = [
-    ("iscritto", "Iscritto masterclass"),
-    ("diagnostica", "8 Domande completate"),
-    ("report", "Report Matteo"),
-    ("click_67", "Click checkout €27"),
+    ("iscritto", "Lead"),
+    ("diagnostica", "Questionario completato"),
+    ("report", "Analisi pronta"),
 ]
 _PROSPECT_RANK = {k: i for i, (k, _) in enumerate(_PROSPECT_COLUMNS)}
 _PROSPECT_STATE_TO_STAGE = {
@@ -1533,12 +2453,10 @@ _PROSPECT_STATE_TO_STAGE = {
     "ciak_started": "iscritto",
     "ciak_completed": "diagnostica",
     "report_generated": "report",
-    "clicked_67": "click_67",
 }
 
-# Pipeline Blueprint — post-acquisto €27. Colonne in ordine di funnel.
+# Pipeline Vendite — dalla call prenotata al contratto pagato.
 _BLUEPRINT_COLUMNS = [
-    ("acquistato", "Blueprint acquistato"),
     ("call_prenotata", "Call prenotata"),
     ("call_fatta", "Call fatta"),
     ("in_trattativa", "In trattativa"),
@@ -1546,12 +2464,10 @@ _BLUEPRINT_COLUMNS = [
 ]
 _BLUEPRINT_RANK = {k: i for i, (k, _) in enumerate(_BLUEPRINT_COLUMNS)}
 _BLUEPRINT_STATE_TO_STAGE = {
-    "purchased_67": "acquistato",
     "call_booked": "call_prenotata",
     "call_done": "call_fatta",
-    "partner_approved": "contratto_pagato",
-    "partner_active": "contratto_pagato",
 }
+_CALL_STATES = ["call_booked", "call_done", "partner_approved", "partner_active"]
 
 
 def _columns_from_entries(entries: dict, columns_def: list) -> list:
@@ -1570,43 +2486,29 @@ def _columns_from_entries(entries: dict, columns_def: list) -> list:
     ]
 
 
-@router.get("/pipeline-prospect")
-async def pipeline_prospect(admin=Depends(require_ciak_admin)):
-    """
-    Pipeline Prospect — funnel PRE-acquisto €27 in formato kanban.
-    Unisce ciak_leads + ciak_checkpoint_events + diagnostic_sessions per email,
-    calcola lo stadio più avanzato. Esclude chi ha già acquistato (→ Pipeline Blueprint).
-    """
-    if db is None:
-        raise HTTPException(503, "Database non configurato")
-
-    entries = await _build_prospect_entries()
-    columns = _columns_from_entries(entries, _PROSPECT_COLUMNS)
-    return {"columns": columns, "total": sum(c["count"] for c in columns)}
-
-
 async def _build_prospect_entries() -> dict:
     """
     Costruisce email → {email, nome, stage, updated_at, session_token} per il
-    funnel PRE-acquisto.
+    funnel prima della call.
 
-    Estratta da `pipeline_prospect` il 31/8/2026 per essere riusata da
+    Estratta dall'ex kanban `pipeline-prospect` il 31/8/2026 per essere riusata da
     `/funnel-metrics`, che espone gli stessi stadi in forma aggregata senza dati
     personali: una seconda copia di questa logica avrebbe fatto divergere i due
     endpoint al primo cambio di stadio.
     """
-    # Email che hanno già acquistato → fuori da questa pipeline
-    purchased = set()
+    # Chi ha già la call è passato a Vendite → fuori da questa pipeline.
+    with_call = set()
     async for d in db.diagnostic_sessions.find(
-        {"current_state": {"$in": list(_PURCHASED_STATES)}}, {"user_email": 1}
+        {"current_state": {"$in": _CALL_STATES}}, {"user_email": 1}
     ):
         if d.get("user_email"):
-            purchased.add(d["user_email"])
+            with_call.add(d["user_email"].strip().lower())
 
     entries: dict = {}
 
     def _bump(email, stage, nome=None, updated_at=None, token=None):
-        if not email or email in purchased:
+        email = (email or "").strip().lower()
+        if not email or email in with_call:
             return
         e = entries.get(email)
         if e is None:
@@ -1624,13 +2526,8 @@ async def _build_prospect_entries() -> dict:
 
     async for l in db.ciak_leads.find({}):
         _bump(l.get("email"), "iscritto", l.get("nome"), l.get("created_at"))
-    # Il checkpoint e' uno stadio ritirato (vedi _PROSPECT_COLUMNS): chi lo
-    # completo' resta contato come "iscritto" — il gradino piu' basso che ha
-    # davvero raggiunto — invece di sparire o di far rivivere una colonna morta.
-    async for c in db.ciak_checkpoint_events.find({}):
-        _bump(c.get("email"), "iscritto", None, c.get("created_at"))
     async for d in db.diagnostic_sessions.find({}):
-        stage = _PROSPECT_STATE_TO_STAGE.get(d.get("current_state"))
+        stage = _PROSPECT_STATE_TO_STAGE.get(normalize_state(d.get("current_state")))
         if stage:
             _bump(d.get("user_email"), stage, d.get("user_name"),
                   d.get("created_at"), d.get("session_token"))
@@ -1654,8 +2551,8 @@ def _giorni_da(iso) -> int | None:
 @router.get("/funnel-metrics")
 async def funnel_metrics(admin=Depends(require_admin_or_report_key)):
     """
-    Funnel pre-acquisto in forma AGGREGATA — solo conteggi, nessun nome e nessuna
-    email.
+    Funnel prima della call in forma AGGREGATA — solo conteggi, nessun nome e
+    nessuna email.
 
     Perché esiste (31/8/2026): il briefing di Luca leggeva due sole fonti, che
     mostrano gli stadi DOPO l'iscrizione. Risultato: leggeva "zero lead" mentre in
@@ -1701,8 +2598,8 @@ async def funnel_metrics(admin=Depends(require_admin_or_report_key)):
 @router.get("/pipeline-blueprint")
 async def pipeline_blueprint(admin=Depends(require_ciak_admin)):
     """
-    Pipeline Blueprint — journey POST-acquisto €27 in formato kanban.
-    Fonte: diagnostic_sessions (state machine) + ciak_orphan_purchases.
+    Pipeline Vendite — dalla call prenotata al contratto pagato, in formato kanban.
+    Fonte: diagnostic_sessions con la call (state machine).
     Arricchimento "in trattativa" / "contratto pagato" da `proposte` (best-effort, per email).
     I partner reali (contratto firmato / attivo) finiscono sempre in "contratto pagato",
     anche se chiusi offline senza proposta Stripe.
@@ -1719,39 +2616,47 @@ async def pipeline_blueprint(admin=Depends(require_ciak_admin)):
 
     entries: dict = {}
 
-    def _bump(email, stage, nome=None, updated_at=None, token=None):
+    def _bump(email, stage, nome=None, updated_at=None, token=None, owner=None, since=None):
         if not email:
             return
         e = entries.get(email)
         if e is None:
+            # `updated_at` e' la data di CREAZIONE della sessione (resta com'e', la
+            # usa PipelineList). `stage_since` e' invece il momento in cui il
+            # contatto e' entrato nello stadio attuale: serve per dire "da quanti
+            # giorni aspetta". `call_starts_at` = data/ora della call, se nota.
             entries[email] = {"email": email, "nome": nome, "stage": stage,
-                              "updated_at": updated_at, "session_token": token}
+                              "updated_at": updated_at, "session_token": token,
+                              "owner": owner, "stage_since": since,
+                              "call_starts_at": None}
             return
         if _BLUEPRINT_RANK.get(stage, -1) > _BLUEPRINT_RANK.get(e["stage"], -1):
             e["stage"] = stage
             e["updated_at"] = updated_at or e["updated_at"]
+            e["stage_since"] = since or updated_at or e.get("stage_since")
             if token:
                 e["session_token"] = token
         if nome and not e.get("nome"):
             e["nome"] = nome
+        if owner and not e.get("owner"):
+            e["owner"] = owner
 
     async for d in db.diagnostic_sessions.find(
-        {"current_state": {"$in": list(_PURCHASED_STATES)}}
+        {"current_state": {"$in": _CALL_STATES}}
     ):
-        stage = _BLUEPRINT_STATE_TO_STAGE.get(d.get("current_state"), "acquistato")
-        em = d.get("user_email")
-        _bump(em, stage, d.get("user_name"), d.get("created_at"), d.get("session_token"))
+        stage = _BLUEPRINT_STATE_TO_STAGE.get(normalize_state(d.get("current_state")), "call_fatta")
+        em = (d.get("user_email") or "").strip().lower()
+        _bump(em, stage, d.get("user_name"), d.get("created_at"), d.get("session_token"),
+              since=_state_ts(d, normalize_state(d.get("current_state"))) or d.get("created_at"))
+        if em in entries:
+            entries[em]["call_starts_at"] = _call_starts_at(d) or entries[em].get("call_starts_at")
         # Arricchimento da proposta collegata
         prop = proposte_by_email.get(em) if em else None
         if prop:
             if prop.get("pagamento_completato"):
-                _bump(em, "contratto_pagato", None, prop.get("contratto_firmato_at"))
+                _bump(em, "contratto_pagato", None, prop.get("contratto_firmato_at"), owner=prop.get("owner"))
             elif prop.get("stato") in ("inviata", "vista", "accettata", "contratto_firmato"):
-                _bump(em, "in_trattativa", None, prop.get("accettato_at") or prop.get("visto_at"))
-
-    # Acquisti orfani — colonna "acquistato"
-    async for o in db.ciak_orphan_purchases.find({}):
-        _bump(o.get("customer_email"), "acquistato", None, o.get("created_at"))
+                _bump(em, "in_trattativa", None, prop.get("accettato_at") or prop.get("visto_at"), owner=prop.get("owner"))
 
     # Partner reali → "contratto pagato" anche per chiusure offline (no proposta
     # Stripe). Bump SOLO le entry già presenti nel funnel, così non si aggiungono
@@ -1771,11 +2676,77 @@ async def pipeline_blueprint(admin=Depends(require_ciak_admin)):
                _BLUEPRINT_RANK["contratto_pagato"] > _BLUEPRINT_RANK.get(e.get("stage"), -1):
                 e["stage"] = "contratto_pagato"
 
+    # Telefono da ciak_leads (per la modale "Modifica" e le chiamate): batch per email.
+    entry_emails = [e for e in entries.keys() if e]
+    if entry_emails:
+        async for cl in db.ciak_leads.find(
+            {"email": {"$in": entry_emails}}, {"_id": 0, "email": 1, "phone": 1, "telefono": 1}
+        ):
+            row = entries.get(cl.get("email"))
+            if row is not None:
+                row["phone"] = cl.get("phone") or cl.get("telefono")
+
     columns = _columns_from_entries(entries, _BLUEPRINT_COLUMNS)
     return {"columns": columns, "total": sum(c["count"] for c in columns)}
 
 
-# ─── Transactions Partnership €2.790 ──────────────────────────────────────
+@router.get("/lead-gestione")
+async def lead_gestione(admin=Depends(require_ciak_admin)):
+    """I lead in gestione: questionario, call fissata, call fatta, trattativa.
+
+    Il Blueprint e' gratuito: chi lo riceve resta qui. Esce solo chi ACQUISTA
+    (Ciak Start o Partnership) e compare in Clienti / Partner.
+    """
+    from services.ciak_client_accounts import ACCESS_PARTNER, has_start_entitlement
+    from services.lead_gestione import build_lead_board
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    entries = await _build_prospect_entries()
+    blueprint = await pipeline_blueprint(admin)
+
+    compratori: set[str] = set()
+    async for c in db.ciak_clients.find(
+        {}, {"_id": 0, "email": 1, "access_level": 1, "start_purchased_at": 1, "start_credit_amount": 1}
+    ):
+        if has_start_entitlement(c) or c.get("access_level") == ACCESS_PARTNER:
+            compratori.add((c.get("email") or "").strip().lower())
+    async for p in db.partners.find(
+        {}, {"email": 1, "contract_signed": 1, "partnership_pagata": 1, "stato": 1}
+    ):
+        if p.get("contract_signed") or p.get("partnership_pagata") or p.get("stato") == "attivo":
+            compratori.add((p.get("email") or "").strip().lower())
+    compratori.discard("")
+
+    board = build_lead_board(entries, blueprint["columns"], compratori)
+
+    # Dati per la modifica e per capire se ha un account da eliminare.
+    emails = [r["email"] for c in board["colonne"] for r in c["lead"]]
+    anagrafica: dict[str, dict] = {}
+    if emails:
+        async for l in db.ciak_leads.find(
+            {"email": {"$in": emails}},
+            {"_id": 0, "email": 1, "nome_proprio": 1, "cognome": 1, "telefono": 1, "phone": 1},
+        ):
+            anagrafica[(l.get("email") or "").strip().lower()] = l
+        con_account = {
+            (c.get("email") or "").strip().lower()
+            async for c in db.ciak_clients.find({"email": {"$in": emails}}, {"_id": 0, "email": 1})
+        }
+    else:
+        con_account = set()
+    for colonna in board["colonne"]:
+        for r in colonna["lead"]:
+            a = anagrafica.get(r["email"], {})
+            r["nome_proprio"] = a.get("nome_proprio")
+            r["cognome"] = a.get("cognome")
+            r["telefono"] = a.get("phone") or a.get("telefono") or r.get("phone")
+            r["ha_account"] = r["email"] in con_account
+    return board
+
+
+# ─── Transactions Partnership €2.990 ──────────────────────────────────────
 
 @router.get("/transactions-partnership")
 async def ciak_transactions_partnership(
@@ -1784,9 +2755,9 @@ async def ciak_transactions_partnership(
     offset: int = Query(0, ge=0),
 ):
     """
-    Acquisti Partnership Evolution €2.790. Sorgente: proposte con
+    Acquisti Partnership Evolution €2.990. Sorgente: proposte con
     pagamento_completato=True. Amount = contract_params.corrispettivo
-    (default 2790.0 se non override).
+    (default 2990.0 se non override).
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
@@ -1796,7 +2767,14 @@ async def ciak_transactions_partnership(
         {"pagamento_completato": True}
     ).sort("pagamento_completato_at", -1):
         contract_params = p.get("contract_params", {}) or {}
-        amount = float(contract_params.get("corrispettivo", 2790.0))
+        # 2990 e' lo standard della partnership; `corrispettivo` lo sovrascrive.
+        # Crash-safe: se il campo c'e' ma e' null o non numerico, `float(None)`
+        # farebbe esplodere l'intero endpoint con un 500 -- si torna allo standard.
+        corr = contract_params.get("corrispettivo")
+        try:
+            amount = float(corr) if corr is not None else 2990.0
+        except (TypeError, ValueError):
+            amount = 2990.0
         items.append({
             "email": p.get("prospect_email"),
             "nome": p.get("prospect_nome"),
@@ -1827,10 +2805,10 @@ async def ciak_transactions_partnership(
 @router.get("/masterclass-analytics")
 async def ciak_masterclass_analytics(admin=Depends(require_ciak_admin)):
     """
-    Vista analitica del funnel masterclass:
-      - Funnel: opt-in → checkpoint → 8 domande → click €27 → acquisto
-      - Distribuzione 4 stati (checkpoint + diagnostic)
-      - Email checkpoint: sent / opened / open_rate per stato
+    Vista analitica del funnel gratuito:
+      - Funnel: opt-in → masterclass → questionario → analisi pronta → call
+        prenotata → call fatta (Blueprint consegnato)
+      - Distribuzione 4 stati del questionario
       - Sorgenti opt-in (UTM source / source)
       - Trend ultimi 30 giorni
     """
@@ -1839,32 +2817,21 @@ async def ciak_masterclass_analytics(admin=Depends(require_ciak_admin)):
 
     # ── Funnel cumulativo ──────────────────────────────────────────────
     opt_in = await db.ciak_leads.count_documents({})
-    checkpoint_done = await db.ciak_checkpoint_events.count_documents({})
     diagnostic_started = await db.diagnostic_sessions.count_documents({})
     diagnostic_completed = await db.diagnostic_sessions.count_documents(
         {"current_state": {"$nin": ["lead_created", "ciak_started"]}}
     )
-    clicked_67 = await db.diagnostic_sessions.count_documents(
-        {"events.event": "clicked_67"}
-    )
-    purchased = await db.diagnostic_sessions.count_documents(
-        {"current_state": {"$in": list(_PURCHASED_STATES)}}
-    )
+    report_ready = call_booked = call_done = 0
+    async for d in db.diagnostic_sessions.find({}, {"current_state": 1}):
+        rank = _funnel_rank(d)
+        report_ready += rank >= STATE_RANK["report_generated"]
+        call_booked += rank >= STATE_RANK["call_booked"]
+        call_done += rank >= STATE_RANK["call_done"]
     viewer_events = {}
     for event in ("video_started", "video_25", "video_50", "video_75", "video_completed", "cta_shown", "cta_clicked"):
         viewer_events[event] = await db.ciak_masterclass_events.count_documents({"event": event})
 
-    # ── Distribuzione 4 stati (Checkpoint pre-acquisto) ────────────────
-    checkpoint_per_stato = {"1": 0, "2": 0, "3": 0, "4": 0}
-    async for row in db.ciak_checkpoint_events.aggregate([
-        {"$match": {"stato_server": {"$ne": None}}},
-        {"$group": {"_id": "$stato_server", "n": {"$sum": 1}}},
-    ]):
-        key = str(row["_id"])
-        if key in checkpoint_per_stato:
-            checkpoint_per_stato[key] = row["n"]
-
-    # ── Distribuzione 4 stati (8 Domande post-acquisto) ────────────────
+    # ── Distribuzione 4 stati del questionario ─────────────────────────
     diagnostic_per_stato = {"1": 0, "2": 0, "3": 0, "4": 0}
     async for row in db.diagnostic_sessions.aggregate([
         {"$match": {"scoring.stato_finale": {"$ne": None}}},
@@ -1873,29 +2840,6 @@ async def ciak_masterclass_analytics(admin=Depends(require_ciak_admin)):
         key = str(row["_id"])
         if key in diagnostic_per_stato:
             diagnostic_per_stato[key] = row["n"]
-
-    # ── Email checkpoint: sent vs opened per stato ─────────────────────
-    email_per_stato = {
-        "1": {"sent": 0, "opened": 0},
-        "2": {"sent": 0, "opened": 0},
-        "3": {"sent": 0, "opened": 0},
-        "4": {"sent": 0, "opened": 0},
-    }
-    # Documento ciak_checkpoint_emails: {tracking_token, sent: bool, opened_at: null|iso, stato, ...}
-    # NB: il campo è "sent" (bool), non "sent_at". Tracking apertura: opened_at != null.
-    async for row in db.ciak_checkpoint_emails.aggregate([
-        {"$group": {
-            "_id": "$stato",
-            "sent": {"$sum": {"$cond": [{"$eq": ["$sent", True]}, 1, 0]}},
-            "opened": {"$sum": {"$cond": [{"$ifNull": ["$opened_at", False]}, 1, 0]}},
-        }},
-    ]):
-        key = str(row["_id"])
-        if key in email_per_stato:
-            email_per_stato[key] = {"sent": row["sent"], "opened": row["opened"]}
-    # open rate
-    for k, v in email_per_stato.items():
-        v["open_rate_pct"] = round((v["opened"] / v["sent"]) * 100) if v["sent"] else 0
 
     # ── Sorgenti opt-in (source + utm_source) ──────────────────────────
     sources = {}
@@ -1939,21 +2883,18 @@ async def ciak_masterclass_analytics(admin=Depends(require_ciak_admin)):
         "funnel": {
             "opt_in": opt_in,
             **viewer_events,
-            "checkpoint_done": checkpoint_done,
             "diagnostic_started": diagnostic_started,
             "diagnostic_completed": diagnostic_completed,
-            "clicked_67": clicked_67,
-            "purchased_67": purchased,
+            "report_ready": report_ready,
+            "call_booked": call_booked,
+            "call_done": call_done,
         },
         "conversion_pct": {
-            "optin_to_checkpoint": _pct(checkpoint_done, opt_in),
-            "checkpoint_to_diagnostic": _pct(diagnostic_started, checkpoint_done),
-            "diagnostic_to_purchase": _pct(purchased, diagnostic_completed),
-            "optin_to_purchase": _pct(purchased, opt_in),
+            "optin_to_diagnostic": _pct(diagnostic_started, opt_in),
+            "diagnostic_to_call": _pct(call_booked, diagnostic_completed),
+            "call_to_blueprint": _pct(call_done, call_booked),
         },
-        "checkpoint_per_stato": checkpoint_per_stato,
         "diagnostic_per_stato": diagnostic_per_stato,
-        "email_per_stato": email_per_stato,
         "sources": sources,
         "utm_sources": utm_sources,
         "trend_optin_30d": trend_optin,
@@ -2023,6 +2964,1177 @@ async def activate_matteo_prompt(
     if not activated:
         raise HTTPException(404, "Versione non trovata")
     return {"success": True, "active": activated}
+
+
+# ─── Memoria Ciak — regole condivise da tutti gli agenti ───────────────────
+
+class MemoriaCreate(BaseModel):
+    label: str = Field(..., min_length=1, max_length=200)
+    sections: dict
+    parent_id: Optional[str] = None
+    activate: bool = True
+
+
+@router.get("/memoria")
+async def get_memoria(admin=Depends(require_ciak_admin)):
+    """Versione attiva + storico. `active` e' None finche' nessuno ha scritto la memoria:
+    in quel caso gli agenti non ricevono nulla in piu'."""
+    from services import ciak_memoria
+
+    return {
+        "active": await ciak_memoria.get_active(),
+        "versions": await ciak_memoria.list_versions(limit=50),
+        "sections": [
+            {"key": k, "title": t, "hint": h} for k, t, h in ciak_memoria.SECTIONS
+        ],
+        "max_section_chars": ciak_memoria.MAX_SECTION_CHARS,
+    }
+
+
+@router.post("/memoria")
+async def create_memoria(body: MemoriaCreate, admin=Depends(require_ciak_admin)):
+    from services import ciak_memoria
+
+    author_email = getattr(admin, "email", None) or getattr(admin, "sub", "unknown")
+    try:
+        version = await ciak_memoria.create_version(
+            sections=body.sections,
+            label=body.label,
+            author_email=author_email,
+            parent_id=body.parent_id,
+            activate=body.activate,
+        )
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    return {"success": True, "version": version}
+
+
+@router.post("/memoria/{version_id}/activate")
+async def activate_memoria(version_id: str, admin=Depends(require_ciak_admin)):
+    from services import ciak_memoria
+
+    activated = await ciak_memoria.activate_version(version_id)
+    if not activated:
+        raise HTTPException(404, "Versione non trovata")
+    return {"success": True, "active": activated}
+
+
+# ─── Sollecito trattative — bozza di Marco, approvazione di Claudio, registro ───
+# Nulla parte da solo: /bozza non invia niente, /invia richiede `approvato: true` nel body
+# (il clic su «Invia» dopo aver letto). Ogni tentativo finisce in `ciak_solleciti`.
+
+class SollecitoBozzaRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=254)
+
+
+class SollecitoInviaRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=254)
+    subject: str = Field(..., max_length=200)
+    body: str = Field(..., max_length=5000)
+    approvato: bool = False
+
+
+async def _contesto_sollecito(email: str) -> tuple:
+    """(contesto | None, proposta piu' recente | None)."""
+    from services import ciak_sollecito
+
+    proposta = await db.proposte.find_one(
+        {"prospect_email": _email_ci(email)}, {"_id": 0}, sort=[("creato_at", -1)]
+    )
+    sessione = await db.diagnostic_sessions.find_one(
+        {"user_email": _email_ci(email)}, {"_id": 0, "user_name": 1}, sort=[("created_at", -1)]
+    )
+    return ciak_sollecito.build_contesto(email, proposta, sessione), proposta
+
+
+@router.post("/solleciti/bozza")
+async def sollecito_bozza(body: SollecitoBozzaRequest, admin=Depends(require_ciak_admin)):
+    """Marco prepara la bozza. Non invia, non scrive nulla sul lead."""
+    import os
+    from services import ciak_sollecito, ciak_memoria
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email = body.email.strip().lower()
+    if not ciak_sollecito.email_valida(email):
+        raise HTTPException(422, "Email non valida")
+    ctx, proposta = await _contesto_sollecito(email)
+    if ctx is None:
+        raise HTTPException(404, "Non conosco questa persona: nessuna proposta e nessun questionario.")
+    if proposta and (proposta.get("pagamento_completato") or proposta.get("stato") == "contratto_firmato"):
+        raise HTTPException(409, "Ha già firmato o pagato: non c'è niente da sollecitare.")
+
+    memoria = await ciak_memoria.render_active_block()
+    system, user = ciak_sollecito.prompt_bozza(ctx, memoria)
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY") or ""
+    bozza = None
+    if api_key:
+        try:
+            import anthropic
+
+            client = anthropic.AsyncAnthropic(api_key=api_key)
+            resp = await client.messages.create(
+                model=ciak_sollecito.MODELLO,
+                max_tokens=600,
+                system=system,
+                messages=[{"role": "user", "content": user}],
+            )
+            bozza = ciak_sollecito.parse_bozza(resp.content[0].text)
+        except Exception as e:  # la bozza base resta disponibile: non si blocca il lavoro
+            logger.warning("[sollecito] bozza AI non disponibile: %s", e)
+    da_ai = bozza is not None
+    return {
+        "email": email,
+        "nome": ctx["nome"],
+        "da_ai": da_ai,
+        "bozza": bozza or ciak_sollecito.bozza_base(ctx),
+        "fatti": ciak_sollecito._fatti(ctx),
+    }
+
+
+async def _invia_approvato(*, email: str, subject: str, testo: str, nome: str, tipo: str, admin) -> dict:
+    """Invio approvato 1:1 (SMTP/Brevo) + registro in `ciak_solleciti`. Blocca il doppio invio
+    entro 24 ore (qualsiasi tipo). Non cambia stato del lead e non tocca Systeme."""
+    import asyncio
+    from services import ciak_sollecito
+    from services.lead_outreach import send_lead_email
+
+    recenti = await db.ciak_solleciti.find({"email": email, "ok": True}, {"_id": 0}).to_list(50)
+    dup = ciak_sollecito.duplicato_recente(recenti, email)
+    if dup:
+        raise HTTPException(409, f"Gli hai già scritto il {dup['sent_at'][:10]}: aspetta almeno 24 ore.")
+    ok, err = await asyncio.to_thread(send_lead_email, email, subject, ciak_sollecito.testo_in_html(testo))
+    riga = ciak_sollecito.riga_registro(
+        email=email, nome=nome, subject=subject, body=testo, by=_autore(admin), ok=ok, error=err,
+    )
+    riga["tipo"] = tipo
+    await db.ciak_solleciti.insert_one(dict(riga))
+    if not ok:
+        logger.warning("[%s] invio fallito per %s: %s", tipo, email, err)
+        raise HTTPException(502, f"Email non partita: {err}")
+    logger.info("[%s] inviato a %s da %s", tipo, email, riga["sent_by"])
+    return {"success": True, "email": email, "sent_at": riga["sent_at"]}
+
+
+def _controlla_invio(body) -> tuple:
+    """Validazione comune di /solleciti/invia e /recupero/invia: (email, oggetto, testo)."""
+    from services import ciak_sollecito
+
+    if body.approvato is not True:
+        raise HTTPException(422, "Serve l'approvazione esplicita prima di inviare.")
+    email = body.email.strip().lower()
+    subject, testo = body.subject.strip(), body.body.strip()
+    if not ciak_sollecito.email_valida(email):
+        raise HTTPException(422, "Email non valida")
+    if not (ciak_sollecito.OGGETTO_MIN <= len(subject) <= ciak_sollecito.OGGETTO_MAX):
+        raise HTTPException(422, "Oggetto mancante o troppo lungo")
+    if not (ciak_sollecito.CORPO_MIN <= len(testo) <= ciak_sollecito.CORPO_MAX):
+        raise HTTPException(422, "Testo troppo corto o troppo lungo")
+    if "\n" in subject or "\r" in subject:
+        raise HTTPException(422, "L'oggetto deve stare su una riga")
+    return email, subject, testo
+
+
+@router.post("/solleciti/invia")
+async def sollecito_invia(body: SollecitoInviaRequest, admin=Depends(require_ciak_admin)):
+    """Invia il sollecito approvato. Stesso canale delle email 1:1 (SMTP/Brevo). Non cambia lo
+    stato del lead e non tocca Systeme."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email, subject, testo = _controlla_invio(body)
+    ctx, proposta = await _contesto_sollecito(email)
+    if ctx is None:
+        raise HTTPException(404, "Non conosco questa persona: nessuna proposta e nessun questionario.")
+    if proposta and (proposta.get("pagamento_completato") or proposta.get("stato") == "contratto_firmato"):
+        raise HTTPException(409, "Ha già firmato o pagato: non c'è niente da sollecitare.")
+    return await _invia_approvato(email=email, subject=subject, testo=testo, nome=ctx["nome"], tipo="sollecito", admin=admin)
+
+
+# ─── Recupero 1 a 1 (Carlo): chi si è fermato nel funnel gratuito ───────────
+# Mai invio di massa: bozza di Carlo + approvazione + registro, come il sollecito.
+
+async def _candidati_recupero(only_email: Optional[str] = None) -> list:
+    from datetime import timedelta
+    from services import ciak_recupero as rc
+
+    def per(campo: str, extra: Optional[dict] = None) -> dict:
+        q = dict(extra or {})
+        if only_email:
+            q[campo] = _email_ci(only_email)
+        return q
+
+    minuscola = lambda v: (v or "").strip().lower()
+    sessioni = await db.diagnostic_sessions.find(
+        per("user_email", {"current_state": {"$in": rc.STATI_DA_LEGGERE}}),
+        {"_id": 0, "user_email": 1, "user_name": 1, "current_state": 1, "state_history": 1, "created_at": 1},
+    ).to_list(20000)
+    escluse: set = set()
+    # Chi ha gia' fissato/fatto la call, ha una proposta, e' cliente o partner: non si recupera.
+    for coll, campo, extra in [
+        (db.diagnostic_sessions, "user_email", {"current_state": {"$in": ["call_booked", "call_done", "partner_approved", "partner_active"]}}),
+        (db.proposte, "prospect_email", {}),
+        (db.ciak_clients, "email", {}),
+        (db.partners, "email", {}),
+        (db.lista_fredda, "email", {"stato": "disiscritto"}),
+    ]:
+        for r in await coll.find(per(campo, extra), {"_id": 0, campo: 1}).to_list(20000):
+            escluse.add(minuscola(r.get(campo)))
+    limite = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
+    for r in await db.ciak_solleciti.find(per("email", {"ok": True}), {"_id": 0, "email": 1, "sent_at": 1}).to_list(5000):
+        if (r.get("sent_at") or "") >= limite:
+            escluse.add(minuscola(r.get("email")))
+    return rc.candidati(sessioni, escluse)
+
+
+@router.get("/recupero")
+async def recupero_elenco(admin=Depends(require_ciak_admin)):
+    """Persone ferme nel funnel gratuito da recuperare (Carlo). Sola lettura."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    items = await _candidati_recupero()
+    return {"items": items, "totale": len(items)}
+
+
+@router.post("/recupero/bozza")
+async def recupero_bozza(body: SollecitoBozzaRequest, admin=Depends(require_ciak_admin)):
+    """Carlo prepara la bozza per UNA persona che risulta ancora da recuperare. Non invia."""
+    from services import ciak_recupero as rc, ciak_memoria, ciak_sollecito
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email = body.email.strip().lower()
+    if not ciak_sollecito.email_valida(email):
+        raise HTTPException(422, "Email non valida")
+    cand = next(iter(await _candidati_recupero(only_email=email)), None)
+    if cand is None:
+        raise HTTPException(409, "Questa persona non risulta più da recuperare (ha avanzato, o è stata contattata da poco).")
+    system, user = rc.prompt_bozza(cand, await ciak_memoria.render_active_block())
+    bozza = ciak_sollecito.parse_bozza(await _chiedi_llm(system, user, 600) or "")
+    return {
+        "email": email, "nome": cand["nome"], "da_ai": bozza is not None,
+        "bozza": bozza or rc.bozza_base(cand), "fatti": rc.fatti(cand),
+    }
+
+
+@router.post("/recupero/invia")
+async def recupero_invia(body: SollecitoInviaRequest, admin=Depends(require_ciak_admin)):
+    """Invia l'email di recupero approvata, solo se la persona risulta ancora da recuperare."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email, subject, testo = _controlla_invio(body)
+    cand = next(iter(await _candidati_recupero(only_email=email)), None)
+    if cand is None:
+        raise HTTPException(409, "Questa persona non risulta più da recuperare (ha avanzato, o è stata contattata da poco).")
+    return await _invia_approvato(email=email, subject=subject, testo=testo, nome=cand["nome"], tipo="recupero", admin=admin)
+
+
+@router.get("/solleciti/recenti")
+async def solleciti_recenti(giorni: int = Query(14, ge=1, le=90), admin=Depends(require_ciak_admin)):
+    """Chi è stato sollecitato negli ultimi `giorni` (per non scrivere due volte)."""
+    from services import ciak_sollecito
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    righe = await db.ciak_solleciti.find({"ok": True}, {"_id": 0, "body": 0}).sort("sent_at", -1).to_list(500)
+    return {"items": ciak_sollecito.ultimi_per_email(righe, giorni)}
+
+
+# ─── Trattative — prossimo passo con data + cronologia del contatto ─────────
+# Un solo passo aperto per persona (`ciak_prossimi_passi`, chiave email). Quando cambia o si
+# chiude, il vecchio va in `storico` e compare nella cronologia.
+
+class ProssimoPassoIn(BaseModel):
+    email: str = Field(..., min_length=3, max_length=254)
+    testo: str = Field(..., max_length=600)
+    scadenza: str = Field(..., max_length=10)
+
+
+class ProssimoPassoFatto(BaseModel):
+    email: str = Field(..., min_length=3, max_length=254)
+
+
+def _autore(admin) -> str:
+    return getattr(admin, "email", None) or "sconosciuto"
+
+
+@router.get("/prossimi-passi")
+async def prossimi_passi(admin=Depends(require_ciak_admin)):
+    """I passi aperti, con lo stato della scadenza (scaduto / oggi / futuro)."""
+    from services import ciak_trattativa as tr
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    righe = await db.ciak_prossimi_passi.find({"testo": {"$nin": [None, ""]}}, {"_id": 0, "storico": 0}).to_list(2000)
+    items = [{**r, "stato_scadenza": tr.stato_scadenza(r.get("scadenza"))} for r in righe]
+    items.sort(key=lambda r: r.get("scadenza") or "9999")
+    return {"items": items}
+
+
+@router.post("/prossimi-passi")
+async def imposta_prossimo_passo(body: ProssimoPassoIn, admin=Depends(require_ciak_admin)):
+    """Imposta (o sostituisce) il prossimo passo. Il vecchio passo aperto va nello storico."""
+    from services import ciak_trattativa as tr, ciak_sollecito
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email = body.email.strip().lower()
+    if not ciak_sollecito.email_valida(email):
+        raise HTTPException(422, "Email non valida")
+    try:
+        testo, scadenza = tr.valida_passo(body.testo, body.scadenza)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    if not (await db.ciak_leads.find_one({"email": _email_ci(email)}, {"_id": 1})
+            or await db.diagnostic_sessions.find_one({"user_email": _email_ci(email)}, {"_id": 1})
+            or await db.proposte.find_one({"prospect_email": _email_ci(email)}, {"_id": 1})):
+        raise HTTPException(404, "Non conosco questa persona.")
+
+    adesso = datetime.now(timezone.utc).isoformat()
+    attuale = await db.ciak_prossimi_passi.find_one({"email": email}, {"_id": 0}) or {}
+    storico = list(attuale.get("storico") or [])
+    if attuale.get("testo"):
+        storico.append({
+            "testo": attuale["testo"], "scadenza": attuale.get("scadenza"),
+            "creato_at": attuale.get("creato_at"), "creato_da": attuale.get("creato_da"),
+            "sostituito_at": adesso,
+        })
+    doc = {
+        "email": email, "testo": testo, "scadenza": scadenza,
+        "creato_at": adesso, "creato_da": _autore(admin), "storico": storico,
+    }
+    await db.ciak_prossimi_passi.update_one({"email": email}, {"$set": doc}, upsert=True)
+    return {"success": True, "passo": {k: v for k, v in doc.items() if k != "storico"}}
+
+
+@router.post("/prossimi-passi/fatto")
+async def prossimo_passo_fatto(body: ProssimoPassoFatto, admin=Depends(require_ciak_admin)):
+    """Segna il passo come fatto: esce dai passi aperti, resta in cronologia."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email = body.email.strip().lower()
+    attuale = await db.ciak_prossimi_passi.find_one({"email": email}, {"_id": 0})
+    if not attuale or not attuale.get("testo"):
+        raise HTTPException(404, "Non c'è nessun passo aperto per questa persona.")
+    adesso = datetime.now(timezone.utc).isoformat()
+    storico = list(attuale.get("storico") or [])
+    storico.append({
+        "testo": attuale["testo"], "scadenza": attuale.get("scadenza"),
+        "creato_at": attuale.get("creato_at"), "creato_da": attuale.get("creato_da"),
+        "fatto_at": adesso, "fatto_da": _autore(admin),
+    })
+    await db.ciak_prossimi_passi.update_one(
+        {"email": email},
+        {"$set": {"testo": None, "scadenza": None, "creato_at": None, "creato_da": None, "storico": storico}},
+    )
+    return {"success": True}
+
+
+@router.get("/cronologia")
+async def cronologia_contatto(email: str = Query(..., min_length=3), admin=Depends(require_ciak_admin)):
+    """Cronologia di una persona: solo eventi con data vera nelle fonti che abbiamo."""
+    from services import ciak_trattativa as tr
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email = email.strip().lower()
+    diagnostics = await db.diagnostic_sessions.find({"user_email": _email_ci(email)}, {"_id": 0, "state_history": 1}).to_list(50)
+    proposte = await db.proposte.find({"prospect_email": _email_ci(email)}, {"_id": 0}).to_list(50)
+    solleciti = await db.ciak_solleciti.find({"email": email}, {"_id": 0, "body": 0}).to_list(200)
+    passo = await db.ciak_prossimi_passi.find_one({"email": email}, {"_id": 0})
+    if not (diagnostics or proposte or solleciti or passo):
+        raise HTTPException(404, "Nessun evento registrato per questa persona.")
+    return {
+        "email": email,
+        "eventi": tr.costruisci_cronologia(diagnostics=diagnostics, proposte=proposte, solleciti=solleciti, passo=passo),
+        "passo": ({k: v for k, v in passo.items() if k != "storico"} if passo and passo.get("testo") else None),
+    }
+
+
+# ─── Partner — compiti con scadenza + avvisi di percorso (Valentina) ────────
+# I compiti vivono in `ciak_partner_attivita` e si chiudono (non si cancellano). Gli avvisi
+# sono solo lettura di `partner_journey_steps`: non toccano mai il motore del percorso.
+
+class CompitoIn(BaseModel):
+    partner_id: str = Field(..., min_length=1, max_length=100)
+    testo: str = Field(..., max_length=600)
+    scadenza: Optional[str] = Field(None, max_length=10)
+
+
+class CompitoFatto(BaseModel):
+    id: str = Field(..., min_length=1, max_length=100)
+
+
+class AvvisoVisto(BaseModel):
+    partner_id: str = Field(..., min_length=1, max_length=100)
+    step_id: str = Field(..., min_length=1, max_length=100)
+
+
+@router.get("/partner-attivita")
+async def partner_attivita(partner_id: Optional[str] = Query(None), admin=Depends(require_ciak_admin)):
+    """Compiti aperti (di un partner o di tutti), scadenze prima; con nome del partner."""
+    from services import ciak_trattativa as tr
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    filtro = {"fatto_at": None}
+    if partner_id:
+        filtro["partner_id"] = partner_id
+    righe = await db.ciak_partner_attivita.find(filtro, {"_id": 0}).to_list(2000)
+    nomi = {}
+    async for p in db.partners.find({"id": {"$in": list({r["partner_id"] for r in righe})}}, {"_id": 0, "id": 1, "name": 1}):
+        nomi[p.get("id")] = p.get("name")
+    items = [
+        {**r, "partner_nome": nomi.get(r["partner_id"]), "stato_scadenza": tr.stato_scadenza(r.get("scadenza"))}
+        for r in righe
+    ]
+    items.sort(key=lambda r: (r.get("scadenza") or "9999", r.get("creato_at") or ""))
+    return {"items": items}
+
+
+@router.post("/partner-attivita")
+async def crea_compito(body: CompitoIn, admin=Depends(require_ciak_admin)):
+    from services import ciak_partner_attivita as pa
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    try:
+        testo, scadenza = pa.valida_compito(body.testo, body.scadenza)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    if not await db.partners.find_one({"id": body.partner_id}, {"_id": 1}):
+        raise HTTPException(404, "Partner non trovato")
+    riga = pa.nuovo_compito(partner_id=body.partner_id, testo=testo, scadenza=scadenza, autore=_autore(admin))
+    await db.ciak_partner_attivita.insert_one(dict(riga))
+    return {"success": True, "compito": riga}
+
+
+@router.post("/partner-attivita/fatto")
+async def compito_fatto(body: CompitoFatto, admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    attuale = await db.ciak_partner_attivita.find_one({"id": body.id}, {"_id": 0})
+    if not attuale:
+        raise HTTPException(404, "Compito non trovato")
+    if attuale.get("fatto_at"):
+        return {"success": True, "gia_fatto": True}
+    await db.ciak_partner_attivita.update_one(
+        {"id": body.id},
+        {"$set": {"fatto_at": datetime.now(timezone.utc).isoformat(), "fatto_da": _autore(admin)}},
+    )
+    return {"success": True}
+
+
+@router.get("/avvisi-percorso")
+async def avvisi_percorso(admin=Depends(require_ciak_admin)):
+    """Passi completati dai partner attivi negli ultimi giorni, non ancora segnati come visti.
+    Sola lettura del percorso."""
+    from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
+    from services import ciak_partner_attivita as pa
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    partners = {}
+    async for p in db.partners.find(
+        {"$or": [{"stato": {"$exists": False}}, {"stato": None}, {"stato": "attivo"}]}, {"_id": 0, "id": 1, "name": 1}
+    ):
+        partners[p.get("id")] = p.get("name")
+    steps_by: dict = {}
+    async for st in db.partner_journey_steps.find({"partner_id": {"$in": list(partners)}}, {"_id": 0}):
+        steps_by.setdefault(st.get("partner_id"), []).append(st)
+    visti = {(v["partner_id"], v["step_id"]) async for v in db.ciak_avvisi_visti.find({}, {"_id": 0})}
+    items = []
+    for pid, steps in steps_by.items():
+        for a in pa.avvisi_percorso(steps=steps, definizione=JOURNEY_STEPS_DEFINITION, visti=visti):
+            items.append({**a, "partner_nome": partners.get(pid)})
+    items.sort(key=lambda a: a["completato_at"], reverse=True)
+    return {"items": items}
+
+
+@router.post("/avvisi-percorso/visto")
+async def avviso_visto(body: AvvisoVisto, admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await db.ciak_avvisi_visti.update_one(
+        {"partner_id": body.partner_id, "step_id": body.step_id},
+        {"$set": {"partner_id": body.partner_id, "step_id": body.step_id,
+                  "visto_at": datetime.now(timezone.utc).isoformat(), "visto_da": _autore(admin)}},
+        upsert=True,
+    )
+    return {"success": True}
+
+
+# ─── Commenti interni con menzione di un agente + casella notifiche ─────────
+# Un commento con @Marco fa rispondere Marco sotto il commento (legge e consiglia, non esegue).
+# Ogni risposta crea una notifica. Se l'AI non risponde, nessuna risposta finta.
+
+class CommentoIn(BaseModel):
+    target_tipo: str = Field(..., max_length=20)
+    target_id: str = Field(..., min_length=1, max_length=254)
+    testo: str = Field(..., max_length=4000)
+
+
+class NotificaLetta(BaseModel):
+    id: Optional[str] = Field(None, max_length=100)
+    tutte: bool = False
+
+
+async def _chiedi_llm(system: str, user: str, max_tokens: int = 500, messages: Optional[list] = None) -> Optional[str]:
+    """Testo della risposta o None se l'AI non e' disponibile (mai un testo inventato)."""
+    import os
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY") or ""
+    if not api_key:
+        return None
+    try:
+        import anthropic
+
+        from services import ciak_commenti
+
+        client = anthropic.AsyncAnthropic(api_key=api_key)
+        resp = await client.messages.create(
+            model=ciak_commenti.MODELLO, max_tokens=max_tokens, system=system,
+            messages=messages or [{"role": "user", "content": user}],
+        )
+        testo = (resp.content[0].text or "").strip()
+        return testo or None
+    except Exception as e:
+        logger.warning("[commenti] AI non disponibile: %s", e)
+        return None
+
+
+async def _target_esiste(tipo: str, tid: str) -> bool:
+    if tipo == "partner":
+        return bool(await db.partners.find_one({"id": tid}, {"_id": 1}))
+    return bool(
+        await db.ciak_leads.find_one({"email": _email_ci(tid)}, {"_id": 1})
+        or await db.diagnostic_sessions.find_one({"user_email": _email_ci(tid)}, {"_id": 1})
+        or await db.proposte.find_one({"prospect_email": _email_ci(tid)}, {"_id": 1})
+    )
+
+
+async def _contesto_commento(tipo: str, tid: str) -> str:
+    """Fatti verificabili sul bersaglio, in testo semplice per l'agente."""
+    from services import ciak_trattativa as tr
+
+    righe: list[str] = []
+    if tipo == "partner":
+        p = await db.partners.find_one({"id": tid}, {"_id": 0, "name": 1, "stato": 1}) or {}
+        righe.append(f"Partner: {p.get('name') or 'sconosciuto'} (stato: {p.get('stato') or 'attivo'}).")
+        for c in await db.ciak_partner_attivita.find({"partner_id": tid, "fatto_at": None}, {"_id": 0}).to_list(20):
+            righe.append(f"Compito aperto: {c.get('testo')}" + (f" (entro il {c['scadenza']})" if c.get("scadenza") else ""))
+        return "\n".join(righe)
+
+    nome = ""
+    sess = await db.diagnostic_sessions.find({"user_email": _email_ci(tid)}, {"_id": 0, "state_history": 1, "user_name": 1}).to_list(20)
+    prop = await db.proposte.find({"prospect_email": _email_ci(tid)}, {"_id": 0}).to_list(20)
+    sol = await db.ciak_solleciti.find({"email": tid}, {"_id": 0, "body": 0}).to_list(50)
+    passo = await db.ciak_prossimi_passi.find_one({"email": tid}, {"_id": 0})
+    nome = (prop[0].get("prospect_nome") if prop else None) or (sess[0].get("user_name") if sess else None) or tid
+    righe.append(f"Persona: {nome} ({tid}).")
+    if passo and passo.get("testo"):
+        righe.append(f"Prossimo passo deciso: {passo['testo']} (entro il {passo.get('scadenza')}).")
+    else:
+        righe.append("Nessun prossimo passo impostato.")
+    for e in tr.costruisci_cronologia(diagnostics=sess, proposte=prop, solleciti=sol, passo=passo)[:15]:
+        righe.append(f"{e['at'][:10]} - {e['titolo']}" + (f": {e['dettaglio']}" if e.get("dettaglio") else ""))
+    return "\n".join(righe)
+
+
+@router.get("/commenti")
+async def elenco_commenti(target_tipo: str = Query(...), target_id: str = Query(..., min_length=1),
+                          admin=Depends(require_ciak_admin)):
+    from services import ciak_commenti as cm
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    try:
+        _t, tipo, tid = cm.valida_commento("x", target_tipo, target_id)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    righe = await db.ciak_commenti.find({"target_tipo": tipo, "target_id": tid}, {"_id": 0}).to_list(300)
+    righe.sort(key=lambda r: r.get("creato_at") or "")
+    return {"items": righe}
+
+
+@router.post("/commenti")
+async def scrivi_commento(body: CommentoIn, admin=Depends(require_ciak_admin)):
+    from services import ciak_commenti as cm, ciak_memoria
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    try:
+        testo, tipo, tid = cm.valida_commento(body.testo, body.target_tipo, body.target_id)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    if not await _target_esiste(tipo, tid):
+        raise HTTPException(404, "Non conosco questo contatto.")
+
+    commento = cm.nuovo_commento(target_tipo=tipo, target_id=tid, testo=testo, autore=_autore(admin))
+    await db.ciak_commenti.insert_one(dict(commento))
+
+    risposte, non_riuscite = [], []
+    chiamati = commento["menzioni"][: cm.MAX_AGENTI_PER_COMMENTO]
+    if chiamati:
+        contesto = await _contesto_commento(tipo, tid)
+        thread = await db.ciak_commenti.find({"target_tipo": tipo, "target_id": tid}, {"_id": 0}).to_list(300)
+        thread.sort(key=lambda r: r.get("creato_at") or "")
+        thread = [c for c in thread if c["id"] != commento["id"]]
+        memoria = await ciak_memoria.render_active_block()
+        for agente in chiamati:
+            system, user = cm.prompt_agente(agente, contesto, thread, testo, memoria)
+            testo_ai = await _chiedi_llm(system, user)
+            if not testo_ai:
+                non_riuscite.append(cm.AGENTI[agente][0])
+                continue
+            r = cm.nuovo_commento(target_tipo=tipo, target_id=tid, testo=testo_ai, autore=cm.AGENTI[agente][0],
+                                  agente=agente, risposta_a=commento["id"])
+            await db.ciak_commenti.insert_one(dict(r))
+            await db.ciak_notifiche.insert_one(cm.nuova_notifica(agente=agente, commento=r))
+            risposte.append(r)
+    saltati = [cm.AGENTI[a][0] for a in commento["menzioni"][cm.MAX_AGENTI_PER_COMMENTO:]]
+    return {"success": True, "commento": commento, "risposte": risposte, "non_riuscite": non_riuscite, "saltati": saltati}
+
+
+@router.get("/notifiche")
+async def elenco_notifiche(admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    righe = await db.ciak_notifiche.find({}, {"_id": 0}).to_list(500)
+    righe.sort(key=lambda r: r.get("creato_at") or "", reverse=True)
+    return {"items": righe[:30], "non_lette": sum(1 for r in righe if not r.get("letta_at"))}
+
+
+@router.post("/notifiche/letta")
+async def notifica_letta(body: NotificaLetta, admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    if not body.tutte and not body.id:
+        raise HTTPException(422, "Indica quale notifica o tutte.")
+    adesso = datetime.now(timezone.utc).isoformat()
+    filtro = {"letta_at": None} if body.tutte else {"id": body.id}
+    await db.ciak_notifiche.update_many(filtro, {"$set": {"letta_at": adesso}})
+    return {"success": True}
+
+
+# ─── Andrea (Contenuti): bozze di testo e SEO. Solo bozze: non pubblica, non salva ─
+
+class ContenutoBozzaIn(BaseModel):
+    tipo: str = Field(..., max_length=30)
+    brief: str = Field(..., max_length=4000)
+
+
+@router.post("/contenuti/bozza")
+async def contenuto_bozza(body: ContenutoBozzaIn, admin=Depends(require_ciak_admin)):
+    """Andrea scrive una bozza dal brief + Memoria Ciak. Se l'AI non risponde: 503, nessun
+    testo inventato."""
+    from services import ciak_contenuti as ct, ciak_memoria
+
+    try:
+        tipo, brief = ct.valida_richiesta(body.tipo, body.brief)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    system, user = ct.prompt(tipo, brief, await ciak_memoria.render_active_block())
+    testo = await _chiedi_llm(system, user, 800)
+    if not testo:
+        raise HTTPException(503, "Andrea non può rispondere adesso. Riprova tra un momento.")
+    if tipo == "seo_pagina":
+        seo = ct.parse_seo(testo)
+        if seo is None:
+            raise HTTPException(502, "Andrea ha risposto in un formato che non riesco a leggere. Riprova.")
+        return {"tipo": tipo, "seo": seo}
+    return {"tipo": tipo, "testo": testo}
+
+
+# ─── Chat con Andrea (Contenuti): legge e consiglia, non esegue ─────────────
+
+class AndreaChatIn(BaseModel):
+    message: str = Field(..., max_length=6000)
+
+
+def _chiave_chat(admin, agente: str) -> str:
+    return f"{agente}_{getattr(admin, 'user_id', None) or _autore(admin)}"
+
+
+@router.post("/andrea/chat")
+async def andrea_chat(body: AndreaChatIn, admin=Depends(require_ciak_admin)):
+    from services import ciak_andrea_chat as ac, ciak_memoria
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    try:
+        testo = ac.valida_messaggio(body.message)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    chiave = _chiave_chat(admin, "andrea")
+    doc = await db.ciak_agenti_chat.find_one({"chiave": chiave}, {"_id": 0}) or {}
+    storico = list(doc.get("messages") or [])
+    partners = await db.partners.find({}, {"_id": 0, "name": 1, "niche": 1, "revenue": 1, "stato": 1}).to_list(2000)
+    system = ac.prompt_sistema(ac.contesto_casi(partners), await ciak_memoria.render_active_block())
+    risposta = await _chiedi_llm(system, "", 900, messages=ac.messaggi_per_llm(storico, testo))
+    if not risposta:
+        raise HTTPException(503, "Andrea non può rispondere adesso. Riprova tra un momento.")
+    adesso = datetime.now(timezone.utc).isoformat()
+    storico += [{"role": "user", "content": testo, "ts": adesso}, {"role": "assistant", "content": risposta, "ts": adesso}]
+    await db.ciak_agenti_chat.update_one(
+        {"chiave": chiave},
+        {"$set": {"chiave": chiave, "agente": "andrea", "messages": storico[-ac.STORICO_SALVATO:], "updated_at": adesso}},
+        upsert=True,
+    )
+    return {"reply": risposta}
+
+
+@router.get("/andrea/history")
+async def andrea_history(admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    doc = await db.ciak_agenti_chat.find_one({"chiave": _chiave_chat(admin, "andrea")}, {"_id": 0}) or {}
+    return {"messages": (doc.get("messages") or [])[-50:]}
+
+
+@router.delete("/andrea/history")
+async def andrea_history_clear(admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await db.ciak_agenti_chat.update_one(
+        {"chiave": _chiave_chat(admin, "andrea")},
+        {"$set": {"chiave": _chiave_chat(admin, "andrea"), "agente": "andrea", "messages": []}},
+        upsert=True,
+    )
+    return {"success": True}
+
+
+# ─── Chat di Carlo, Marco e Valentina: leggono i dati del reparto, consigliano ───
+
+CHAT_AGENTI = ("carlo", "marco", "valentina")
+
+
+async def _contesto_agente(agente: str) -> str:
+    from services import ciak_agenti_chat as ag
+
+    if agente == "carlo":
+        return ag.contesto_carlo(await _candidati_recupero())
+    if agente == "marco":
+        proposte = await db.proposte.find(
+            {}, {"_id": 0, "prospect_nome": 1, "stato": 1, "creato_at": 1, "visto_at": 1,
+                 "pagamento_completato": 1}
+        ).sort("creato_at", -1).to_list(500)
+        passi = (await prossimi_passi(None))["items"]
+        return ag.contesto_marco(proposte, passi)
+    return ag.contesto_valentina((await avvisi_percorso(None))["items"], (await partner_attivita(None, None))["items"])
+
+
+def _agente_valido(agente: str) -> str:
+    if agente not in CHAT_AGENTI:
+        raise HTTPException(404, "Agente non trovato")
+    return agente
+
+
+@router.post("/agenti/{agente}/chat")
+async def agente_chat(agente: str, body: AndreaChatIn, admin=Depends(require_ciak_admin)):
+    from services import ciak_agenti_chat as ag, ciak_memoria
+
+    _agente_valido(agente)
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    try:
+        testo = ag.valida_messaggio(body.message)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    chiave = _chiave_chat(admin, agente)
+    doc = await db.ciak_agenti_chat.find_one({"chiave": chiave}, {"_id": 0}) or {}
+    storico = list(doc.get("messages") or [])
+    system = ag.prompt_sistema(agente, await _contesto_agente(agente), await ciak_memoria.render_active_block())
+    risposta = await _chiedi_llm(system, "", 900, messages=ag.messaggi_per_llm(storico, testo))
+    nome = ag.AGENTI[agente]["nome"].capitalize()
+    if not risposta:
+        raise HTTPException(503, f"{nome} non può rispondere adesso. Riprova tra un momento.")
+    adesso = datetime.now(timezone.utc).isoformat()
+    storico += [{"role": "user", "content": testo, "ts": adesso}, {"role": "assistant", "content": risposta, "ts": adesso}]
+    await db.ciak_agenti_chat.update_one(
+        {"chiave": chiave},
+        {"$set": {"chiave": chiave, "agente": agente, "messages": storico[-ag.STORICO_SALVATO:], "updated_at": adesso}},
+        upsert=True,
+    )
+    return {"reply": risposta}
+
+
+@router.get("/agenti/{agente}/history")
+async def agente_history(agente: str, admin=Depends(require_ciak_admin)):
+    _agente_valido(agente)
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    doc = await db.ciak_agenti_chat.find_one({"chiave": _chiave_chat(admin, agente)}, {"_id": 0}) or {}
+    return {"messages": (doc.get("messages") or [])[-50:]}
+
+
+@router.delete("/agenti/{agente}/history")
+async def agente_history_clear(agente: str, admin=Depends(require_ciak_admin)):
+    _agente_valido(agente)
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    chiave = _chiave_chat(admin, agente)
+    await db.ciak_agenti_chat.update_one(
+        {"chiave": chiave}, {"$set": {"chiave": chiave, "agente": agente, "messages": []}}, upsert=True)
+    return {"success": True}
+
+
+# ─── Report della settimana (Luca) ───────────────────────────────────────────
+
+@router.get("/report/settimana")
+async def report_settimana(admin=Depends(require_ciak_admin)):
+    """Conteggi degli ultimi 7 giorni contro i 7 precedenti. Una voce che non si riesce a
+    contare esce come non disponibile (None), mai come zero."""
+    from services import ciak_report as rp
+
+    fin = rp.finestre()
+    conteggi = {}
+    for chiave, _et, coll, campo, extra in rp.VOCI:
+        coppia = []
+        for nome in ("attuale", "precedente"):
+            da, a = fin[nome]
+            try:
+                n = await db[coll].count_documents({**extra, campo: {"$gte": da, "$lt": a}})
+            except Exception as e:  # noqa: BLE001
+                logger.warning("[REPORT] %s non contabile: %s", chiave, e)
+                n = None
+            coppia.append(n)
+        conteggi[chiave] = tuple(coppia)
+    return {"da": fin["attuale"][0], "a": fin["attuale"][1], "voci": rp.costruisci(conteggi)}
+
+
+# ─── Competitor: Andrea analizza un video virale incollato e propone un reel tuo ───
+
+class CompetitorAnalisiIn(BaseModel):
+    piattaforma: str = Field(..., max_length=30)
+    competitor: str = Field("", max_length=100)
+    link: str = Field("", max_length=500)
+    testo: str = Field(..., max_length=8000)
+    views: Optional[str] = Field(None, max_length=20)
+    likes: Optional[str] = Field(None, max_length=20)
+    commenti: Optional[str] = Field(None, max_length=20)
+
+
+@router.post("/competitor/analisi")
+async def competitor_analisi(body: CompetitorAnalisiIn, admin=Depends(require_ciak_admin)):
+    """Andrea scompone il testo incollato e propone il brief di un reel originale. Non guarda il
+    video e non pubblica nulla. Se l'AI non risponde: 503, nessuna analisi inventata."""
+    from services import ciak_competitor as cp, ciak_memoria
+
+    try:
+        d = cp.valida_input(piattaforma=body.piattaforma, competitor=body.competitor, link=body.link,
+                            testo=body.testo, views=body.views, likes=body.likes, commenti=body.commenti)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    system, user = cp.prompt(d, await ciak_memoria.render_active_block())
+    raw = await _chiedi_llm(system, user, 1100)
+    if not raw:
+        raise HTTPException(503, "Andrea non può rispondere adesso. Riprova tra un momento.")
+    analisi = cp.parse_analisi(raw)
+    if analisi is None:
+        raise HTTPException(502, "Andrea ha risposto in un formato che non riesco a leggere. Riprova.")
+    out = {**analisi, "metriche": cp.metriche(d), "piattaforma": d["piattaforma"], "competitor": d["competitor"], "link": d["link"]}
+    if db is not None:
+        await db.ciak_competitor_analisi.insert_one({
+            **out, "id": str(__import__("uuid").uuid4()), "creato_da": _autore(admin),
+            "creato_at": datetime.now(timezone.utc).isoformat()})
+    return out
+
+
+@router.get("/competitor/analisi")
+async def competitor_storico(admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    righe = await db.ciak_competitor_analisi.find({}, {"_id": 0}).sort("creato_at", -1).to_list(30)
+    return {"items": righe}
+
+
+# ─── Piano social del mese (Andrea) con link tracciati ──────────────────────
+
+class PianoBozzaIn(BaseModel):
+    mese: str = Field(..., max_length=7)
+    obiettivo: str = Field(..., max_length=1000)
+    canali: list[str] = Field(default_factory=list)
+
+
+class PianoSalvaIn(BaseModel):
+    mese: str = Field(..., max_length=7)
+    voci: list[dict] = Field(..., max_length=40)
+    destinazione: str = Field("", max_length=500)
+    approvato: bool = False
+
+
+def _base_sito() -> str:
+    import os
+    return (os.environ.get("CIAK_BASE_URL") or os.environ.get("FRONTEND_URL_PROD") or "https://www.ciak.io").rstrip("/")
+
+
+@router.post("/piano-social/bozza")
+async def piano_social_bozza(body: PianoBozzaIn, admin=Depends(require_ciak_admin)):
+    """Andrea propone il piano. Non salva e non pubblica nulla."""
+    from services import ciak_piano_social as ps, ciak_memoria
+
+    try:
+        mese, obiettivo, canali = ps.valida_richiesta(body.mese, body.obiettivo, body.canali)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    tetto = int((await _reel_config()).get("tetto_mensile") or 8)
+    system, user = ps.prompt(mese, obiettivo, canali, tetto, await ciak_memoria.render_active_block())
+    raw = await _chiedi_llm(system, user, 3000)
+    if not raw:
+        raise HTTPException(503, "Andrea non può rispondere adesso. Riprova tra un momento.")
+    piano = ps.parse_piano(raw, mese, canali, tetto)
+    if piano is None:
+        raise HTTPException(502, "Andrea ha risposto in un formato che non riesco a leggere. Riprova.")
+    return {"mese": mese, **piano, "tetto_reel": tetto}
+
+
+@router.post("/piano-social")
+async def piano_social_salva(body: PianoSalvaIn, admin=Depends(require_ciak_admin)):
+    """Approva il piano: ogni voce riceve un link tracciato. Un piano per mese."""
+    import json as _json
+    import uuid as _uuid
+    from services import ciak_piano_social as ps
+
+    if not body.approvato:
+        raise HTTPException(422, "Serve la tua approvazione per salvare il piano.")
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    tetto = int((await _reel_config()).get("tetto_mensile") or 8)
+    try:
+        ps.valida_richiesta(body.mese, "x" * 10, ["instagram"])
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    piano = ps.parse_piano(_json.dumps(body.voci), body.mese, list(ps.CANALI), tetto)
+    if piano is None or piano["scartate"]:
+        raise HTTPException(422, "Una o più voci non sono valide (data fuori mese, canale/formato non ammessi, troppi reel o brief troppo corto).")
+    if await db.ciak_piano_social.find_one({"mese": body.mese}, {"_id": 0, "mese": 1}):
+        raise HTTPException(409, "Esiste già un piano approvato per questo mese.")
+    destinazione = (body.destinazione or "").strip() or _base_sito()
+    base = _base_sito()
+    now = datetime.now(timezone.utc).isoformat()
+    voci = []
+    for v in piano["voci"]:
+        vid, codice = str(_uuid.uuid4())[:8], ps.codice_breve()
+        try:
+            target = ps.url_tracciato(destinazione, canale=v["canale"], mese=body.mese, voce_id=vid)
+        except ValueError as e:
+            raise HTTPException(422, str(e))
+        await db.ciak_link_tracciati.insert_one({"codice": codice, "target": target, "mese": body.mese, "voce_id": vid, "creato_at": now})
+        voci.append({**v, "id": vid, "codice": codice, "link": f"{base}/api/ciak/go/{codice}"})
+    doc = {"mese": body.mese, "voci": voci, "destinazione": destinazione, "approvato_da": _autore(admin), "approvato_at": now}
+    await db.ciak_piano_social.insert_one(dict(doc))
+    return {"ok": True, **doc}
+
+
+@router.get("/piano-social")
+async def piano_social_leggi(mese: str = Query(..., max_length=7), admin=Depends(require_ciak_admin)):
+    """Il piano approvato del mese con i clic contati per ogni voce."""
+    from services import ciak_piano_social as ps
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    piano = await db.ciak_piano_social.find_one({"mese": mese}, {"_id": 0})
+    if not piano:
+        return {"piano": None}
+    codici = [v["codice"] for v in piano["voci"]]
+    righe = await db.ciak_link_clic.find({"codice": {"$in": codici}}, {"_id": 0}).to_list(100000)
+    conta = ps.riepilogo_clic(righe)
+    for v in piano["voci"]:
+        v["clic"] = conta.get(v["codice"], {}).get("clic", 0)
+        v["robot"] = conta.get(v["codice"], {}).get("robot", 0)
+    piano["clic_totali"] = sum(v["clic"] for v in piano["voci"])
+    return {"piano": piano}
+
+
+# ─── Reel con HeyGen (Andrea scrive, Claudio approva, poi si genera) ──────────
+
+class ReelAvatarIn(BaseModel):
+    avatar_id: str = Field(..., min_length=3, max_length=200)
+    voice_id: str = Field(..., min_length=3, max_length=200)
+    tetto_mensile: int = Field(8, ge=1, le=60)
+
+
+class ReelBozzaIn(BaseModel):
+    brief: str = Field(..., max_length=2000)
+
+
+class ReelGeneraIn(BaseModel):
+    script: str = Field(..., max_length=2000)
+    didascalia: str = Field("", max_length=600)
+    approvato: bool = False
+
+
+async def _reel_config() -> dict:
+    doc = await db.ciak_site_config.find_one({"key": "reel_config"}, {"_id": 0}) or {}
+    return doc.get("value") or {}
+
+
+def _heygen():
+    from heygen_service import heygen_service
+    return heygen_service
+
+
+@router.get("/reel/avatar")
+async def reel_avatar(admin=Depends(require_ciak_admin)):
+    """Gli avatar e le voci che HeyGen ha sull'account, piu' la scelta fatta. Se HeyGen non
+    risponde lo dice (non inventa elenchi)."""
+    conf = await _reel_config()
+    out = {"scelta": {"avatar_id": conf.get("avatar_id"), "voice_id": conf.get("voice_id"),
+                      "tetto_mensile": conf.get("tetto_mensile", 8)},
+           "avatars": [], "voices": [], "heygen_ok": False, "errore": None}
+    try:
+        svc = _heygen()
+        av = await svc.get_my_avatars()
+        voci = await svc.get_voices()
+        out["avatars"] = [
+            {"avatar_id": a.get("avatar_id"), "nome": a.get("avatar_name") or a.get("name") or a.get("avatar_id"),
+             "anteprima": a.get("preview_image_url")}
+            for a in (av.get("data", {}).get("avatars") or []) if a.get("avatar_id")
+        ]
+        out["voices"] = [
+            {"voice_id": v.get("voice_id"), "nome": v.get("name") or v.get("display_name") or v.get("voice_id"),
+             "lingua": v.get("language")}
+            for v in (voci.get("data", {}).get("voices") or [])
+            if v.get("voice_id") and "ital" in str(v.get("language", "")).lower()
+        ][:100]
+        out["heygen_ok"] = True
+    except Exception as e:  # noqa: BLE001
+        logger.warning("[REEL] HeyGen non raggiungibile: %s", e)
+        out["errore"] = "HeyGen non risponde (chiave mancante o servizio non raggiungibile)."
+    return out
+
+
+@router.post("/reel/avatar")
+async def reel_avatar_salva(body: ReelAvatarIn, admin=Depends(require_ciak_admin)):
+    now = datetime.now(timezone.utc).isoformat()
+    valore = {"avatar_id": body.avatar_id.strip(), "voice_id": body.voice_id.strip(),
+              "tetto_mensile": body.tetto_mensile}
+    await db.ciak_site_config.update_one(
+        {"key": "reel_config"},
+        {"$set": {"key": "reel_config", "value": valore, "updated_at": now, "updated_by": _autore(admin)}},
+        upsert=True,
+    )
+    return {"ok": True, "scelta": valore}
+
+
+@router.post("/reel/bozza")
+async def reel_bozza(body: ReelBozzaIn, admin=Depends(require_ciak_admin)):
+    """Andrea scrive script e didascalia. Non genera nulla e non consuma crediti HeyGen."""
+    from services import ciak_reel as cr, ciak_memoria
+
+    try:
+        brief = cr.valida_brief(body.brief)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    system, user = cr.prompt_script(brief, await ciak_memoria.render_active_block())
+    raw = await _chiedi_llm(system, user, 700)
+    if not raw:
+        raise HTTPException(503, "Andrea non può rispondere adesso. Riprova tra un momento.")
+    bozza = cr.parse_script(raw)
+    if bozza is None:
+        raise HTTPException(502, "Andrea ha risposto in un formato o con una durata che non vanno bene. Riprova.")
+    return bozza
+
+
+@router.post("/reel/genera")
+async def reel_genera(body: ReelGeneraIn, admin=Depends(require_ciak_admin)):
+    """Genera il video con HeyGen (verticale). Solo con approvazione esplicita, avatar scelto e
+    sotto il tetto mensile. Consuma crediti HeyGen."""
+    from services import ciak_reel as cr
+
+    if not body.approvato:
+        raise HTTPException(422, "Serve la tua approvazione: leggi lo script e conferma.")
+    try:
+        script = cr.valida_script(body.script)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    conf = await _reel_config()
+    if not conf.get("avatar_id") or not conf.get("voice_id"):
+        raise HTTPException(409, "Scegli prima il tuo avatar e la tua voce.")
+    mese = cr.mese_corrente()
+    tetto = int(conf.get("tetto_mensile") or cr.TETTO_MENSILE_DEFAULT)
+    del_mese = await db.ciak_reel.find({"mese": mese}, {"_id": 0}).to_list(500)
+    if cr.tetto_raggiunto(del_mese, tetto, mese):
+        raise HTTPException(409, f"Hai raggiunto il tetto di {tetto} reel per questo mese. Alzalo nella scelta dell'avatar se vuoi continuare.")
+    didascalia = " ".join((body.didascalia or "").split())[:220]
+    try:
+        r = await _heygen().generate_video(
+            script=script, avatar_id=conf["avatar_id"], voice_id=conf["voice_id"],
+            title=f"Reel {mese}", test=False, dimension=cr.DIMENSIONE_REEL,
+        )
+        video_id = (r.get("data") or {}).get("video_id")
+        if not video_id:
+            raise RuntimeError(f"risposta senza video_id: {str(r)[:200]}")
+    except Exception as e:  # noqa: BLE001
+        await db.ciak_reel.insert_one(cr.riga_reel(
+            script=script, didascalia=didascalia, avatar_id=conf["avatar_id"], voice_id=conf["voice_id"],
+            video_id=None, by=_autore(admin), stato="fallito", errore=str(e)[:300]))
+        raise HTTPException(502, "HeyGen non ha accettato la richiesta. Controlla i crediti sul tuo account HeyGen e riprova più tardi.")
+    riga = cr.riga_reel(script=script, didascalia=didascalia, avatar_id=conf["avatar_id"],
+                        voice_id=conf["voice_id"], video_id=video_id, by=_autore(admin), stato="in_generazione")
+    await db.ciak_reel.insert_one(dict(riga))
+    return {"ok": True, "reel": {k: v for k, v in riga.items() if k != "_id"}}
+
+
+class ReelInCodaIn(BaseModel):
+    data: str = Field(..., min_length=10, max_length=10)       # YYYY-MM-DD
+    canali: list[str] = Field(default_factory=lambda: ["instagram", "facebook"])
+    approvato: bool = False
+
+
+@router.post("/reel/{reel_id}/in-coda")
+async def reel_in_coda(reel_id: str, body: ReelInCodaIn, admin=Depends(require_ciak_admin)):
+    """Mette un reel PRONTO in coda: il motore lo pubblica nel giorno scelto (IG e FB).
+    Solo con approvazione e una sola volta per reel."""
+    from datetime import date as _date
+
+    if not body.approvato:
+        raise HTTPException(422, "Serve la tua approvazione per mettere il reel in coda.")
+    try:
+        giorno = _date.fromisoformat(body.data)
+    except ValueError:
+        raise HTTPException(422, "Data non valida (AAAA-MM-GG).")
+    if giorno < datetime.now(timezone.utc).date():
+        raise HTTPException(422, "La data è già passata.")
+    canali = [c for c in body.canali if c in ("instagram", "facebook")]
+    if not canali:
+        raise HTTPException(422, "Scegli almeno Instagram o Facebook: gli altri canali non supportano ancora i reel.")
+    reel = await db.ciak_reel.find_one({"id": reel_id}, {"_id": 0})
+    if not reel:
+        raise HTTPException(404, "Reel non trovato.")
+    if reel.get("stato") != "pronto" or not reel.get("video_url"):
+        raise HTTPException(409, "Il reel non è ancora pronto: aggiorna l'elenco e riprova.")
+    if reel.get("in_coda_at"):
+        raise HTTPException(409, "Questo reel è già in coda.")
+    now = datetime.now(timezone.utc).isoformat()
+    await db.ciak_social_queue.insert_one({
+        "post_id": f"reel_{reel_id}", "source": "reel", "reel_id": reel_id,
+        "video_url": reel["video_url"], "caption": reel.get("didascalia") or "",
+        "channels": canali, "scheduled_date": body.data, "status": "pending", "attempts": 0, "created_at": now,
+    })
+    await db.ciak_reel.update_one({"id": reel_id}, {"$set": {"in_coda_at": now, "in_coda_data": body.data, "in_coda_canali": canali}})
+    return {"ok": True, "data": body.data, "canali": canali}
+
+
+@router.get("/reel")
+async def reel_elenco(admin=Depends(require_ciak_admin)):
+    """I reel degli ultimi mesi; quelli in generazione si aggiornano chiedendo a HeyGen."""
+    righe = await db.ciak_reel.find({}, {"_id": 0}).sort("creato_at", -1).to_list(60)
+    for r in righe:
+        if r.get("stato") != "in_generazione" or not r.get("heygen_video_id"):
+            continue
+        try:
+            st = (await _heygen().get_video_status(r["heygen_video_id"])).get("data", {})
+        except Exception:  # noqa: BLE001
+            continue
+        if st.get("status") == "completed" and st.get("video_url"):
+            r["stato"], r["video_url"] = "pronto", st["video_url"]
+        elif st.get("status") == "failed":
+            r["stato"], r["errore"] = "fallito", str((st.get("error") or {}))[:300]
+        else:
+            continue
+        await db.ciak_reel.update_one({"id": r["id"]}, {"$set": {"stato": r["stato"], "video_url": r.get("video_url"), "errore": r.get("errore")}})
+    return {"items": righe}
 
 
 # ─── Site config (Cal.com booking URL, ecc.) ───────────────────────────────
@@ -2463,7 +4575,7 @@ async def get_public_config():
 #
 # Sorgenti vendite fatturabili:
 #   - Ciak Blueprint €27  → diagnostic_sessions (stripe_payment_completed) + ciak_orphan_purchases
-#   - Partnership €2.790  → proposte (pagamento_completato)
+#   - Partnership €2.990  → proposte (pagamento_completato)
 #   - Servizi extra       → partner_servizi (catalogo SERVIZI_CATALOGO)
 #
 # Collezioni:
@@ -2659,13 +4771,14 @@ async def _build_all_sources(db) -> list[dict]:
             "gia_fatturata": key in invoiced,
         })
 
-    # ── Ciak Start €499 (ciak_clients che hanno acquistato lo Start) ──
-    start_offer = MAIN_OFFERS["CIAK-START"]
+    # ── Ciak Start €390 (ciak_clients che hanno acquistato lo Start) ──
     async for c in db.ciak_clients.find({"start_purchased_at": {"$ne": None}}):
+        # Chi ha comprato Start Plus si fattura a 790 EUR, non a 390.
+        start_offer = MAIN_OFFERS["CIAK-START-PLUS"] if c.get("start_plus_purchased_at") else MAIN_OFFERS["CIAK-START"]
         key = f"start:client:{c.get('id')}"
         sources.append({
             "source_key": key, "source_type": "ciak_start", "fonte": "ciak_start",
-            "fonte_label": "Ciak Start", "service_code": start_offer["code"],
+            "fonte_label": "Start Plus" if c.get("start_plus_purchased_at") else "Ciak Start", "service_code": start_offer["code"],
             "descrizione": start_offer["descrizione"], "periodicita": "una_tantum",
             "importo": eur_from_cents(start_offer["amount_cents"]),
             "source_payment_id": c.get("last_checkout_session_id"),
@@ -2675,13 +4788,16 @@ async def _build_all_sources(db) -> list[dict]:
             "gia_fatturata": key in invoiced,
         })
 
-    # ── Partnership €2.790 / Upgrade €2.291 (ciak_clients partner attivi) ──
+    # ── Partnership €2.990 / Upgrade €2.291 (ciak_clients partner attivi) ──
     partnership_offer = MAIN_OFFERS["CIAK-PARTNERSHIP"]
     upgrade_offer = MAIN_OFFERS["CIAK-UPGRADE"]
     async for c in db.ciak_clients.find({"partnership_attiva": True}):
         is_upgrade = has_start_entitlement(c)
         offer = upgrade_offer if is_upgrade else partnership_offer
-        pricing = partnership_price_for_client(c)
+        if c.get("start_plus_purchased_at"):
+            offer = MAIN_OFFERS["CIAK-UPGRADE-PLUS"]
+        # Il credito di Start Plus scade a 60 giorni: si prezza alla data del pagamento, non a oggi.
+        pricing = partnership_price_for_client(c, now=c.get("partnership_purchased_at"))
         key = f"partnership:client:{c.get('id')}"
         sources.append({
             "source_key": key, "source_type": "partnership",
@@ -3263,6 +5379,9 @@ async def delivery_audit(admin=Depends(require_ciak_admin)):
         items.append({
             "id": pid,
             "name": p.get("name") or hub.get("name"),
+            # Serve alla home "Oggi" per riconoscere chi e' gia' partner (e non
+            # contarlo anche tra le trattative) e per escludere gli account di prova.
+            "email": (p.get("email") or hub.get("email") or "").strip().lower() or None,
             "phase": phase_legacy,
             "macro_phase": macro,
             "macro_label": MACRO_LABEL.get(macro, macro),
@@ -3761,7 +5880,7 @@ async def set_partner_alignment(
 # Il sistema persisteva gia' ogni indizio di fallimento, ma nessuna schermata
 # li leggeva: finalizzazione_partnership.<effetto>="failed", bozza_errore,
 # ciak_client_access_recovery, ciak_orphan_purchases. Un cliente poteva pagare
-# 2.790 EUR e restare senza account, senza che nessuno se ne accorgesse.
+# 2.990 EUR e restare senza account, senza che nessuno se ne accorgesse.
 
 class RetryFinalizzazioneRequest(BaseModel):
     email: str
@@ -4028,6 +6147,7 @@ class SegnaTappaStartRequest(BaseModel):
 
 class ApprovaStartDeliverableRequest(BaseModel):
     tipo: str
+    live_url: Optional[str] = None  # richiesta solo per la vetrina (showcase)
 
 
 async def _cliente_start_o_errore(client_id: str) -> dict:
@@ -4047,14 +6167,186 @@ async def _start_step(client_id: str, step_id: str) -> dict:
     ) or {}
 
 
+class ProponiRisposteStartRequest(BaseModel):
+    proposte: dict[str, str]
+
+
+@router.put("/start/{client_id}/risposte-proposte")
+async def proponi_risposte_start(
+    client_id: str,
+    body: ProponiRisposteStartRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """Il team prepara PROPOSTE per le domande a cui il cliente non ha ancora risposto.
+
+    Non sono risposte del cliente: finiscono in `data.proposte` (mai in `data.answers`) e
+    la sua pagina le mostra come «proposta del team, controlla se ti somiglia»; diventano
+    sue solo quando le conferma o le corregge. Riapre il questionario (le 20 domande)
+    anche a chi aveva gia' inviato le vecchie 8. Non tocca stato ne' approvazioni.
+    """
+    from services.ciak_start_domande import DOMANDE_START_IDS, MAX_CARATTERI, MIN_CARATTERI
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    step = await _start_step(client_id, "04-posizionamento")
+    if not step:
+        raise HTTPException(409, "Il percorso del cliente non e' ancora pronto")
+    answers = (step.get("data") or {}).get("answers") or {}
+    valide = {}
+    for chiave, testo in body.proposte.items():
+        pulito = " ".join(str(testo or "").split())[:MAX_CARATTERI]
+        # solo domande Start; mai sopra una risposta vera del cliente
+        if chiave in DOMANDE_START_IDS and pulito and len(str(answers.get(chiave) or "").strip()) < MIN_CARATTERI:
+            valide[chiave] = pulito
+    if not valide:
+        raise HTTPException(422, "Nessuna proposta valida: servono domande Start ancora senza risposta")
+    now = datetime.now(timezone.utc).isoformat()
+    imposta = {f"data.proposte.{k}": v for k, v in valide.items()}
+    imposta.update({
+        "data.proposte_at": now,
+        "data.proposte_da": getattr(admin, "email", None) or "admin",
+        "data.integrazione_richiesta_at": now,
+        "updated_at": now,
+    })
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client_id, "step_id": "04-posizionamento"}, {"$set": imposta}
+    )
+    return {"success": True, "proposte": sorted(valide)}
+
+
+class RisposteTeamStartRequest(BaseModel):
+    risposte: dict[str, str]
+
+
+@router.put("/start/{client_id}/risposte-team")
+async def inserisci_risposte_team_start(
+    client_id: str,
+    body: RisposteTeamStartRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """Il team inserisce risposte GIA' CONFERMATE da Claudio per domande senza risposta.
+
+    Diventano risposte del cliente (`data.answers`), segnate «inserite dal team» in
+    `data.risposte_dal_team` (chi e quando). Mai sopra una risposta vera del cliente, mai
+    domande estranee a Start. Se dopo l'inserimento mancano ancora domande (le 20), il
+    questionario resta/si riapre al cliente solo per quelle; se non manca nulla si chiude.
+    Non tocca stato ne' approvazioni, e non rigenera bozze.
+    """
+    from services.ciak_start_domande import DOMANDE_START_IDS, MAX_CARATTERI, MIN_CARATTERI, mancanti
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    step = await _start_step(client_id, "04-posizionamento")
+    if not step:
+        raise HTTPException(409, "Il percorso del cliente non e' ancora pronto")
+    answers = dict((step.get("data") or {}).get("answers") or {})
+    valide = {}
+    for chiave, testo in body.risposte.items():
+        pulito = " ".join(str(testo or "").split())[:MAX_CARATTERI]
+        if chiave in DOMANDE_START_IDS and len(pulito) >= MIN_CARATTERI and len(str(answers.get(chiave) or "").strip()) < MIN_CARATTERI:
+            valide[chiave] = pulito
+    if not valide:
+        raise HTTPException(422, "Nessuna risposta valida: servono domande Start ancora senza risposta")
+    now = datetime.now(timezone.utc).isoformat()
+    attore = getattr(admin, "email", None) or "admin"
+    imposta = {f"data.answers.{k}": v for k, v in valide.items()}
+    imposta.update({f"data.risposte_dal_team.{k}": {"da": attore, "at": now} for k in valide})
+    ancora = mancanti({**answers, **valide})
+    # le proposte gia' fatte per queste domande non servono piu'
+    imposta.update({f"data.proposte.{k}": None for k in valide})
+    imposta["data.integrazione_richiesta_at"] = now if ancora else None
+    imposta["updated_at"] = now
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client_id, "step_id": "04-posizionamento"}, {"$set": imposta}
+    )
+    return {"success": True, "inserite": sorted(valide), "ancora_da_scrivere": ancora}
+
+
+@router.get("/start/{client_id}/assistente")
+async def assistente_start_cliente(client_id: str, _admin=Depends(require_ciak_admin)):
+    """Sola lettura: le ultime domande fatte all'assistente dal cliente. Quelle che l'assistente ha
+    passato al team (`passato_al_team`) e non sono ancora `gestita` aspettano una risposta a mano."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    righe = [
+        r
+        async for r in db.ciak_start_assistente.find({"client_id": client_id}, {"_id": 0})
+        .sort("at", -1)
+        .limit(30)
+    ]
+    return {
+        "client_id": client_id,
+        "righe": righe,
+        "da_rispondere": sum(1 for r in righe if r.get("passato_al_team") and not r.get("gestita")),
+    }
+
+
+@router.post("/start/{client_id}/assistente/{riga_id}/gestita")
+async def assistente_start_gestita(client_id: str, riga_id: str, admin=Depends(require_ciak_admin)):
+    """Segna come gestita una domanda passata al team (l'hai risposta tu, di persona)."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    res = await db.ciak_start_assistente.update_one(
+        {"id": riga_id, "client_id": client_id},
+        {"$set": {"gestita": True, "gestita_da": getattr(admin, "email", None) or "admin",
+                  "gestita_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    if not getattr(res, "matched_count", 1):
+        raise HTTPException(404, "Domanda non trovata")
+    return {"success": True}
+
+
+@router.get("/partner/{partner_id}/assistente")
+async def assistente_partner_coda(partner_id: str, _admin=Depends(require_ciak_admin)):
+    """Sola lettura: le ultime domande fatte all'assistente dal partner (stessa forma di Start)."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    righe = [
+        r
+        async for r in db.partner_assistente.find({"partner_id": str(partner_id)}, {"_id": 0})
+        .sort("at", -1)
+        .limit(30)
+    ]
+    return {
+        "partner_id": str(partner_id),
+        "righe": righe,
+        "da_rispondere": sum(1 for r in righe if r.get("passato_al_team") and not r.get("gestita")),
+    }
+
+
+@router.post("/partner/{partner_id}/assistente/{riga_id}/gestita")
+async def assistente_partner_gestita(partner_id: str, riga_id: str, admin=Depends(require_ciak_admin)):
+    """Segna come gestita una domanda passata al team (hai risposto tu, di persona)."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    res = await db.partner_assistente.update_one(
+        {"id": riga_id, "partner_id": str(partner_id)},
+        {"$set": {"gestita": True, "gestita_da": getattr(admin, "email", None) or "admin",
+                  "gestita_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    if not getattr(res, "matched_count", 1):
+        raise HTTPException(404, "Domanda non trovata")
+    return {"success": True}
+
+
 @router.post("/start/{client_id}/calendario-90/genera")
 async def genera_calendario_start(
     client_id: str,
+    background_tasks: BackgroundTasks,
     admin=Depends(require_ciak_admin),
 ):
-    """Genera la bozza del calendario Start, senza approvarla automaticamente."""
-    from services.start_final_deliverables import build_start_content_plan
+    """Avvia la generazione del calendario Start IN BACKGROUND.
 
+    La sintesi AI del ciclo 60g (max_tokens 14000) dura ~90-150s e supera il
+    timeout del gateway (~60s): una chiamata sincrona tornerebbe un errore anche
+    se poi completa. Qui si risponde subito (`generating: true`), si marca lo step
+    `generation_status: in_corso`, e la scrittura avviene quando la generazione
+    finisce. Il pannello polla lo stato dello step.
+    """
     if db is None:
         raise HTTPException(503, "Database non configurato")
     await _cliente_start_o_errore(client_id)
@@ -4063,7 +6355,166 @@ async def genera_calendario_start(
     if not any(answers.get(key) for key in ("metodo_nome", "nicchia", "promessa")):
         raise HTTPException(409, "Posizionamento incompleto: il calendario non puo' essere generato")
 
-    deliverable = await build_start_content_plan({"answers": answers})
+    now = datetime.now(timezone.utc).isoformat()
+    actor = getattr(admin, "email", None) or "admin"
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client_id, "step_id": "start-contenuti-90"},
+        {"$set": {
+            "status": "in_progress",
+            "generation_status": "in_corso",
+            "generation_started_at": now,
+            "updated_at": now,
+        }},
+        upsert=True,
+    )
+    background_tasks.add_task(_genera_calendario_bg, client_id, dict(answers), actor)
+    return {"success": True, "generating": True}
+
+
+async def _genera_calendario_bg(client_id: str, answers: dict, actor: str) -> None:
+    """Genera il calendario (chiamata AI lunga) e scrive deliverable + step.
+
+    Gira DOPO la risposta HTTP: non deve mai sollevare fuori. In caso di errore
+    marca lo step `generation_status: errore` cosi' il pannello lo mostra.
+    """
+    from services.start_final_deliverables import build_start_content_plan
+
+    try:
+        deliverable = await build_start_content_plan({"answers": answers})
+        now = datetime.now(timezone.utc).isoformat()
+        payload = {
+            **deliverable,
+            "partner_id": client_id,
+            "generated_at": now,
+            "generated_by": actor,
+            "approval_status": "pending_review",
+        }
+        await db.ciak_start_deliverables.update_one(
+            {"partner_id": client_id, "type": "content_plan_90d"},
+            {"$set": payload, "$setOnInsert": {"created_at": now}},
+            upsert=True,
+        )
+        await db.partner_journey_steps.update_one(
+            {"partner_id": client_id, "step_id": "start-contenuti-90"},
+            {"$set": {
+                "status": "in_progress",
+                "approval_status": "pending_review",
+                "data": payload,
+                "generation_status": "pronto",
+                "updated_at": now,
+            }},
+        )
+    except Exception as exc:  # noqa: BLE001 — il task in background non deve mai propagare
+        logger.exception("[CIAK_ADMIN] genera calendario bg fallito per %s: %s", client_id, exc)
+        try:
+            await db.partner_journey_steps.update_one(
+                {"partner_id": client_id, "step_id": "start-contenuti-90"},
+                {"$set": {
+                    "generation_status": "errore",
+                    "generation_error": str(exc)[:200],
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }},
+            )
+        except Exception:
+            pass
+
+
+async def _posizionamento_struct(client_id: str) -> tuple[dict, dict]:
+    """(answers, posizionamento strutturato) dallo step 04, o 409 se incompleto.
+
+    Il posizionamento strutturato riusa il motore gia' esistente
+    `build_brand_positioning_statement` → forma {brand, categoria,
+    idea_differenziante, vantaggio_cliente, ...} attesa dai generatori.
+    """
+    from services.posizionamento_statement import build_brand_positioning_statement
+
+    positioning = await _start_step(client_id, "04-posizionamento")
+    answers = (positioning.get("data") or {}).get("answers") or {}
+    if not any(answers.get(key) for key in ("metodo_nome", "nicchia", "promessa")):
+        raise HTTPException(409, "Posizionamento incompleto: genera prima il posizionamento")
+    statement = await build_brand_positioning_statement(answers)
+    return answers, statement
+
+
+@router.post("/start/{client_id}/posizionamento/genera")
+async def genera_posizionamento_start(
+    client_id: str,
+    admin=Depends(require_ciak_admin),
+):
+    """Bozza del posizionamento del cliente Start (tappa 1), da approvare.
+
+    Scrive il deliverable e SEGNA lo step 04 come pronto, ma non ne riscrive
+    `data`: li' stanno le risposte del cliente.
+    """
+    from services.start_tappa1 import build_start_positioning
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    answers, statement = await _posizionamento_struct(client_id)
+    deliverable = build_start_positioning(statement, answers)
+    return await _salva_bozza_tappa1(client_id, "positioning", "04-posizionamento", deliverable, admin)
+
+
+class MarchioStartAdminBody(BaseModel):
+    valori: dict
+
+
+@router.put("/start/{client_id}/marchio")
+async def imposta_marchio_start(
+    client_id: str,
+    body: MarchioStartAdminBody,
+    admin=Depends(require_ciak_admin),
+):
+    """Imposta a mano le scelte sul marchio di un cliente Start.
+
+    Serve quando il cliente ha gia' una sua identita' (studio esterno): le 6
+    palette di Ciak non la coprono e la pagina del cliente non offre colori
+    personalizzati. Stessa validazione della pagina (`normalizza`): palette
+    `miei` con 3 esadecimali, logo/foto solo https; il resto viene ignorato.
+    Scrive solo i dati del brand kit: non tocca lo stato dello step, non segna il
+    marchio come inviato, non approva e non rigenera nulla (la scheda gia'
+    generata va rifatta dal pannello).
+    """
+    from services.ciak_start_marchio import STEP_ID, normalizza
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    nuovi = normalizza(body.valori)
+    if not nuovi:
+        raise HTTPException(422, "Nessun valore valido da salvare")
+    if not await _start_step(client_id, STEP_ID):
+        raise HTTPException(409, "Il percorso del cliente non e' ancora pronto: nessuno step marchio")
+    imposta = {f"data.{k}": v for k, v in nuovi.items()}
+    imposta["updated_at"] = datetime.now(timezone.utc).isoformat()
+    imposta["last_edited_by"] = getattr(admin, "email", None) or "admin"
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client_id, "step_id": STEP_ID}, {"$set": imposta}
+    )
+    return {"success": True, "salvati": sorted(nuovi.keys())}
+
+
+@router.post("/start/{client_id}/marchio/genera")
+async def genera_marchio_start(
+    client_id: str,
+    admin=Depends(require_ciak_admin),
+):
+    """Scheda del marchio scelto dal cliente Start (tappa 1), da approvare."""
+    from services.ciak_start_marchio import mancanti
+    from services.start_tappa1 import build_start_brand
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    brand = (await _start_step(client_id, "03-brand-kit")).get("data") or {}
+    if mancanti(brand):
+        raise HTTPException(409, "Il cliente non ha ancora scelto il suo marchio: nessuna scheda da generare")
+    deliverable = build_start_brand(brand)
+    return await _salva_bozza_tappa1(client_id, "brand_kit", "03-brand-kit", deliverable, admin)
+
+
+async def _salva_bozza_tappa1(client_id: str, tipo: str, step_id: str, deliverable: dict, admin) -> dict:
     now = datetime.now(timezone.utc).isoformat()
     actor = getattr(admin, "email", None) or "admin"
     payload = {
@@ -4074,12 +6525,113 @@ async def genera_calendario_start(
         "approval_status": "pending_review",
     }
     await db.ciak_start_deliverables.update_one(
-        {"partner_id": client_id, "type": "content_plan_90d"},
+        {"partner_id": client_id, "type": tipo},
+        {"$set": payload, "$setOnInsert": {"created_at": now}},
+        upsert=True,
+    )
+    # Solo i campi di stato: `data` dello step contiene le risposte del cliente.
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client_id, "step_id": step_id},
+        {"$set": {
+            "status": "in_progress",
+            "approval_status": "pending_review",
+            "ready_at": now,
+            "updated_at": now,
+            "data.generated_at": now,
+        }},
+        upsert=True,
+    )
+    return {"success": True, "deliverable": payload}
+
+
+@router.post("/start/{client_id}/profili/genera")
+async def genera_profili_start(
+    client_id: str,
+    admin=Depends(require_ciak_admin),
+):
+    """Genera la bozza dei testi profili social, senza approvarla automaticamente."""
+    from services.start_final_deliverables import build_start_social
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    client = await _cliente_start_o_errore(client_id)
+    answers, statement = await _posizionamento_struct(client_id)
+    brand = await _start_step(client_id, "03-brand-kit")
+    vetrina = await db.ciak_start_deliverables.find_one(
+        {"partner_id": client_id, "type": "showcase"}, {"_id": 0}
+    ) or {}
+    dati = {
+        "nome": client.get("name") or "",
+        "nicchia": answers.get("nicchia") or "",
+        "posizionamento": statement,
+        "brand_kit": (brand.get("data") or {}),
+        "vetrina_url": vetrina.get("live_url"),
+    }
+    deliverable = await build_start_social(dati)
+    now = datetime.now(timezone.utc).isoformat()
+    actor = getattr(admin, "email", None) or "admin"
+    payload = {
+        **deliverable,
+        "partner_id": client_id,
+        "generated_at": now,
+        "generated_by": actor,
+        "approval_status": "pending_review",
+    }
+    await db.ciak_start_deliverables.update_one(
+        {"partner_id": client_id, "type": "social_profiles"},
         {"$set": payload, "$setOnInsert": {"created_at": now}},
         upsert=True,
     )
     await db.partner_journey_steps.update_one(
-        {"partner_id": client_id, "step_id": "start-contenuti-90"},
+        {"partner_id": client_id, "step_id": "start-profili"},
+        {"$set": {"status": "in_progress", "approval_status": "pending_review", "data": payload, "updated_at": now}},
+        upsert=True,
+    )
+    return {"success": True, "deliverable": payload}
+
+
+@router.post("/start/{client_id}/vetrina/genera")
+async def genera_vetrina_start(
+    client_id: str,
+    admin=Depends(require_ciak_admin),
+):
+    """Genera la bozza della pagina vetrina (HTML + checklist DNS), senza approvarla.
+
+    La `live_url` (pubblicazione) si imposta all'approvazione, dopo l'online.
+    """
+    from services.start_final_deliverables import build_start_vetrina
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    client = await _cliente_start_o_errore(client_id)
+    answers, statement = await _posizionamento_struct(client_id)
+    brand = await _start_step(client_id, "03-brand-kit")
+    dati = {
+        "nome": client.get("name") or "",
+        "nicchia": answers.get("nicchia") or "",
+        "posizionamento": statement,
+        "brand_kit": (brand.get("data") or {}),
+        # La foto sta nel brand kit del cliente: senza questa riga la vetrina
+        # non la mostrava mai (il generatore la legge da `dati`, non dal kit).
+        "foto_url": (brand.get("data") or {}).get("foto_url") or "",
+    }
+    deliverable = await build_start_vetrina(dati)
+    now = datetime.now(timezone.utc).isoformat()
+    actor = getattr(admin, "email", None) or "admin"
+    payload = {
+        **deliverable,
+        "partner_id": client_id,
+        "generated_at": now,
+        "generated_by": actor,
+        "approval_status": "pending_review",
+    }
+    await db.ciak_start_deliverables.update_one(
+        {"partner_id": client_id, "type": "showcase"},
+        {"$set": payload, "$setOnInsert": {"created_at": now}},
+        upsert=True,
+    )
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client_id, "step_id": "start-vetrina"},
         {"$set": {"status": "in_progress", "approval_status": "pending_review", "data": payload, "updated_at": now}},
         upsert=True,
     )
@@ -4138,6 +6690,84 @@ async def genera_readiness_start(
     return {"success": True, "deliverable": payload}
 
 
+async def _approva_start_deliverable(
+    client_id: str,
+    tipo: str,
+    actor: str,
+    live_url_richiesta: str | None = None,
+    *,
+    avvisa: bool = True,
+) -> dict:
+    """Approva un output Start gia' generato: lo rende visibile al cliente.
+
+    Usata sia dall'approvazione a mano (`approva_deliverable_start`) sia da quella
+    automatica (`services/start_autogenerazione`). `avvisa=False` salta l'email «e'
+    pronto»: l'approvazione automatica ne manda UNA sola per tutto il gruppo.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    mapping = {
+        "positioning": "04-posizionamento",
+        "brand_kit": "03-brand-kit",
+        "content_plan_90d": "start-contenuti-90",
+        "partnership_readiness": "start-readiness",
+        "social_profiles": "start-profili",
+        "showcase": "start-vetrina",
+    }
+    step_id = mapping.get(tipo)
+    if not step_id:
+        raise HTTPException(422, "Tipo deliverable non valido")
+    # Tutti e 4 i deliverable Start ora hanno un produttore reale (endpoint
+    # /genera): l'approvazione richiede che la bozza esista, non piu' uno step
+    # "done con dati" che nessuno produceva (era il deadlock su profili/vetrina).
+    existing = await db.ciak_start_deliverables.find_one(
+        {"partner_id": client_id, "type": tipo}, {"_id": 0}
+    )
+    if not existing:
+        raise HTTPException(409, "Genera prima il deliverable")
+    if tipo == "partnership_readiness" and not existing.get("ready"):
+        raise HTTPException(409, "Readiness bloccata: completa e approva prima tutte le evidenze Start")
+    live_url = None
+    if tipo == "showcase":
+        # La readiness esige showcase.live_url: la vetrina va prima pubblicata.
+        live_url = (live_url_richiesta or existing.get("live_url") or "").strip()
+        if not live_url:
+            raise HTTPException(409, "Serve la live_url della vetrina pubblicata per approvarla")
+        if not live_url.startswith("https://") or " " in live_url:
+            # Il cliente vede questo indirizzo come un link: solo https.
+            raise HTTPException(422, "L'indirizzo della vetrina deve iniziare con https://")
+    now = datetime.now(timezone.utc).isoformat()
+    approval = {"approval_status": "approved", "approved_at": now, "approved_by": actor}
+    deliverable_set = dict(approval)
+    step_set = {"status": "done", **approval, "data.approved_at": now, "updated_at": now}
+    if live_url:
+        deliverable_set["live_url"] = live_url
+        step_set["data.live_url"] = live_url
+    await db.ciak_start_deliverables.update_one(
+        {"partner_id": client_id, "type": tipo}, {"$set": deliverable_set}
+    )
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client_id, "step_id": step_id},
+        {"$set": step_set},
+    )
+    # Il PDF nasce PRIMA dell'avviso: cosi' chi riceve la mail trova gia' il
+    # documento nell'archivio. Non solleva mai: se non riesce, l'approvazione vale
+    # lo stesso e il PDF si rigenera dal pannello ("Crea i PDF dei materiali").
+    from services.start_pdf import registra_pdf_start
+
+    pdf_creato = await registra_pdf_start(db, client_id, tipo)
+    # Richiamo: avvisa il cliente che il deliverable e' pronto in area (magic-link
+    # fresco). Non deve mai bloccare l'approvazione: la funzione non solleva.
+    if avvisa:
+        try:
+            from services.ciak_client_reengagement import invia_deliverable_pronto
+
+            await invia_deliverable_pronto(db, client_id, tipo)
+        except Exception as exc:  # noqa: BLE001 - il richiamo e' accessorio
+            logger.warning("[REENGAGE] avviso deliverable pronto fallito per %s: %s", client_id, exc)
+    return {"success": True, "type": tipo, "pdf_creato": pdf_creato, **approval}
+
+
 @router.post("/start/{client_id}/deliverable/approva")
 async def approva_deliverable_start(
     client_id: str,
@@ -4148,41 +6778,254 @@ async def approva_deliverable_start(
     if db is None:
         raise HTTPException(503, "Database non configurato")
     await _cliente_start_o_errore(client_id)
-    mapping = {
-        "content_plan_90d": "start-contenuti-90",
-        "partnership_readiness": "start-readiness",
-        "social_profiles": "start-profili",
-        "showcase": "start-vetrina",
-    }
-    step_id = mapping.get(body.tipo)
-    if not step_id:
-        raise HTTPException(422, "Tipo deliverable non valido")
-    generated_types = {"content_plan_90d", "partnership_readiness"}
-    existing = None
-    if body.tipo in generated_types:
-        existing = await db.ciak_start_deliverables.find_one(
-            {"partner_id": client_id, "type": body.tipo}, {"_id": 0}
-        )
-        if not existing:
-            raise HTTPException(409, "Genera prima il deliverable")
-        if body.tipo == "partnership_readiness" and not existing.get("ready"):
-            raise HTTPException(409, "Readiness bloccata: completa e approva prima tutte le evidenze Start")
-    else:
-        step = await _start_step(client_id, step_id)
-        if step.get("status") != "done" or not (step.get("data") or {}):
-            raise HTTPException(409, "Completa prima lo step con dati verificabili")
-    now = datetime.now(timezone.utc).isoformat()
     actor = getattr(admin, "email", None) or "admin"
-    approval = {"approval_status": "approved", "approved_at": now, "approved_by": actor}
-    if body.tipo in generated_types:
-        await db.ciak_start_deliverables.update_one(
-            {"partner_id": client_id, "type": body.tipo}, {"$set": approval}
+    return await _approva_start_deliverable(client_id, body.tipo, actor, body.live_url)
+
+
+@router.post("/start/{client_id}/pdf/crea")
+async def crea_pdf_start(
+    client_id: str,
+    _admin=Depends(require_ciak_admin),
+):
+    """Crea (o rifa) il PDF dei materiali Start gia' APPROVATI.
+
+    Serve per chi e' stato approvato prima che il PDF esistesse, e per ritentare
+    dopo un errore. Sostituisce il PDF precedente, non ne accumula.
+    """
+    from services.start_pdf import DOCUMENTI, registra_pdf_start
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    creati, falliti = [], []
+    for tipo in DOCUMENTI:
+        approvato = await db.ciak_start_deliverables.find_one(
+            {"partner_id": client_id, "type": tipo, "approval_status": "approved"}, {"_id": 0, "type": 1}
         )
-    await db.partner_journey_steps.update_one(
-        {"partner_id": client_id, "step_id": step_id},
-        {"$set": {"status": "done", **approval, "data.approved_at": now, "updated_at": now}},
-    )
-    return {"success": True, "type": body.tipo, **approval}
+        if not approvato:
+            continue  # niente da fare: non e' ancora approvato
+        (creati if await registra_pdf_start(db, client_id, tipo) else falliti).append(tipo)
+    return {"success": not falliti, "creati": creati, "falliti": falliti}
+
+
+@router.post("/start/{client_id}/bozze/prepara")
+async def prepara_bozze_start(
+    client_id: str,
+    background_tasks: BackgroundTasks,
+    _admin=Depends(require_ciak_admin),
+):
+    """Prepara in un colpo solo tutte le bozze Start per cui gli input ci sono.
+
+    E' lo stesso lavoro che Ciak fa da solo quando il cliente invia risposte e
+    marchio: serve per i clienti arrivati prima dell'automatismo e per ritentare
+    dopo un errore. Non sovrascrive niente di gia' generato e non approva mai.
+    """
+    from services.start_autogenerazione import prepara_bozze
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    background_tasks.add_task(prepara_bozze, client_id)
+    return {"success": True, "generating": True}
+
+
+_BOZZE_START_ORDINE = (
+    ("positioning", "04-posizionamento"),
+    ("brand_kit", "03-brand-kit"),
+    ("social_profiles", "start-profili"),
+    ("showcase", "start-vetrina"),
+    ("content_plan_90d", "start-contenuti-90"),
+    ("partnership_readiness", "start-readiness"),
+)
+
+
+@router.get("/start/{client_id}/bozze")
+async def bozze_start(
+    client_id: str,
+    _admin=Depends(require_ciak_admin),
+):
+    """Sola lettura: cosa ha risposto il cliente e cosa e' stato generato per lui.
+
+    Serve a verificare il lavoro PRIMA di approvarlo: il pannello Consegne Start
+    aveva solo i pulsanti genera/approva, senza modo di leggere il contenuto.
+    Include le bozze non approvate (il cliente vede solo le approvate) e l'HTML
+    della vetrina (che il cliente non riceve).
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+
+    risposte_step = await _start_step(client_id, "04-posizionamento")
+    marchio_step = await _start_step(client_id, "03-brand-kit")
+    docs = {
+        d.get("type"): d
+        async for d in db.ciak_start_deliverables.find({"partner_id": client_id}, {"_id": 0})
+    }
+
+    items = []
+    for tipo, step_id in _BOZZE_START_ORDINE:
+        doc = docs.get(tipo)
+        step = await _start_step(client_id, step_id)
+        entry = {
+            "type": tipo,
+            "step_id": step_id,
+            "generato": bool(doc),
+            "generation_status": step.get("generation_status"),
+            "generation_error": step.get("generation_error"),
+        }
+        if doc:
+            tecnici = {"type", "partner_id", "html", "generated_by", "approved_by", "approval_status",
+                       "generated_at", "approved_at", "created_at", "live_url"}
+            from services.start_autogenerazione import _e_di_ripiego
+
+            entry.update({
+                "approval_status": doc.get("approval_status") or "pending_review",
+                "generated_at": doc.get("generated_at"),
+                "approved_at": doc.get("approved_at"),
+                # chi ha approvato: "ciak-automatico" = approvazione automatica del sistema
+                "approvato_da": doc.get("approved_by"),
+                # testo di ripiego (sintesi AI fallita): l'approvazione automatica lo ferma
+                "ripiego": _e_di_ripiego(tipo, doc),
+                "live_url": doc.get("live_url"),
+                "html": doc.get("html"),
+                "contenuto": {k: v for k, v in doc.items() if k not in tecnici},
+            })
+        items.append(entry)
+
+    from services.ciak_start_domande import mancanti
+
+    dati_risposte = risposte_step.get("data") or {}
+    risposte = dati_risposte.get("answers") or {}
+    return {
+        "client_id": client_id,
+        "risposte": risposte,
+        "marchio_scelto": marchio_step.get("data") or {},
+        "items": items,
+        # questionario delle 20 domande: stato, chi ha scritto cosa, cosa manca
+        "domande": {
+            "inviate_at": dati_risposte.get("answers_completed_at"),
+            "riaperto_dal_team": bool(dati_risposte.get("integrazione_richiesta_at")),
+            "dal_team": dati_risposte.get("risposte_dal_team") or {},
+            "proposte": {k: v for k, v in (dati_risposte.get("proposte") or {}).items() if v},
+            "mancanti": mancanti(risposte),
+        },
+    }
+
+
+@router.get("/risultati-finali")
+async def risultati_finali(_admin=Depends(require_ciak_admin)):
+    """Sola lettura: il risultato finale costruito per ogni cliente.
+
+    - `vetrine`: il sito vetrina dei clienti Start (l'HTML si legge da
+      `/start/{id}/bozze`, qui solo l'elenco);
+    - `funnel`: il funnel dei partner in anteprima su Vercel, con le sue pagine.
+    Gli URL non validi (non https o non `*.vercel.app`) non diventano mai link.
+    """
+    from services import funnel_review as fr
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    docs = [
+        d async for d in db.partner_funnel.find(
+            {"preview_url": {"$nin": [None, ""]}}, {"_id": 0}
+        )
+    ]
+    partner_ids = [d["partner_id"] for d in docs if d.get("partner_id")]
+    partners = {}
+    if partner_ids:
+        async for p in db.partners.find({"id": {"$in": partner_ids}}, {"_id": 0, "id": 1, "name": 1, "email": 1}):
+            partners[p["id"]] = p
+
+    funnel = []
+    for rec in docs:
+        base = fr.allowed_funnel_preview_url(rec.get("preview_url"))
+        partner = partners.get(rec.get("partner_id")) or {}
+        stato = fr.review_state(rec) if base else {}
+        funnel.append({
+            "partner_id": rec.get("partner_id"),
+            "nome": partner.get("name") or partner.get("email") or rec.get("partner_id"),
+            "preview_url": base,
+            "url_non_valido": base is None,
+            "version": stato.get("version"),
+            "released": bool(stato.get("released")),
+            "progress": stato.get("progress"),
+            "corrections_open": stato.get("corrections_open"),
+            "pages": (
+                [{"id": p["id"], "title": p["title"], "url": fr._page_url(base, p["path"])} for p in fr.PAGES]
+                if base else []
+            ),
+        })
+    funnel.sort(key=lambda f: str(f["nome"]).lower())
+
+    vetrine_docs = [
+        d async for d in db.ciak_start_deliverables.find(
+            {"type": "showcase"},
+            {"_id": 0, "partner_id": 1, "approval_status": 1, "generated_at": 1, "approved_at": 1, "live_url": 1},
+        )
+    ]
+    clienti = {}
+    ids = [d["partner_id"] for d in vetrine_docs if d.get("partner_id")]
+    if ids:
+        async for c in db.ciak_clients.find({"id": {"$in": ids}}, {"_id": 0, "id": 1, "name": 1, "email": 1}):
+            clienti[c["id"]] = c
+    vetrine = [
+        {
+            "client_id": d.get("partner_id"),
+            "nome": (clienti.get(d.get("partner_id")) or {}).get("name")
+            or (clienti.get(d.get("partner_id")) or {}).get("email")
+            or d.get("partner_id"),
+            "approval_status": d.get("approval_status") or "pending_review",
+            "generated_at": d.get("generated_at"),
+            "live_url": d.get("live_url"),
+        }
+        for d in vetrine_docs
+    ]
+    vetrine.sort(key=lambda v: str(v.get("generated_at") or ""), reverse=True)
+    return {"funnel": funnel, "vetrine": vetrine}
+
+
+@router.get("/start/pipeline")
+async def pipeline_start(
+    _admin=Depends(require_ciak_admin),
+    max_items: int = Query(500, ge=1, le=2000),
+):
+    """Tutti i clienti Start in colonne: di chi e' la prossima mossa."""
+    from services.ciak_client_accounts import ACCESS_START
+    from services.start_pipeline import build_pipeline
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    clients = await db.ciak_clients.find(
+        {"$or": [
+            {"access_level": ACCESS_START},
+            {"start_purchased_at": {"$nin": [None, ""]}},
+            {"start_credit_amount": {"$nin": [None, "", 0, "0"]}},
+        ]},
+        {"_id": 0, "id": 1, "email": 1, "name": 1, "access_level": 1,
+         "start_purchased_at": 1, "start_credit_amount": 1},
+    ).sort("start_purchased_at", -1).to_list(max_items)
+
+    ids = [c.get("id") for c in clients if c.get("id")]
+    steps_by_client: dict[str, list[dict]] = {}
+    docs_by_client: dict[str, list[dict]] = {}
+    if ids:
+        async for step in db.partner_journey_steps.find(
+            {"partner_id": {"$in": ids}},
+            {"_id": 0, "partner_id": 1, "step_id": 1, "status": 1, "approval_status": 1,
+             "approved_at": 1, "approved_by": 1, "completed_at": 1, "ready_at": 1,
+             "updated_at": 1, "reference": 1, "note": 1, "generation_status": 1,
+             "data.answers_completed_at": 1, "data.brand_completed_at": 1},
+        ):
+            steps_by_client.setdefault(step.get("partner_id"), []).append(step)
+        async for doc in db.ciak_start_deliverables.find(
+            {"partner_id": {"$in": ids}},
+            {"_id": 0, "partner_id": 1, "type": 1, "approval_status": 1, "approved_at": 1, "created_at": 1},
+        ):
+            docs_by_client.setdefault(doc.get("partner_id"), []).append(doc)
+
+    return build_pipeline(clients, steps_by_client, docs_by_client)
 
 
 @router.get("/start/consegne")
@@ -4211,11 +7054,24 @@ async def consegne_start(
             "access_level": 1,
             "start_purchased_at": 1,
             "start_credit_amount": 1,
-            "start_progress": 1,
         },
     ).sort("start_purchased_at", -1).to_list(max_items)
 
-    return build_report(clients)
+    # Lo stato delle tappe vive sulla journey vera (`partner_journey_steps`), non
+    # piu' su `start_progress`: la stessa journey che il cliente vede e che i
+    # motori di consegna aggiornano.
+    client_ids = [c.get("id") for c in clients if c.get("id")]
+    steps_by_client: dict[str, list[dict]] = {}
+    if client_ids:
+        async for step in db.partner_journey_steps.find(
+            {"partner_id": {"$in": client_ids}},
+            {"_id": 0, "partner_id": 1, "step_id": 1, "status": 1, "approval_status": 1,
+             "approved_at": 1, "approved_by": 1, "completed_at": 1, "ready_at": 1,
+             "updated_at": 1, "reference": 1, "note": 1, "data.answers_completed_at": 1, "data.brand_completed_at": 1},
+        ):
+            steps_by_client.setdefault(step.get("partner_id"), []).append(step)
+
+    return build_report(clients, steps_by_client)
 
 
 @router.post("/start/consegne/segna")
@@ -4230,6 +7086,7 @@ async def segna_tappa_start(
     """
     from services.ciak_client_accounts import has_start_entitlement
     from services.ciak_start_milestones import apply_milestone_status
+    from models.start_journey import step_definition
 
     if db is None:
         raise HTTPException(503, "Database non configurato")
@@ -4242,8 +7099,7 @@ async def segna_tappa_start(
 
     actor = getattr(admin, "email", None) or "admin"
     try:
-        progress = apply_milestone_status(
-            client,
+        aggiornamenti = apply_milestone_status(
             tappa=body.tappa,
             stato=body.stato,
             attore=actor,
@@ -4253,13 +7109,29 @@ async def segna_tappa_start(
     except ValueError as exc:
         raise HTTPException(422, str(exc))
 
-    await db.ciak_clients.update_one(
-        {"id": body.client_id},
-        {"$set": {
-            "start_progress": progress,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }},
-    )
+    # Scrive la journey vera (`partner_journey_steps`): lo STESSO campo che
+    # l'approvazione dei deliverable aggiorna. Nessun secondo binario. L'upsert
+    # ben formato copre un cliente legacy attivato prima che la journey esistesse:
+    # lo step si crea completo dalla definizione, non come frammento.
+    for riga in aggiornamenti:
+        definizione = step_definition(riga["step_id"]) or {}
+        su_insert = {
+            "partner_id": body.client_id,
+            "step_id": riga["step_id"],
+            **{
+                chiave: definizione[chiave]
+                for chiave in (
+                    "step_number", "code", "fase_legacy", "macro_phase",
+                    "owner", "completion_policy", "material_categories",
+                )
+                if chiave in definizione
+            },
+        }
+        await db.partner_journey_steps.update_one(
+            {"partner_id": body.client_id, "step_id": riga["step_id"]},
+            {"$set": riga["set"], "$setOnInsert": su_insert},
+            upsert=True,
+        )
     logger.info(
         "[CIAK_ADMIN] Tappa Start %s -> %s per %s da %s",
         body.tappa, body.stato, client.get("email"), actor,
@@ -4337,17 +7209,187 @@ async def crediti_salva(credito_id: str, body: dict, admin=Depends(require_ciak_
     if db is None:
         raise HTTPException(503, "Database non configurato")
 
-    from crediti import Credito
+    from crediti import Credito, concilia_rate_con_saldato
 
     body["id"] = credito_id
     body["aggiornato_at"] = datetime.now(timezone.utc).isoformat()
     validato = Credito(**body).model_dump()
+    # Un credito `saldato` deve avere le rate tutte incassate: le rate sono la
+    # fonte di verita' (residuo e incassato obiettivo le leggono). Senza, un
+    # saldato con rate `attesa` gonfia il residuo e sparisce dall'incassato.
+    concilia_rate_con_saldato(validato, validato["aggiornato_at"])
 
     esistente = await db.crediti.find_one({"id": credito_id}, {"_id": 0, "creato_at": 1})
     validato["creato_at"] = (esistente or {}).get("creato_at") or validato["aggiornato_at"]
 
     await db.crediti.update_one({"id": credito_id}, {"$set": validato}, upsert=True)
     return {"success": True, "credito": validato}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WATCHDOG 60 GIORNI — partner a rate: online entro 60gg dall'attivazione, o saldo
+#
+# Regola di Claudio: chi paga a rate deve essere ONLINE entro 60 giorni; al 60°
+# giorno senza online scatta il saldo totale. Qui il dato diventa visibile PRIMA
+# che la scadenza passi. ⛔ Sola lettura: il pannello PREPARA, il saldo lo esegue
+# una persona (nessun addebito automatico). I `non_sollecitare` restano nei conti
+# ma fuori dall'azione, coerente con crediti.py.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _wd_parse_date(val):
+    """ISO date/datetime → date, o None. Ignora dict e valori non parsabili."""
+    if not val or not isinstance(val, str):
+        return None
+    try:
+        return datetime.fromisoformat(val[:10]).date()
+    except (ValueError, TypeError):
+        return None
+
+
+def _wd_start_date(p: dict):
+    """
+    Data di partenza del conteggio 60gg, a cascata (la prima presente vince):
+    attivazione esplicita → onboarding (welcome email) → pagamento/conversione →
+    firma contratto → creazione record. Ritorna (date|None, etichetta_fonte).
+    Non esiste un campo "attivazione" affidabile: la firma è l'unico sempre
+    presente, quindi è il fallback dichiarato (mostrato per-partner).
+    """
+    onb = p.get("onboarding_status") or {}
+    contract = p.get("contract")
+    for val, label in [
+        (p.get("data_attivazione"), "attivazione"),
+        (onb.get("welcome_email_date"), "onboarding"),
+        (p.get("data_pagamento_partnership"), "pagamento partnership"),
+        (p.get("conversion_date"), "conversione"),
+        (contract if isinstance(contract, str) else None, "firma contratto"),
+        (p.get("created_at"), "creazione record"),
+    ]:
+        d = _wd_parse_date(val)
+        if d:
+            return d, label
+    return None, None
+
+
+@router.get("/watchdog/partner-online")
+async def watchdog_partner_online(
+    admin=Depends(require_admin_or_report_key),
+    soglia_giorni: int = Query(60),
+    preavviso_giorni: int = Query(15),
+):
+    """
+    Partner con piano a RATE: sono ONLINE (funnel pubblicato) entro `soglia_giorni`
+    dall'attivazione? Chi non lo è al 60° giorno ha il saldo dovuto.
+
+    `online` = lancio pubblicato OR funnel pubblicato + URL. `residuo` dai crediti
+    (rate non incassate/saltate, solo tipo credito). Accetta la chiave read-only:
+    così un domani il briefing di Luca può spingerlo la mattina. Sola lettura:
+    prepara, non addebita.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    from crediti import (
+        stato_effettivo_rata, TIPO_CREDITO, CREDITO_SALDATO,
+        RATA_INCASSATA, RATA_SALTATA,
+    )
+
+    def _residuo(c: dict) -> float:
+        if (c.get("tipo") or TIPO_CREDITO) != TIPO_CREDITO:
+            return 0.0
+        tot = 0.0
+        for r in c.get("rate") or []:
+            if stato_effettivo_rata(r) not in (RATA_INCASSATA, RATA_SALTATA):
+                tot += float(r.get("importo") or 0)
+        return round(tot, 2)
+
+    # 1) Solo i crediti che sono un PIANO A RATE (>=2 rate) con residuo ancora aperto.
+    crediti = await db.crediti.find({}, {"_id": 0}).to_list(500)
+    piani = [
+        (c, _residuo(c)) for c in crediti
+        if len(c.get("rate") or []) >= 2 and c.get("stato") != CREDITO_SALDATO
+    ]
+    piani = [(c, res) for c, res in piani if res > 0]
+
+    # 2) Aggancio al partner (per id, poi per email).
+    partners = await db.partners.find({}, {"_id": 0}).to_list(1000)
+    by_id = {p.get("id"): p for p in partners if p.get("id")}
+    by_email = {(p.get("email") or "").lower(): p for p in partners if p.get("email")}
+
+    def _match_partner(c):
+        if c.get("partner_id") and c["partner_id"] in by_id:
+            return by_id[c["partner_id"]]
+        return by_email.get((c.get("email") or "").lower())
+
+    coinvolti = {c["id"]: (c, res, _match_partner(c)) for c, res in piani}
+    partner_ids = [p.get("id") for (_c, _r, p) in coinvolti.values() if p and p.get("id")]
+
+    # 3) Segnale ONLINE dai funnel/lancio dei soli partner coinvolti (fetch mirato).
+    funnels, lanci = {}, {}
+    if partner_ids:
+        async for f in db.partner_funnel.find({"partner_id": {"$in": partner_ids}}, {"_id": 0}):
+            funnels[f.get("partner_id")] = f
+        async for lan in db.partner_lancio.find({"partner_id": {"$in": partner_ids}}, {"_id": 0}):
+            lanci[lan.get("partner_id")] = lan
+
+    def _online(pid):
+        lan = lanci.get(pid) or {}
+        fun = funnels.get(pid) or {}
+        if lan.get("launched") or lan.get("funnel_published"):
+            return True, "lancio pubblicato"
+        if fun.get("published") and (fun.get("funnel_url") or fun.get("vendita_url") or fun.get("optin_url")):
+            return True, "funnel pubblicato"
+        return False, "nessun funnel pubblicato"
+
+    oggi = datetime.now(timezone.utc).date()
+    rows = []
+    for c, res, p in coinvolti.values():
+        pid = p.get("id") if p else None
+        start, start_src = _wd_start_date(p) if p else (None, None)
+        giorni = (oggi - start).days if start else None
+        online, signal = _online(pid) if pid else (None, "partner non collegato")
+        if online:
+            bucket = "online"
+        elif giorni is None:
+            bucket = "senza_data"
+        elif giorni >= soglia_giorni:
+            bucket = "scaduto"
+        elif giorni >= (soglia_giorni - preavviso_giorni):
+            bucket = "in_scadenza"
+        else:
+            bucket = "in_regola"
+        rows.append({
+            "credito_id": c.get("id"),
+            "partner_id": pid,
+            "nome": (p.get("name") if p else None) or c.get("nome"),
+            "email": (p.get("email") if p else None) or c.get("email"),
+            "start_date": start.isoformat() if start else None,
+            "start_source": start_src,
+            "giorni_trascorsi": giorni,
+            "online": online,
+            "online_signal": signal,
+            "residuo": res,
+            "non_sollecitare": bool(c.get("non_sollecitare")),
+            "bucket": bucket,
+        })
+
+    ordine = {"scaduto": 0, "in_scadenza": 1, "senza_data": 2, "in_regola": 3, "online": 4}
+    rows.sort(key=lambda r: (ordine.get(r["bucket"], 9), -(r["giorni_trascorsi"] or 0)))
+
+    scaduti = [r for r in rows if r["bucket"] == "scaduto"]
+    return {
+        "generato_at": datetime.now(timezone.utc).isoformat(),
+        "soglia_giorni": soglia_giorni,
+        "preavviso_giorni": preavviso_giorni,
+        "partner": rows,
+        "totali": {
+            "a_piano": len(rows),
+            "scaduti": len(scaduti),
+            "in_scadenza": len([r for r in rows if r["bucket"] == "in_scadenza"]),
+            # Residuo "da saldare" = solo scaduti sollecitabili (i non_sollecitare
+            # restano nei conti ma non nell'azione, come in crediti.py).
+            "residuo_scaduto": round(sum(r["residuo"] for r in scaduti if not r["non_sollecitare"]), 2),
+        },
+    }
 
 
 @router.get("/collaudo")
@@ -4473,7 +7515,11 @@ async def obiettivo_stato(obiettivo_id: str, admin=Depends(require_admin_or_repo
     ob = await db.obiettivi.find_one({"id": obiettivo_id}, {"_id": 0})
     if not ob:
         raise HTTPException(404, "Obiettivo non trovato")
-    return _stato(ob)
+    # L'incassato si calcola dai crediti (fonte unica): segnare una rata come
+    # incassata in Amministrazione muove anche questo numero. Prima era un campo
+    # salvato a mano che restava fermo mentre i pagamenti cambiavano.
+    crediti = await db.crediti.find({}, {"_id": 0}).to_list(500)
+    return _stato(ob, crediti=crediti)
 
 
 @router.put("/obiettivo/{obiettivo_id}")
@@ -4490,6 +7536,50 @@ async def obiettivo_salva(obiettivo_id: str, body: dict, admin=Depends(require_c
 
     await db.obiettivi.update_one({"id": obiettivo_id}, {"$set": validato}, upsert=True)
     return {"success": True, "obiettivo": validato}
+
+
+# Campi scalari ritoccabili senza reinviare tutto il documento. Le leve NON sono
+# qui: hanno la loro PATCH dedicata (/leva/{nome}), e un $set dell'intero doc via
+# PUT le azzererebbe se il chiamante non le rimanda tutte. Serve per correggere un
+# singolo valore -- p.es. `incassato_pregresso` (l'incassato vecchio non a crediti).
+_OBIETTIVO_CAMPI_SCALARI = {
+    "titolo", "target", "scadenza", "inizio", "incassato_pregresso", "nota",
+}
+_OBIETTIVO_CAMPI_NUMERICI = {"target", "incassato_pregresso"}
+
+
+@router.patch("/obiettivo/{obiettivo_id}")
+async def obiettivo_aggiorna_campi(
+    obiettivo_id: str, body: dict, admin=Depends(require_ciak_admin)
+):
+    """
+    Aggiorna solo i campi scalari passati, senza toccare le leve.
+
+    Esiste perche' l'unico altro modo di scrivere sull'obiettivo era il PUT, che
+    fa `$set` del documento intero: per cambiare un numero bisognava rimandare
+    anche tutte le leve, o si perdevano. Qui si scrive solo cio' che serve.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    updates = {k: v for k, v in body.items() if k in _OBIETTIVO_CAMPI_SCALARI}
+    if not updates:
+        raise HTTPException(
+            400,
+            f"Nessun campo aggiornabile. Ammessi: {sorted(_OBIETTIVO_CAMPI_SCALARI)}",
+        )
+    for k in _OBIETTIVO_CAMPI_NUMERICI:
+        if k in updates:
+            try:
+                updates[k] = float(updates[k])
+            except (TypeError, ValueError):
+                raise HTTPException(400, f"'{k}' deve essere un numero")
+
+    updates["aggiornato_at"] = datetime.now(timezone.utc).isoformat()
+    res = await db.obiettivi.update_one({"id": obiettivo_id}, {"$set": updates})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Obiettivo non trovato")
+    return {"success": True, "aggiornato": updates}
 
 
 @router.patch("/obiettivo/{obiettivo_id}/leva/{nome}")
@@ -4537,3 +7627,571 @@ async def obiettivo_muovi_leva(
         {"$set": {"leve": leve, "aggiornato_at": datetime.now(timezone.utc).isoformat()}},
     )
     return {"success": True}
+
+
+@router.post("/diagnostic/regenerate-reports")
+async def regenerate_missing_reports(
+    admin=Depends(require_ciak_admin),
+    limit: int = Query(200, ge=1, le=1000),
+    dry_run: bool = Query(False),
+):
+    """Rigenera l'analisi (report Matteo) per le sessioni COMPLETATE senza report.
+
+    Sessioni degradate quando Matteo falliva (credito API / JSON): hanno risposte e
+    scoring ma `report` vuoto. Riusa POST /api/diagnostic/complete (scoring + Matteo
+    via tool use). `dry_run=true` conta soltanto, senza alcuna chiamata AI.
+
+    Il filtro guarda SOLO il report mancante: una sessione che ha già il report NON
+    viene ripescata — nemmeno se le resta un `report_error` storico, che qui viene
+    ripulito dopo una rigenerazione riuscita (evita il loop di ri-generazione).
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    from routers.diagnostic import CompleteRequest, complete_diagnostic
+
+    query = {
+        "completed_at": {"$ne": None},
+        "$or": [
+            {"report": None},
+            {"report": {"$exists": False}},
+        ],
+    }
+    tokens: list[str] = []
+    async for d in db.diagnostic_sessions.find(query, {"session_token": 1}).limit(limit):
+        tok = d.get("session_token")
+        if tok:
+            tokens.append(tok)
+
+    result: dict = {
+        "found": len(tokens),
+        "regenerated": 0,
+        "still_failing": 0,
+        "regenerated_tokens": [],
+        "errors": [],
+    }
+    if dry_run:
+        result["dry_run"] = True
+        result["tokens"] = tokens
+        return result
+
+    for tok in tokens:
+        try:
+            await complete_diagnostic(CompleteRequest(session_token=tok))
+            fresh = await db.diagnostic_sessions.find_one(
+                {"session_token": tok}, {"report": 1}
+            )
+            if fresh and fresh.get("report"):
+                # rigenerato: ripulisci l'eventuale flag storico di errore
+                await db.diagnostic_sessions.update_one(
+                    {"session_token": tok},
+                    {"$unset": {"report_error": ""}},
+                )
+                result["regenerated"] += 1
+                result["regenerated_tokens"].append(tok)
+            else:
+                result["still_failing"] += 1
+        except Exception as e:  # batch: il fallimento di una non ferma le altre
+            result["still_failing"] += 1
+            result["errors"].append({"session_token": tok, "error": str(e)[:200]})
+
+    logger.info(
+        "[CIAK-ADMIN] regenerate-reports: found=%s regenerated=%s still_failing=%s dry_run=%s",
+        result["found"], result["regenerated"], result["still_failing"], dry_run,
+    )
+    return result
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  EDITORIALE — workspace caroselli AI (multi-brand)
+#  Collezioni: ciak_editorial_brands, ciak_editorial_contents
+#  Multi-brand: brand "ciak" (nostra acquisizione) + un brand per ogni
+#  partner (il motore è anche un servizio extra vendibile ai partner).
+# ═══════════════════════════════════════════════════════════════════
+
+class EditorialBrandIn(BaseModel):
+    name: str
+    owner: str = "ciak"            # "ciak" oppure partner_id
+    description: str = ""
+    language: str = "it"
+    platform_default: str = "instagram"
+    palette: list[str] = Field(default_factory=list)
+    logo_url: Optional[str] = None
+    tagline: str = ""
+    style_notes: str = ""
+
+
+class EditorialContentIn(BaseModel):
+    brand_id: str
+    year: int
+    month: int                      # 1-12, mese di calendario
+    objective: str = ""
+    format: str = "carosello"       # carosello|post|reel|storie
+    channels: list[str] = Field(default_factory=lambda: ["ig"])
+    topic: str = ""
+    caption: str = ""
+    cta: str = ""
+    scheduled_date: Optional[str] = None
+    status: str = "bozza"           # bozza|da_approvare|approvato|in_coda|pubblicato|fallito
+
+
+@router.get("/editorial/brands")
+async def editorial_brands(owner: Optional[str] = None, admin=Depends(require_ciak_admin)):
+    """Lista dei brand editoriali (Ciak + un brand per ogni partner).
+    Auto-seed del brand 'Ciak' al primo accesso, così il workspace parte pronto."""
+    if not await db.ciak_editorial_brands.count_documents({}):
+        from uuid import uuid4
+        now = datetime.now(timezone.utc).isoformat()
+        await db.ciak_editorial_brands.insert_one({
+            "brand_id": uuid4().hex, "name": "Ciak", "owner": "ciak",
+            "description": "Ciak — il sistema per costruire accademie digitali che vendono formazione.",
+            "language": "it", "platform_default": "instagram",
+            "palette": ["#0F172A", "#FACC15", "#FFFFFF"], "logo_url": None,
+            "tagline": "", "style_notes": "", "knowledge_files": [],
+            "created_at": now, "updated_at": now,
+        })
+    query = {"owner": owner} if owner else {}
+    brands = await db.ciak_editorial_brands.find(query, {"_id": 0}).sort("created_at", 1).to_list(200)
+    return {"brands": brands}
+
+
+@router.post("/editorial/brands")
+async def editorial_brand_create(body: EditorialBrandIn, admin=Depends(require_ciak_admin)):
+    from uuid import uuid4
+    now = datetime.now(timezone.utc).isoformat()
+    brand = {
+        "brand_id": uuid4().hex,
+        **body.dict(),
+        "knowledge_files": [],
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.ciak_editorial_brands.insert_one(dict(brand))
+    return {"ok": True, "brand": brand}
+
+
+class EditorialBrandPatch(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    language: Optional[str] = None
+    platform_default: Optional[str] = None
+    palette: Optional[list[str]] = None
+    logo_url: Optional[str] = None
+    tagline: Optional[str] = None
+    style_notes: Optional[str] = None
+
+
+@router.put("/editorial/brands/{brand_id}")
+async def editorial_brand_update(brand_id: str, body: EditorialBrandPatch, admin=Depends(require_ciak_admin)):
+    """Aggiorna i campi di un brand (editor Brand & knowledge)."""
+    updates = {k: v for k, v in body.dict().items() if v is not None}
+    if updates:
+        updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+        res = await db.ciak_editorial_brands.update_one({"brand_id": brand_id}, {"$set": updates})
+        if res.matched_count == 0:
+            raise HTTPException(404, "Brand non trovato")
+    brand = await db.ciak_editorial_brands.find_one({"brand_id": brand_id}, {"_id": 0})
+    return {"ok": True, "brand": brand}
+
+
+@router.get("/editorial/contents")
+async def editorial_contents(
+    brand_id: Optional[str] = None,
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    admin=Depends(require_ciak_admin),
+):
+    """Contenuti editoriali filtrati per brand e mese. Il client li raggruppa per obiettivo."""
+    query: dict = {}
+    if brand_id:
+        query["brand_id"] = brand_id
+    if year:
+        query["year"] = year
+    if month:
+        query["month"] = month
+    contents = await db.ciak_editorial_contents.find(query, {"_id": 0}).sort("scheduled_date", 1).to_list(500)
+    brand_scope = {"brand_id": brand_id} if brand_id else {}
+    stats = {
+        "total": await db.ciak_editorial_contents.count_documents(brand_scope),
+        "month": len(contents),
+        "da_approvare": sum(1 for c in contents if c.get("status") == "da_approvare"),
+        "pubblicati": sum(1 for c in contents if c.get("status") == "pubblicato"),
+    }
+    return {"contents": contents, "stats": stats}
+
+
+@router.post("/editorial/contents")
+async def editorial_content_create(body: EditorialContentIn, admin=Depends(require_ciak_admin)):
+    from uuid import uuid4
+    now = datetime.now(timezone.utc).isoformat()
+    content = {
+        "content_id": uuid4().hex,
+        **body.dict(),
+        "slides": [],
+        "cover_url": None,
+        "permalink": None,
+        "published_at": None,
+        "created_by": "human",
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.ciak_editorial_contents.insert_one(dict(content))
+    return {"ok": True, "content": content}
+
+
+class EditorialGenerateIn(BaseModel):
+    brand_id: str
+    year: int
+    month: int
+    n: int = 8
+
+
+@router.post("/editorial/contents/generate")
+async def editorial_generate_month(body: EditorialGenerateIn, admin=Depends(require_ciak_admin)):
+    """Genera con l'AI il piano del mese (diviso per obiettivi), salvato come 'da approvare'.
+    Rigenerando sostituisce solo le bozze AI non ancora approvate dello stesso brand/mese."""
+    from uuid import uuid4
+    from services.ciak_editorial_gen import generate_month
+
+    brand = await db.ciak_editorial_brands.find_one({"brand_id": body.brand_id}, {"_id": 0})
+    if not brand:
+        raise HTTPException(404, "Brand non trovato")
+
+    await db.ciak_editorial_contents.delete_many({
+        "brand_id": body.brand_id, "year": body.year, "month": body.month,
+        "status": {"$in": ["bozza", "da_approvare"]}, "created_by": "ai",
+    })
+
+    items = await generate_month(brand, body.year, body.month, n=body.n)
+    now = datetime.now(timezone.utc).isoformat()
+    docs = []
+    for it in items:
+        docs.append({
+            "content_id": uuid4().hex,
+            "brand_id": body.brand_id,
+            "year": body.year,
+            "month": body.month,
+            **it,
+            "cover_url": None,
+            "permalink": None,
+            "published_at": None,
+            "status": "da_approvare",
+            "created_by": "ai",
+            "created_at": now,
+            "updated_at": now,
+        })
+    if docs:
+        await db.ciak_editorial_contents.insert_many([dict(d) for d in docs])
+    return {"ok": True, "generated": len(docs)}
+
+
+class EditorialApproveIn(BaseModel):
+    brand_id: str
+    year: int
+    month: int
+
+
+_EDITORIAL_CHAN_MAP = {"ig": "instagram", "fb": "facebook", "linkedin": "linkedin"}
+
+
+@router.post("/editorial/contents/approve-month")
+async def editorial_approve_month(body: EditorialApproveIn, admin=Depends(require_ciak_admin)):
+    """Approva il mese: per ogni contenuto 'da approvare' renderizza le slide (HTML→PNG→
+    Cloudinary) e lo mette in coda di pubblicazione (IG/FB/LinkedIn, lun/mer/ven)."""
+    from services.ciak_slide_render import render_content_slides
+
+    brand = await db.ciak_editorial_brands.find_one({"brand_id": body.brand_id}, {"_id": 0})
+    if not brand:
+        raise HTTPException(404, "Brand non trovato")
+
+    pending = await db.ciak_editorial_contents.find({
+        "brand_id": body.brand_id, "year": body.year, "month": body.month,
+        "status": "da_approvare",
+    }, {"_id": 0}).to_list(500)
+
+    now = datetime.now(timezone.utc).isoformat()
+    approvati, in_coda = 0, 0
+    for content in pending:
+        rendered = await render_content_slides(brand, content)
+        image_urls = rendered.get("image_urls") or []
+        await db.ciak_editorial_contents.update_one(
+            {"content_id": content["content_id"]},
+            {"$set": {
+                "status": "approvato",
+                "cover_url": rendered.get("cover_url"),
+                "slides": rendered.get("slides") or content.get("slides"),
+                "image_urls": image_urls,
+                "updated_at": now,
+            }},
+        )
+        approvati += 1
+        # In coda solo con immagini reali: il publisher rifiuta i post senza immagini.
+        if image_urls:
+            channels = [_EDITORIAL_CHAN_MAP.get(c, c) for c in (content.get("channels") or ["ig"])]
+            await db.ciak_social_queue.insert_one({
+                "post_id": content["content_id"],
+                "source": "editorial",
+                "brand_id": body.brand_id,
+                "image_urls": image_urls,
+                "caption": content.get("caption") or content.get("topic") or "",
+                "channels": channels,
+                "scheduled_date": content.get("scheduled_date"),
+                "status": "pending",
+                "attempts": 0,
+                "created_at": now,
+            })
+            await db.ciak_editorial_contents.update_one(
+                {"content_id": content["content_id"]}, {"$set": {"status": "in_coda"}})
+            in_coda += 1
+
+    return {"ok": True, "approvati": approvati, "in_coda": in_coda}
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  ADS — KPI Meta Ads (Marketing API) per il tab ADS
+#  Multi-brand: default = account Ciak (env); un partner_id usa le sue
+#  credenziali in `partner_api_credentials`.
+# ═══════════════════════════════════════════════════════════════════
+
+def _parse_action(actions: list, types: tuple) -> int:
+    total = 0
+    for a in actions or []:
+        if a.get("action_type") in types:
+            try:
+                total += int(float(a.get("value", 0) or 0))
+            except (TypeError, ValueError):
+                pass
+    return total
+
+
+@router.get("/ads/overview")
+async def ads_overview(days: int = 30, partner_id: Optional[str] = None, admin=Depends(require_ciak_admin)):
+    """KPI Meta Ads live per il tab ADS. Fail-closed: senza credenziali ritorna
+    configured=False (la UI mostra "Collega Meta Ads")."""
+    import os
+    from ads_api_integration import MetaAdsClient
+
+    if partner_id:
+        creds = await db.partner_api_credentials.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
+        token = creds.get("meta_access_token")
+        account = creds.get("meta_ad_account_id")
+    else:
+        token = os.environ.get("META_ADS_ACCESS_TOKEN") or os.environ.get("META_PAGE_ACCESS_TOKEN")
+        account = os.environ.get("META_AD_ACCOUNT_ID") or "act_1382427760577453"
+
+    if not (token and account):
+        return {"configured": False, "note": "Collega Meta Ads: configura META_AD_ACCOUNT_ID + token (ads_read)."}
+
+    try:
+        client = MetaAdsClient(token, account)
+        raw = await client.get_account_insights_aggregated(days)
+        row = (raw.get("data") or [{}])[0] if isinstance(raw, dict) else {}
+        actions = row.get("actions", [])
+        spend = float(row.get("spend", 0) or 0)
+        leads = _parse_action(actions, ("lead", "leadgen_grouped", "onsite_conversion.lead_grouped"))
+        lpv = _parse_action(actions, ("landing_page_view", "omni_landing_page_view"))
+        campaigns = await client.get_campaigns()
+        return {
+            "configured": True,
+            "account": account,
+            "days": days,
+            "spend": round(spend, 2),
+            "impressions": int(row.get("impressions", 0) or 0),
+            "clicks": int(row.get("clicks", 0) or 0),
+            "ctr": round(float(row.get("ctr", 0) or 0), 2),
+            "cpc": round(float(row.get("cpc", 0) or 0), 2),
+            "leads": leads,
+            "landing_page_views": lpv,
+            "cost_per_lead": round(spend / leads, 2) if leads else None,
+            "campaigns": [
+                {"id": c.get("id"), "name": c.get("name"), "status": c.get("status"), "objective": c.get("objective")}
+                for c in (campaigns or [])
+            ],
+        }
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"[ADS] overview error: {e}")
+        return {"configured": True, "error": str(e)[:200]}
+
+
+# ─── Pipeline: contatto lead via Brevo ──────────────────────────────────────
+
+class ContattaLeadIn(BaseModel):
+    subject: str
+    html: str
+    to_email: Optional[str] = None  # override; default = email del lead
+
+
+class AvanzaLeadIn(BaseModel):
+    stage: str
+
+
+# Stato di lavorazione → tag Systeme. Le automazioni UI di Systeme trasformano il
+# tag in sequenza + appartenenza community (lead vs partner). "discovered" non ha tag
+# (è l'ingresso, prima di qualsiasi lavorazione).
+_STAGE_SYSTEME_TAG = {
+    "contacted": "lead_contattato",
+    "responded_positive": "lead_ha_risposto",
+    "qualified": "lead_qualificato",
+    "converted": "lead_cliente",
+    "responded_negative": "lead_non_interessato",
+    "discovered": None,
+}
+
+
+@router.post("/leads/{lead_id}/contatta")
+async def contatta_lead(lead_id: str, body: ContattaLeadIn, admin=Depends(require_ciak_admin)):
+    """Contatta il lead 1:1: email via SMTP (in prod = relay Brevo autenticato, arriva
+    su Microsoft/hotmail) E mette il contatto in sequenza/community su Systeme (tag
+    `lead_contattato` + `community_lead`). Registra il touch e avanza a `contacted`.
+
+    Riusa i canali esistenti: SMTP_* (nessuna chiave nuova) + ciak_systeme.ciak_emit_event.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    import asyncio
+    from services.lead_outreach import send_lead_email
+    from services.ciak_systeme import ciak_emit_event
+
+    lead = await db.discovery_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(404, "Lead non trovato")
+    to_email = (body.to_email or lead.get("email") or "").strip()
+    if not to_email:
+        raise HTTPException(400, "Il lead non ha email: aggiungila prima di contattarlo.")
+
+    ok, err = await asyncio.to_thread(send_lead_email, to_email, body.subject, body.html)
+    now = datetime.now(timezone.utc).isoformat()
+    systeme_ok = False
+    if ok:
+        first = (lead.get("display_name") or "").split(" ")[0] or None
+        try:
+            systeme_ok = await ciak_emit_event(
+                to_email, "lead_contattato", extra_tags=["community_lead"], first_name=first
+            )
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"[CONTATTA] Systeme emit fallito per {to_email}: {e}")
+        await db.discovery_leads.update_one(
+            {"id": lead_id},
+            {
+                "$push": {"touches": {
+                    "channel": "email", "via": "smtp_brevo", "subject": body.subject,
+                    "at": now, "systeme": systeme_ok, "by": "admin",
+                }},
+                "$set": {
+                    "last_contacted_at": now, "status": "contacted",
+                    "outreach_status": "sent", "updated_at": now,
+                },
+            },
+        )
+    return {"ok": ok, "systeme": systeme_ok, "error": err}
+
+
+# Contatto fatto A MANO su un canale che l'app non governa (LinkedIn, Instagram/Facebook,
+# WhatsApp): chi scrive copia il testo dallo Script e lo incolla; qui si registra solo
+# cosa e' partito, da chi e quando. Nessun invio, nessun evento Systeme.
+TOCCHI_CANALI = {"linkedin", "social", "whatsapp"}
+TOCCHI_MESSAGGI = {
+    "profilo_trovato": "Profilo trovato",
+    "risveglio_ex": "Risveglio: ex cliente con analisi",
+    "risveglio_setter": "Risveglio: interessato in passato",
+    "risveglio_rete": "Risveglio: rete e rubrica",
+    "breve": "Messaggio breve",
+    "seguito": "Messaggio di seguito",
+}
+TOCCHI_MITTENTI = {"Mariangela", "Claudio"}
+TOCCHI_SEGUITO_GIORNI = 5  # il messaggio di seguito si manda dopo ~5 giorni se non risponde
+# Chi e' ancora all'ingresso passa a "contacted"; chi e' gia' piu' avanti non torna indietro.
+_TOCCHI_STATI_INGRESSO = {None, "", "discovered", "pending", "scored", "message_ready"}
+
+
+class ToccoLeadIn(BaseModel):
+    channel: str
+    message: str
+    sender: Optional[str] = None  # default: chi e' collegato
+
+
+@router.post("/leads/{lead_id}/tocco")
+async def registra_tocco_lead(lead_id: str, body: ToccoLeadIn, admin=Depends(require_ciak_admin)):
+    """Registra un contatto manuale (LinkedIn / Instagram-Facebook / WhatsApp) sul lead.
+
+    Aggiunge una riga a `touches`, aggiorna `last_contacted_at` e, se il lead era
+    all'ingresso, lo porta a `contacted`. Dopo un risveglio fissa `next_followup` a
+    ~5 giorni (promemoria del messaggio di seguito); dopo il seguito lo toglie.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    channel = (body.channel or "").strip().lower()
+    message = (body.message or "").strip()
+    if channel not in TOCCHI_CANALI:
+        raise HTTPException(400, "Canale non valido.")
+    if message not in TOCCHI_MESSAGGI:
+        raise HTTPException(400, "Messaggio non valido.")
+    sender = (body.sender or "").strip()
+    if not sender:
+        sender = "Mariangela" if getattr(admin, "admin_type", None) == "mariangela" else "Claudio"
+    if sender not in TOCCHI_MITTENTI:
+        raise HTTPException(400, "Mittente non valido.")
+
+    lead = await db.discovery_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(404, "Lead non trovato")
+
+    now_dt = datetime.now(timezone.utc)
+    now = now_dt.isoformat()
+    touch = {
+        "channel": channel, "via": "manuale", "message": message,
+        "label": TOCCHI_MESSAGGI[message], "by": sender, "at": now, "systeme": False,
+    }
+    sets = {"updated_at": now}
+    if message != "profilo_trovato":
+        sets["last_contacted_at"] = now
+        if lead.get("status") in _TOCCHI_STATI_INGRESSO:
+            sets["status"] = "contacted"
+    if message in ("risveglio_ex", "risveglio_setter", "risveglio_rete", "breve"):
+        sets["next_followup"] = (now_dt + timedelta(days=TOCCHI_SEGUITO_GIORNI)).date().isoformat()
+    elif message == "seguito":
+        sets["next_followup"] = None
+    await db.discovery_leads.update_one({"id": lead_id}, {"$push": {"touches": touch}, "$set": sets})
+    return {
+        "ok": True, "touch": touch,
+        "status": sets.get("status", lead.get("status")),
+        "next_followup": sets.get("next_followup", lead.get("next_followup")),
+        "last_contacted_at": sets.get("last_contacted_at", lead.get("last_contacted_at")),
+    }
+
+
+@router.post("/leads/{lead_id}/avanza")
+async def avanza_lead(lead_id: str, body: AvanzaLeadIn, admin=Depends(require_ciak_admin)):
+    """Avanza lo stato di LAVORAZIONE del lead e riflette il passaggio su Systeme
+    (tag → sequenza + community). Lo stato avanza in base a ciò che si svolge sul lead;
+    diventando Cliente entra anche nella community partner.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    from services.ciak_systeme import ciak_emit_event
+
+    stage = (body.stage or "").strip()
+    if stage not in _STAGE_SYSTEME_TAG:
+        raise HTTPException(400, "Stadio di lavorazione non valido.")
+    lead = await db.discovery_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(404, "Lead non trovato")
+
+    now = datetime.now(timezone.utc).isoformat()
+    await db.discovery_leads.update_one(
+        {"id": lead_id}, {"$set": {"status": stage, "updated_at": now}}
+    )
+
+    systeme_ok = False
+    tag = _STAGE_SYSTEME_TAG.get(stage)
+    email = lead.get("email")
+    if tag and email:
+        extra = ["community_lead"]
+        if stage == "converted":
+            extra.append("community_partner")
+        first = (lead.get("display_name") or "").split(" ")[0] or None
+        try:
+            systeme_ok = await ciak_emit_event(email, tag, extra_tags=extra, first_name=first)
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"[AVANZA] Systeme emit fallito per {email}: {e}")
+    return {"ok": True, "stage": stage, "systeme": systeme_ok}

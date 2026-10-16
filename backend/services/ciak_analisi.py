@@ -1,14 +1,15 @@
 """
 Ciak — Servizio Analisi + Roadmap.
 
-Genera 3 artefatti dalle 8 Domande Ciak (diagnostic_session):
+Genera 3 artefatti dalle 10 Domande Ciak (diagnostic_session):
   1. analisi definitiva (6 capitoli, web) — stato da_validare
   2. bozza (bullet teaser, per PDF) — derivata dalla definitiva
-  3. script di call (interno, conversione partner €2.790)
+  3. script di call (interno, conversione partner €2.990)
 
 Motore: Anthropic API + web search tool (web_search_20250305).
 Riferimento spec: docs/superpowers/specs/2026-05-28-ciak-analisi-roadmap-design.md
 """
+import asyncio
 import json
 import logging
 import os
@@ -21,6 +22,9 @@ logger = logging.getLogger(__name__)
 
 _MODEL = os.environ.get("CIAK_ANALISI_MODEL", "claude-sonnet-4-6")
 _MAX_TOKENS = int(os.environ.get("CIAK_ANALISI_MAX_TOKENS", "4096"))
+# Tetto per singola chiamata: la ricerca web + 13 sezioni sta sotto i 2-3 minuti.
+# Senza, l'SDK aspetta fino a 10 minuti e il lead resta "in preparazione".
+_TIMEOUT_S = float(os.environ.get("CIAK_ANALISI_TIMEOUT_S", "240"))
 
 db = None
 
@@ -40,7 +44,9 @@ _VINCOLI_STILE = """VINCOLI DI STILE NON NEGOZIABILI:
 - VERITÀ BRUTALE: se il modello è debole o il target generico, dillo. Niente adulazione.
 - NO dati inventati: usa solo numeri/competitor dalla ricerca web reale fornita. Se un dato manca, dichiaralo ("non ho elementi sufficienti per...").
 - NO coach-speak: ROI→il guadagno che porti | funnel→percorso | target→chi vuoi raggiungere | nicchia→ambito specifico | scalare→che funziona anche senza di te. Vietati: "potente", "incredibile", "trasforma la tua vita", "rivoluziona", "10x".
-- Personalizza: cita la competenza e il problema specifici del cliente."""
+- Personalizza: cita la competenza e il problema specifici del cliente, ma mai nomi di persone, agenzie o consulenti terzi: scrivi "un consulente", "una psicologa".
+- Mai il trattino lungo: usa virgola, punto o parentesi.
+- Genere: non dedurre mai se il cliente è uomo o donna dal nome o dalla sua terminazione (Andrea e Luca sono nomi maschili, Gemma è femminile). Usa forme senza accordo di genere ("hai già", "la tua competenza", "il tuo percorso") invece di aggettivi o participi riferiti a lui o a lei, salvo che le sue stesse risposte lo rendano inequivocabile."""
 
 _PROMPT_RESEARCH = """Sei un analista di mercato. Devi produrre un RESEARCH BRIEF per un professionista che vuole creare un'accademia digitale nel suo settore.
 
@@ -63,14 +69,14 @@ OUTPUT: SOLO JSON valido con questa struttura:
   "note_data_gap": "string (cosa non è stato possibile trovare)"
 }"""
 
-_PROMPT_DEFINITIVA = """Sei il Senior Strategic Advisor di Evolution PRO. Genera l'ANALISI STRATEGICA DEFINITIVA per un professionista, basata sulle sue 8 risposte e sul research brief di mercato.
+_PROMPT_DEFINITIVA = """Sei il Senior Strategic Advisor di Evolution PRO. Genera l'ANALISI STRATEGICA DEFINITIVA per un professionista, basata sulle sue 10 risposte e sul research brief di mercato.
 
 L'analisi segue un ARCO NARRATIVO in 6 capitoli che culmina nel desiderio della partnership:
-1. "Il tuo punto di partenza" — sintesi del profilo dalle 8 domande (60-100 parole)
+1. "Il tuo punto di partenza" — sintesi del profilo dalle 10 domande (60-100 parole)
 2. "Dove sei adesso" — stato reale + limite strutturale del modello attuale (tempo=denaro) + costo di restare fermo (120-180 parole)
 3. "Il tuo mercato" — settore, domanda, competitor REALI e prezzi REALI dal research brief, spazio non presidiato (150-220 parole)
 4. "La tua Accademia Digitale" — visione concreta: nome percorso possibile, promessa di trasformazione, 4 moduli, pricing realistico tarato sul mercato trovato (180-250 parole)
-5. "La roadmap" — fasi/tempi/priorità concrete per costruire l'accademia (5 fasi con durata)
+5. "La roadmap" — tempi e priorità concrete per costruire l'accademia, in 3 fasi del Metodo E.V.O. (Esamina, Valida, Ottimizza) con durata
 6. "Il prossimo passo" — la partnership Evolution PRO come veicolo che realizza la roadmap (80-120 parole)
 
 """ + _VINCOLI_STILE + """
@@ -108,7 +114,7 @@ OUTPUT: SOLO JSON valido:
   "chiusura": "1 frase che rimanda alla call"
 }"""
 
-_PROMPT_SCRIPT_CALL = """Sei un sales coach. Genera lo SCRIPT DI CALL interno per Claudio (fondatore Evolution PRO), che userà durante la call per convertire un cliente Blueprint €27 o Start €499 in partner €2.790. Basati sull'analisi definitiva e sullo stato del cliente.
+_PROMPT_SCRIPT_CALL = """Sei un sales coach. Genera lo SCRIPT DI CALL interno per Claudio (fondatore Evolution PRO), che userà durante la call per portare un lead che ha ricevuto il Blueprint gratuito verso Ciak Start €390 o la Partnership €2.990. Basati sull'analisi definitiva e sullo stato del cliente.
 
 """ + _VINCOLI_STILE + """
 
@@ -117,7 +123,7 @@ OUTPUT: SOLO JSON valido:
   "agganci": ["punti specifici del cliente da richiamare in apertura"],
   "momenti_illuminanti": ["i 3 momenti chiave da far emergere in call"],
   "obiezioni": [{"obiezione": "string", "risposta": "string"}],
-  "ponte_partnership": "come presentare la partnership €2.790 partendo dalla roadmap",
+  "ponte_partnership": "come presentare la partnership €2.990 partendo dalla roadmap",
   "domande_chiusura": ["domanda di chiusura"]
 }"""
 
@@ -146,14 +152,19 @@ def _get_client() -> anthropic.Anthropic:
     api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
         raise CiakAnalisiError("ANTHROPIC_API_KEY non configurata")
-    return anthropic.Anthropic(api_key=api_key)
+    return anthropic.Anthropic(api_key=api_key, timeout=_TIMEOUT_S, max_retries=1)
 
 
 _WEB_SEARCH_TOOL = {"type": "web_search_20250305", "name": "web_search", "max_uses": 5}
 
 
 def _call_claude_structured(system_prompt: str, user_message: str, schema: dict, tool_name: str, max_tokens: int = None) -> dict:
-    """Output strutturato garantito via Anthropic tool use. Ritorna il dict (block.input)."""
+    """Output strutturato garantito via Anthropic tool use. Ritorna il dict (block.input).
+
+    Funzione SINCRONA (client Anthropic sync): dal codice async va chiamata con
+    `await _run(...)`, mai direttamente — altrimenti blocca l'unico worker del
+    backend per tutta la durata della chiamata.
+    """
     client = _get_client()
     tool = {"name": tool_name, "description": "Restituisci il risultato strutturato secondo lo schema.", "input_schema": schema}
     try:
@@ -167,6 +178,8 @@ def _call_claude_structured(system_prompt: str, user_message: str, schema: dict,
         )
     except anthropic.APIError as e:
         raise CiakAnalisiError(f"Anthropic API error: {e}") from e
+    if getattr(response, "stop_reason", None) == "max_tokens":
+        raise CiakAnalisiError(f"Output troncato (max_tokens) per {tool_name}")
     for block in response.content:
         if getattr(block, "type", None) == "tool_use" and getattr(block, "name", None) == tool_name:
             return block.input
@@ -190,6 +203,11 @@ def _web_search_text(system_prompt: str, user_message: str, max_tokens: int = No
     if not texts:
         raise CiakAnalisiError("Nessun testo dalla ricerca web")
     return "\n".join(texts).strip()
+
+
+async def _run(fn, *args, **kwargs):
+    """Esegue una chiamata Anthropic sincrona in un thread: il server resta libero."""
+    return await asyncio.to_thread(fn, *args, **kwargs)
 
 
 # ── JSON schemas per structured output ──────────────────────────────
@@ -262,22 +280,22 @@ async def genera_research_brief(responses: dict) -> dict:
         f"Problema che risolve: {responses.get('q6_problema')}\n"
         f"Target: {responses.get('q5_target')}"
     )
-    raw = _web_search_text(prompt, search_user)
+    raw = await _run(_web_search_text, prompt, search_user)
     struct_user = (
         "Struttura nel formato richiesto questi risultati di ricerca di mercato.\n\n" + raw
     )
-    return _call_claude_structured(prompt, struct_user, _SCHEMA_RESEARCH, "research_brief")
+    return await _run(_call_claude_structured, prompt, struct_user, _SCHEMA_RESEARCH, "research_brief")
 
 
 async def genera_analisi_definitiva(responses: dict, research_brief: dict) -> dict:
     """Step 2: 6 capitoli arco narrativo, integra il research brief."""
     prompt = await _resolve_prompt("definitiva")
     user_message = (
-        "Genera l'analisi definitiva.\n\n8 RISPOSTE:\n"
+        "Genera l'analisi definitiva.\n\n10 RISPOSTE:\n"
         f"{json.dumps(responses, ensure_ascii=False, indent=2)}\n\n"
         f"RESEARCH BRIEF:\n{json.dumps(research_brief, ensure_ascii=False, indent=2)}"
     )
-    data = _call_claude_structured(prompt, user_message, _SCHEMA_DEFINITIVA, "analisi_definitiva", max_tokens=8000)
+    data = await _run(_call_claude_structured, prompt, user_message, _SCHEMA_DEFINITIVA, "analisi_definitiva", max_tokens=8000)
     if "capitoli" not in data or set(data["capitoli"].keys()) != _CAPITOLI_ATTESI:
         raise CiakAnalisiError(f"Capitoli mancanti/errati: {list(data.get('capitoli', {}).keys())}")
     return data
@@ -290,17 +308,212 @@ async def genera_bozza(analisi_definitiva: dict) -> dict:
         "Genera la bozza teaser da questa analisi definitiva.\n\n"
         f"{json.dumps(analisi_definitiva, ensure_ascii=False, indent=2)}"
     )
-    return _call_claude_structured(prompt, user_message, _SCHEMA_BOZZA, "bozza_teaser")
+    return await _run(_call_claude_structured, prompt, user_message, _SCHEMA_BOZZA, "bozza_teaser")
 
 
 async def genera_script_call(responses: dict, analisi_definitiva: dict, stato: int) -> dict:
     """Step 4: canovaccio vendita per Claudio."""
     prompt = await _resolve_prompt("script_call")
     user_message = (
-        f"Stato cliente: {stato}\n\n8 RISPOSTE:\n{json.dumps(responses, ensure_ascii=False)}\n\n"
+        f"Stato cliente: {stato}\n\n10 RISPOSTE:\n{json.dumps(responses, ensure_ascii=False)}\n\n"
         f"ANALISI:\n{json.dumps(analisi_definitiva, ensure_ascii=False)}"
     )
-    return _call_claude_structured(prompt, user_message, _SCHEMA_SCRIPT, "script_call")
+    return await _run(_call_claude_structured, prompt, user_message, _SCHEMA_SCRIPT, "script_call")
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  BLUEPRINT DEFINITIVO — 13 sezioni (layout A4, renderer ciak_pdf_blueprint)
+#  Struttura LOCKATA (Claudio 15/9). Produce il payload per render_blueprint_html.
+# ══════════════════════════════════════════════════════════════════════
+
+_titacc = {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}}, "required": ["title", "accent"]}
+
+_SCHEMA_BLUEPRINT = {
+    "type": "object",
+    "properties": {
+        "meta": {"type": "object", "properties": {
+            "progetto": {"type": "string"}, "accent_progetto": {"type": "string"},
+            "ambito": {"type": "string"}, "sub": {"type": "string"}},
+            "required": ["progetto", "accent_progetto", "ambito"]},
+        "sezioni": {"type": "object", "properties": {
+            "sintesi": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "body": {"type": "string"}, "note": {"type": "string"}}, "required": ["title", "accent", "lead", "body"]},
+            "potenziale": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "cards": {"type": "array", "items": {"type": "object", "properties": {"h": {"type": "string"}, "p": {"type": "string"}}, "required": ["h", "p"]}}}, "required": ["title", "accent", "lead", "cards"]},
+            "mercato": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "trend": {"type": "array", "items": {"type": "string"}}, "note": {"type": "string"}}, "required": ["title", "accent", "lead", "trend"]},
+            "competitor": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "presidia": {"type": "array", "items": {"type": "string"}}, "spazio": {"type": "array", "items": {"type": "string"}}}, "required": ["title", "accent", "presidia", "spazio"]},
+            "pubblico": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "segmenti": {"type": "array", "items": {"type": "object", "properties": {"segmento": {"type": "string"}, "chi": {"type": "string"}, "cerca": {"type": "string"}}, "required": ["segmento", "chi", "cerca"]}}}, "required": ["title", "accent", "lead", "segmenti"]},
+            "problema": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "body": {"type": "string"}}, "required": ["title", "accent", "lead", "body"]},
+            "forza": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "punti": {"type": "array", "items": {"type": "string"}}}, "required": ["title", "accent", "punti"]},
+            "limiti": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "punti": {"type": "array", "items": {"type": "string"}}}, "required": ["title", "accent", "punti"]},
+            "accademia": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "moduli": {"type": "array", "items": {"type": "object", "properties": {"titolo": {"type": "string"}, "contenuto": {"type": "string"}}, "required": ["titolo", "contenuto"]}}}, "required": ["title", "accent", "lead", "moduli"]},
+            "rischio": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "callout": {"type": "string"}}, "required": ["title", "accent", "lead", "callout"]},
+            "manca": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "items": {"type": "array", "items": {"type": "object", "properties": {"h": {"type": "string"}, "p": {"type": "string"}}, "required": ["h", "p"]}}}, "required": ["title", "accent", "items"]},
+            "roadmap": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "steps": {"type": "array", "items": {"type": "object", "properties": {"titolo": {"type": "string"}, "desc": {"type": "string"}}, "required": ["titolo", "desc"]}}}, "required": ["title", "accent", "lead", "steps"]},
+        }, "required": ["sintesi", "potenziale", "mercato", "competitor", "pubblico", "problema", "forza", "limiti", "accademia", "rischio", "manca", "roadmap"]},
+    },
+    "required": ["meta", "sezioni"],
+}
+
+_SEZIONI_BLUEPRINT = ["sintesi", "potenziale", "mercato", "competitor", "pubblico", "problema", "forza", "limiti", "accademia", "rischio", "manca", "roadmap"]
+
+_PROMPT_BLUEPRINT = """Sei Matteo, analista strategico senior di Evolution PRO. Produci il BLUEPRINT DEFINITIVO: un'analisi strategica di posizionamento in 12 sezioni, dalle 10 domande del cliente e dal research brief di mercato.
+
+""" + _VINCOLI_STILE + """
+
+OGNI sezione ha un titolo in due parti: `title` (prima parte, in nero) + `accent` (seconda parte, evidenziata in giallo). Es. title="Una competenza rara,", accent="in un mercato che cresce." Devono formare una frase sola, netta, non generica.
+
+Le 12 sezioni (usa ESATTAMENTE queste chiavi, in questo ordine):
+1. sintesi — lead: chi e' e cosa fa (dai dati). body: il vero nodo (vende tempo/presenza). note: "Nota di metodo..." breve.
+2. potenziale — lead: livello sintetico (NON mostrare punteggi numerici). cards: 3 card {h,p} tipo "Competenza ✓", "Pubblico ✓", "Struttura ✗".
+3. mercato — lead + trend: 3-4 segnali di mercato REALI dal research (mai numeri inventati; se un dato manca, parla di "segnali"). note: che le dimensioni precise si validano.
+4. competitor — presidia: 3 punti su chi occupa il mercato (dal research). spazio: 3 punti sullo spazio libero del cliente.
+5. pubblico — lead + segmenti: 2-3 righe {segmento, chi, cerca}.
+6. problema — lead + body: il blocco vero (di solito: dipende dalla presenza, niente prodotto ripetibile).
+7. forza — punti: 3-4 forze concrete (una frase ciascuna).
+8. limiti — punti: 3-4 limiti concreti, diretti non distruttivi.
+9. accademia — lead + moduli: 5-6 moduli {titolo, contenuto} = ipotesi di struttura del percorso, da rifinire in call.
+10. rischio — lead + callout: il rischio di restare fermi + (callout) il rischio opposto di fare in fretta e male. Nel callout puoi usare <b>...</b>.
+11. manca — items: 5 elementi {h,p} che servono per un'accademia che vende.
+12. roadmap — lead + steps: ESATTAMENTE 3 fasi, quelle del Metodo E.V.O., in quest'ordine: Esamina, Valida, Ottimizza. Ogni fase {titolo, desc}: titolo = il nome della fase, desc = cosa si fa in quella fase per questo cliente. Mai 5 fasi, mai numeri di fase inventati.
+Le sezioni 13 (le tre strade) e 14 (il consiglio) sono fisse: le inserisce il sistema. NON scriverle e NON nominare Ciak Start, Start Plus o Partnership nelle sezioni 1-12.
+
+meta: progetto (2-3 parole, es. "Progetto") + accent_progetto (il nome del progetto/percorso, es. "Career Scalability") + ambito (es. "Orientamento e carriera") + sub (una frase sotto il titolo di copertina).
+
+⛔ NON citare prezzi, pacchetti o "acquista": il Blueprint e' gratuito e l'analisi non vende. La proposta commerciale e' un passo separato. Niente casi studio con numeri.
+
+Cosa copre Ciak Start: direzione di posizionamento, basi del brand, sistemazione dei profili social, sito vetrina semplice, strategia contenuti. Cosa NON copre: caso studio documentato, metodo formalizzato, canale B2B, lead magnet. Nelle sezioni "manca" e "roadmap" non far credere che Start risolva questi punti: di' quali restano da costruire dopo.
+Cosa copre la Partnership: applicazione del Metodo E.V.O., funnel, automazioni, area riservata e asset digitali, copywriting, supporto al lancio. Cosa NON dichiarare incluso: un caso studio documentato, un canale B2B, un lead magnet, perche' dipendono dai risultati e dal lavoro del cliente. Nelle sezioni "manca" e "roadmap" di' quali di questi restano da costruire dopo."""
+
+
+def _build_strade_section() -> dict:
+    """Sezione 13 del Blueprint: le tre strade, SOLO descrizioni, niente prezzi
+    (i prezzi stanno nella pagina). Deterministica, come la 14. Il Blueprint si
+    presenta in call, quindi nessun rimando a "dopo la call". Le voci vengono da
+    frontend/src/ciak/insider/offerData.js (start, startPlus, partnership.servizi).
+    """
+    return {
+        "title": "Tre modi per partire,",
+        "accent": "a seconda di dove sei oggi.",
+        "lead": "Qui trovi cosa comprende ciascun percorso. Il consiglio per te è nella pagina che segue.",
+        "cards": [
+            {"h": "Ciak Start: le fondamenta",
+             "p": ("Un pacchetto di servizi per mettere a fuoco il progetto: direzione di posizionamento, "
+                   "basi del brand, sistemazione dei profili social, sito vetrina semplice, strategia e "
+                   "calendario dei contenuti, revisione finale. Non c'è un prodotto da vendere: "
+                   "è il punto di partenza.")},
+            {"h": "Start Plus: le fondamenta e il primo prodotto",
+             "p": ("Le stesse fondamenta di Start, più un primo prodotto piccolo con una sola promessa, "
+                   "la sua pagina di vendita e il messaggio per presentarlo ai tuoi contatti. "
+                   "Il prodotto lo vendi tu: serve avere già persone a cui proporlo.")},
+            {"h": "Partnership: l'affiancamento di 12 mesi",
+             "p": ("Costruiamo insieme la tua accademia digitale: analisi strategica e posizionamento, "
+                   "struttura dell'offerta e dei contenuti formativi, piattaforma con area corsi, funnel e "
+                   "automazioni, pagine, copy e materiali di vendita, piano editoriale di lancio. "
+                   "Ti affianca il team. È la strada per chi ha già competenza, contenuti e un pubblico.")},
+        ],
+    }
+
+
+def _build_cta_section(instradamento, nome: str) -> dict:
+    """Sezione 14 (CTA) del Blueprint, personalizzata sullo INSTRADAMENTO del
+    questionario. Deterministica: l'instradamento è il verdetto dello scoring, non
+    un'invenzione dell'AI. ⛔ Niente prezzi (Blueprint gratuito). Urgenza REALE:
+    per la Partnership la scarsità "max progetti/mese"; per lo Start il bonus guida
+    entro 48h (enforced backend). Rimanda alla mail di consegna → area riservata /
+    sales page (sinergia). Vedi [[template_blueprint_evolution_locked]],
+    [[ciak_start_bonus_urgenza_48h]], [[ciak_reparto_vendite_design]].
+    """
+    n = ((nome or "").split() or [""])[0] or "Ciao"
+    if instradamento not in ("partnership", "start", "nurture", None):
+        logger.warning(
+            "[CIAK_BLUEPRINT] instradamento inatteso %r, uso il default prudente Ciak Start",
+            instradamento,
+        )
+    if instradamento == "partnership":
+        return {
+            "eyebrow": "Il nostro consiglio",
+            "title": "La strada giusta per te è la",
+            "accent": "Partnership.",
+            "lead": (f"{n}, da questa analisi emerge che hai già la competenza, i contenuti e un "
+                     "pubblico: il nostro consiglio è la Partnership Evolution. Costruiamo e "
+                     "vendiamo insieme il tuo percorso, che resta tuo al 100%."),
+            "body": ("Non ti manca il talento: ti manca una struttura che venda al posto tuo, e "
+                     "quella la mettiamo noi. Non serve altro tempo per capire se hai i pezzi: ce li hai."),
+            "callout": ("<b>Seguiamo solo un numero chiuso di nuovi progetti ogni mese</b>, per dare a "
+                        "ciascuno la cura giusta. Il link per prenotare il tuo posto è nella mail che "
+                        "accompagna questa analisi."),
+            "note": "Nessun guadagno garantito: costruiamo un percorso, non promesse. Il prossimo passo lo fai tu.",
+        }
+    return {
+        "eyebrow": "Il nostro consiglio",
+        "title": "Il tuo primo passo è",
+        "accent": "Ciak Start.",
+        "lead": (f"{n}, hai basi solide ma il progetto va ancora messo a fuoco. Il nostro consiglio è "
+                 "partire da Ciak Start: il gradino guidato che ti accompagna fino alla Partnership, "
+                 "e vale come credito verso di essa."),
+        "body": ("È la via più rapida e sicura per trasformare la tua competenza in qualcosa di "
+                 "vendibile, senza bruciare tempo e budget in tentativi."),
+        "callout": ("<b>Solo se parti entro 48 ore dalla nostra call</b> ricevi in omaggio la guida "
+                    "«Come creare un videocorso che vende davvero». Il link e il tempo che resta sono "
+                    "nella mail che accompagna questa analisi."),
+        "note": "Nessun guadagno garantito: costruiamo un percorso, non promesse. Il prossimo passo lo fai tu.",
+    }
+
+
+def _senza_trattino_lungo(obj):
+    """Sostituisce il trattino lungo nell'output dell'AI (regola di scrittura Ciak)."""
+    if isinstance(obj, str):
+        return obj.replace(" — ", ", ").replace("—", ",")
+    if isinstance(obj, list):
+        return [_senza_trattino_lungo(x) for x in obj]
+    if isinstance(obj, dict):
+        return {k: _senza_trattino_lungo(v) for k, v in obj.items()}
+    return obj
+
+
+async def genera_blueprint(session_token: str) -> dict:
+    """Genera il payload delle 14 sezioni per il renderer (ciak_pdf_blueprint): 12 scritte dall'AI,
+    più la 13 (le tre strade) e la 14 (il nostro consiglio) iniettate in modo deterministico.
+
+    Ricerca mercato (riuso research brief) + generazione strutturata 12 sezioni.
+    Ritorna {"meta": {...}, "sezioni": {...}} pronto per render_blueprint_html.
+    Il nome del cliente lo mette il chiamante (dalla sessione).
+    """
+    if db is None:
+        raise CiakAnalisiError("Database non configurato")
+    session = await db.diagnostic_sessions.find_one({"session_token": session_token})
+    if not session:
+        raise CiakAnalisiError(f"diagnostic_session non trovata: {session_token}")
+    responses = session.get("responses") or {}
+
+    try:
+        research = await genera_research_brief(responses)
+    except Exception as e:
+        logger.warning("[CIAK_BLUEPRINT] research fallita, procedo senza dati web: %s", e)
+        research = {"settore": responses.get("q1_competenza", ""), "dimensione_trend": "", "fascia_prezzo_mercato": "", "note_data_gap": "ricerca web non disponibile"}
+
+    user_message = (
+        "Genera il Blueprint definitivo (12 sezioni).\n\n10 RISPOSTE:\n"
+        f"{json.dumps(responses, ensure_ascii=False, indent=2)}\n\n"
+        f"RESEARCH BRIEF DI MERCATO:\n{json.dumps(research, ensure_ascii=False, indent=2)}"
+    )
+    data = await _run(_call_claude_structured, _PROMPT_BLUEPRINT, user_message, _SCHEMA_BLUEPRINT, "blueprint", max_tokens=8000)
+
+    data = _senza_trattino_lungo(data)
+    sez = data.get("sezioni") or {}
+    mancanti = [k for k in _SEZIONI_BLUEPRINT if k not in sez]
+    if mancanti:
+        raise CiakAnalisiError(f"Blueprint: sezioni mancanti {mancanti}")
+
+    meta = data.get("meta") or {}
+    meta["nome"] = session.get("user_name") or "Cliente"
+    from datetime import datetime as _dt
+    meta.setdefault("data", _dt.now(timezone.utc).strftime("%d/%m/%Y"))
+    # Sezione 14 (CTA): iniettata deterministicamente dallo scoring del questionario,
+    # non dall'AI. Pronto → Partnership · non pronto → Ciak Start (con bonus 48h).
+    scoring = session.get("scoring") or {}
+    sez["prossimo"] = _build_strade_section()
+    sez["cta"] = _build_cta_section(scoring.get("instradamento"), meta["nome"])
+    return {"meta": meta, "sezioni": sez}
 
 
 def _now_iso() -> str:
@@ -317,7 +530,9 @@ async def genera_e_salva(session_token: str, force: bool = False) -> dict:
         raise CiakAnalisiError("Database non configurato")
 
     existing = await db.ciak_analisi.find_one({"session_token": session_token})
-    if existing and not force:
+    # Il documento può esistere già solo con l'esito della consegna Blueprint
+    # (ciak_analisi_delivery): conta come "già generato" solo se c'è l'analisi.
+    if existing and existing.get("analisi_definitiva") and not force:
         return {"already_exists": True, "stato": existing.get("stato")}
 
     session = await db.diagnostic_sessions.find_one({"session_token": session_token})
@@ -340,7 +555,6 @@ async def genera_e_salva(session_token: str, force: bool = False) -> dict:
     script = await genera_script_call(responses, definitiva, stato)
 
     doc = {
-        "session_token": session_token,
         "email": session.get("user_email"),
         "stato": "da_validare",
         "research_data": research,
@@ -351,5 +565,14 @@ async def genera_e_salva(session_token: str, force: bool = False) -> dict:
         "generated_at": _now_iso(),
         "errori": [],
     }
-    await db.ciak_analisi.replace_one({"session_token": session_token}, doc, upsert=True)
+    # $set, non replace: i campi della consegna (bozza_inviata_at, bozza.pdf_url,
+    # bozza_errore) scritti da ciak_analisi_delivery non vanno cancellati.
+    bozza_url = ((existing or {}).get("bozza") or {}).get("pdf_url")
+    if bozza_url:
+        doc["bozza"] = {**doc["bozza"], "pdf_url": bozza_url}
+    await db.ciak_analisi.update_one(
+        {"session_token": session_token},
+        {"$set": doc, "$setOnInsert": {"session_token": session_token}},
+        upsert=True,
+    )
     return {"already_exists": False, "stato": "da_validare", "session_token": session_token}

@@ -4,129 +4,31 @@
  * con ampio respiro visivo e lista orizzontale dei file allineata.
  */
 import React, { useState, useEffect } from "react";
-import { authHeaders } from "../api";
+import { authHeaders, getPartnerUser, isAdminUser } from "../api";
 import {
   FolderOpen, Search, Plus, Download, Eye, Link as LinkIcon,
-  FileText, FileCheck, FileVideo, FileAudio, Image, PenLine, Award,
-  Sparkles, Lock, ShieldCheck, X, Upload, Check, Folder, ChevronDown, ChevronUp
+  FileText, FileCheck, FileVideo, Image, Award, X, Folder, ChevronDown, ChevronUp
 } from "lucide-react";
+import { PARTNER_SERENO_ENABLED } from "../sereno/feature";
+import SerenoMateriali from "../sereno/SerenoMateriali";
+import { folderForMaterial } from "../sereno/materialiModel";
+import { uploadPartnerFile } from "../sereno/uploadMateriale";
 
 // Struttura Cartelle Cloud Vault
 const DRIVE_FOLDERS = [
-  { id: "brand_kit", name: "01. Brand Kit & Strategia", subtitle: "Posizionamento Strategico, Brand Kit, Colori Ufficiali, Logo e Contratto Firmato", icon: Folder, color: "text-amber-500", bg: "bg-amber-50" },
-  { id: "scripts", name: "02. Script & Teleprompter", subtitle: "Copywriting persuasivo per la Masterclass, Outline delle lezioni e Tracce Video", icon: Folder, color: "text-yellow-600", bg: "bg-yellow-50" },
-  { id: "video", name: "03. Video & Moduli Corso", subtitle: "Videolezioni HD registrate, Video di Benvenuto e Risorse multimediali dell'Accademia", icon: Folder, color: "text-blue-500", bg: "bg-blue-50" },
-  { id: "funnel", name: "04. Piattaforma & Stripe", subtitle: "Pagine web del Funnel, Link di Cassa Stripe, Credenziali Subaccount e Dominio", icon: Folder, color: "text-emerald-500", bg: "bg-emerald-50" },
-  { id: "master_pdf", name: "05. Workbook & Certificati", subtitle: "Workbook completo F-1–F-20 e Certificati Ufficiali di Completamento", icon: Folder, color: "text-amber-600", bg: "bg-amber-50" },
+  { id: "brand_kit", name: "01. Brand e strategia", subtitle: "Posizionamento, brand kit, logo e foto", icon: Folder, color: "text-amber-500", bg: "bg-amber-50" },
+  { id: "scripts", name: "02. Corso e script", subtitle: "Masterclass, lezioni, outline e videocorso", icon: Folder, color: "text-yellow-600", bg: "bg-yellow-50" },
+  { id: "funnel", name: "03. Vendita e pagine legali", subtitle: "Offerta, FAQ, privacy, cookie e termini", icon: Folder, color: "text-emerald-500", bg: "bg-emerald-50" },
+  { id: "social", name: "04. Reel e contenuti social", subtitle: "Reel, copertine e calendario di lancio", icon: Folder, color: "text-violet-500", bg: "bg-violet-50" },
+  { id: "documenti", name: "05. Contratto e documenti personali", subtitle: "Contratto, distinta e documenti che hai caricato", icon: Folder, color: "text-blue-500", bg: "bg-blue-50" },
+  { id: "master_pdf", name: "06. Il tuo piano", subtitle: "Libretto di progetto, piano operativo e altri documenti", icon: Folder, color: "text-amber-600", bg: "bg-amber-50" },
 ];
 
-// Mock File Vault per la demo e l'integrazione reale
-const INITIAL_VAULT_FILES = [
-  {
-    id: "f-1",
-    folderId: "master_pdf",
-    name: "Piano_Operativo_Strategico_EVO.pdf",
-    category: "Piano Master PDF",
-    size: "3.4 MB",
-    date: "23 Lug 2026",
-    owner: "⚙️ CIAK",
-    type: "pdf",
-    icon: Award,
-    iconColor: "text-amber-600",
-    url: "/api/partner-journey/piano-operativo-pdf/demo_mario_rossi",
-  },
-  {
-    id: "f-2",
-    folderId: "master_pdf",
-    name: "Certificato_Fase_Esamina_Mario_Rossi.pdf",
-    category: "Certificato",
-    size: "1.2 MB",
-    date: "22 Lug 2026",
-    owner: "⚙️ CIAK",
-    type: "pdf",
-    icon: Award,
-    iconColor: "text-emerald-600",
-    url: "/api/partner-journey/certificato-pdf/demo_mario_rossi/esamina",
-  },
-  {
-    id: "f-3",
-    folderId: "brand_kit",
-    name: "Posizionamento_Strategico_Dott_Mario_Rossi.pdf",
-    category: "Posizionamento",
-    size: "850 KB",
-    date: "21 Lug 2026",
-    owner: "⚙️ CIAK",
-    type: "pdf",
-    icon: FileText,
-    iconColor: "text-blue-600",
-    url: "#",
-  },
-  {
-    id: "f-4",
-    folderId: "brand_kit",
-    name: "Brand_Kit_Colori_Font_Logo.pdf",
-    category: "Brand Kit",
-    size: "2.1 MB",
-    date: "20 Lug 2026",
-    owner: "⚙️ CIAK",
-    type: "pdf",
-    icon: FileText,
-    iconColor: "text-amber-500",
-    url: "#",
-  },
-  {
-    id: "f-5",
-    folderId: "scripts",
-    name: "Script_Masterclass_Vendita_Bozza.docx",
-    category: "Script Word",
-    size: "420 KB",
-    date: "19 Lug 2026",
-    owner: "⚙️ CIAK",
-    type: "doc",
-    icon: PenLine,
-    iconColor: "text-yellow-600",
-    url: "#",
-  },
-  {
-    id: "f-6",
-    folderId: "brand_kit",
-    name: "Contratto_Partner_EVO_Firmato.pdf",
-    category: "Contratto Legal",
-    size: "1.8 MB",
-    date: "15 Lug 2026",
-    owner: "👤 Tu",
-    type: "pdf",
-    icon: FileCheck,
-    iconColor: "text-emerald-600",
-    url: "#",
-  },
-  {
-    id: "f-7",
-    folderId: "video",
-    name: "Video_Benvenuto_Claudio.mp4",
-    category: "Video HD",
-    size: "45 MB",
-    date: "15 Lug 2026",
-    owner: "⚙️ CIAK",
-    type: "video",
-    icon: FileVideo,
-    iconColor: "text-red-500",
-    url: "#",
-  },
-  {
-    id: "f-8",
-    folderId: "funnel",
-    name: "Piattaforma_Checkout_Stripe_Accademia.link",
-    category: "Link Checkout",
-    size: "1 KB",
-    date: "Oggi",
-    owner: "⚙️ CIAK",
-    type: "link",
-    icon: LinkIcon,
-    iconColor: "text-emerald-500",
-    url: "#",
-  }
-];
+function iconForMaterialType(type) {
+  if (type === "video") return { icon: FileVideo, color: "text-red-500" };
+  if (type === "image") return { icon: Image, color: "text-violet-500" };
+  return { icon: FileText, color: "text-blue-600" };
+}
 
 /**
  * Scarica un file passando dal token del partner: gli endpoint PDF rispondono
@@ -171,23 +73,32 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
   // MaterialiPage passa `partner={{ id }}`, altri call site passano `partnerId`:
   // finche' i file erano finti nessuno se n'era accorto, perche' l'id non serviva.
   const partnerId = partnerIdProp || partner?.id;
+  const telegramFallbackUrl =
+    partner?.telegram_group_url || "https://t.me/ciak_partner_support";
   // Niente file d'esempio: fino al 03/08/2026 qui c'era il vault demo di
   // "Mario Rossi" con url "#", e ogni partner vedeva i documenti di un altro
   // con Scarica e Anteprima che non potevano funzionare (non esisteva il file).
   const [files, setFiles] = useState([]);
+  const [caricamento, setCaricamento] = useState(Boolean(partnerId));
+  // Sale di 1 a ogni file caricato: rilancia la lettura e il nuovo file compare in lista.
+  const [ricarica, setRicarica] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFolderId, setSelectedFolderId] = useState("all");
   const [filterOwner, setFilterOwner] = useState("all");
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
-  // Documenti REALI del partner. Nessun video: i montaggi in produzione sono
-  // ancora quelli vecchi (sottotitoli, pause e errori non tagliati) e non vanno
-  // mostrati finche' non sono rifatti.
+  // Materiali REALI del partner (documenti, immagini e video-materiale come i
+  // reel). La fonte filtra lato server su cio' che e' apribile (storage fidato o
+  // public_url): i file solo-Drive non appaiono, cosi' niente click a vuoto.
   useEffect(() => {
     if (!partnerId) return undefined;
     let annullato = false;
+    if (ricarica === 0) setCaricamento(true); // dopo un caricamento la lista resta visibile
     (async () => {
-      const reali = [
+      // Libretto di Progetto e Piano Operativo EVO (14 fasi) sono documenti della
+      // PARTNERSHIP: a un cliente Ciak Start non vanno mostrati (descrivono un
+      // percorso che non ha). Si aggiungono solo dopo aver saputo il livello.
+      const documentiPartnership = [
         {
           id: "r-libretto", folderId: "master_pdf",
           name: "Libretto_di_Progetto_Ciak.pdf", category: "Libretto di Progetto",
@@ -203,54 +114,135 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
           url: `/api/partner-journey/piano-operativo-pdf/${partnerId}`,
         },
       ];
-      try {
-        const r = await fetch(`/api/partner-journey/posizionamento/${partnerId}`, { headers: authHeaders() });
-        if (r.ok) {
-          const d = await r.json();
-          // Materiali prodotti da Ciak per questo partner (documenti di fase,
-          // script, analisi): vivono in partner_posizionamento.materiali, cosi'
-          // valgono per qualunque partner e non sono cablati nel frontend.
-          for (const m of d?.posizionamento?.materiali || []) {
-            if (!m?.url || !m?.nome) continue;
-            reali.push({
-              id: `m-${reali.length}`,
-              folderId: m.cartella || "brand_kit",
-              name: m.nome,
-              category: m.categoria || "Documento",
-              size: m.fonte || "Documento",
-              date: m.data || "—",
-              owner: m.owner || "⚙️ CIAK",
-              type: "pdf",
-              icon: FileText,
-              iconColor: "text-blue-600",
-              url: m.url,
-              esterno: /^https?:/i.test(m.url),
-            });
+      const reali = [];
+      let livelloPartner = null;
+      const daDrive = async () => {
+        const out = [];
+        try {
+          const r = await fetch(`/api/partner-journey/posizionamento/${partnerId}`, { headers: authHeaders() });
+          if (r.ok) {
+            const d = await r.json();
+            const drive = d?.posizionamento?.drive_folder_url;
+            if (drive) {
+              out.push({
+                id: "r-drive", folderId: "brand_kit",
+                name: "Cartella Drive del progetto", category: "Documenti e materiali",
+                size: "Google Drive", date: "—", owner: "⚙️ CIAK", type: "link",
+                icon: FolderOpen, iconColor: "text-emerald-600",
+                url: drive, esterno: true,
+              });
+            }
           }
-          const drive = d?.posizionamento?.drive_folder_url;
-          if (drive) {
-            reali.push({
-              id: "r-drive", folderId: "brand_kit",
-              name: "Cartella Drive del progetto", category: "Documenti e materiali",
-              size: "Google Drive", date: "—", owner: "⚙️ CIAK", type: "link",
-              icon: FolderOpen, iconColor: "text-emerald-600",
-              url: drive, esterno: true,
-            });
+        } catch { /* la cartella Drive semplicemente non compare */ }
+        return out;
+      };
+      const daMateriali = async () => {
+        const out = [];
+        // Fonte REALE dei materiali del partner: la collezione `files` (documenti
+        // prodotti da Ciak, caricati dal partner o dall'admin), filtrata lato
+        // server su cio' che e' visibile al partner. Prima qui si leggeva
+        // `partner_posizionamento.materiali`, un array che NESSUNO scriveva.
+        try {
+          const rm = await fetch(
+            `/api/partner-journey/operativo/materiali/${partnerId}`,
+            { headers: authHeaders() },
+          );
+          if (rm.ok) {
+            const dm = await rm.json();
+            livelloPartner = dm?.tier || null;
+            for (const m of dm?.materials || []) {
+              const url = m.download_url || m.public_url;
+              if (!url) continue; // nessuna sorgente apribile: niente riga
+              const { icon, color } = iconForMaterialType(m.type);
+              out.push({
+                id: m.id,
+                folderId: folderForMaterial({ category: m.category, name: m.title, type: m.type }),
+                name: m.title,
+                category: m.category || "Documento",
+                size: m.type === "pdf" ? "PDF" : m.type === "image" ? "Immagine" : m.type === "video" ? "Video" : "Documento",
+                date: m.created_at ? String(m.created_at).slice(0, 10) : "—",
+                // `source: operativo` = file passato dall'endpoint di caricamento del
+                // Percorso (partner o admin per conto suo): sono "documenti suoi".
+                owner: m.source === "operativo" ? "👤 Tu" : "⚙️ CIAK",
+                createdAt: m.created_at || null,
+                type: m.type,
+                icon,
+                iconColor: color,
+                url,
+                esterno: !!m.public_url && !m.download_url,
+                // Word/Excel/ODT non si mostrano nel browser: si scaricano. "Apri"
+                // compare solo per PDF/immagini/testo (il backend lo dichiara).
+                anteprima: m.can_preview !== false,
+              });
+            }
           }
-        }
-      } catch { /* la cartella Drive semplicemente non compare */ }
-      if (!annullato) setFiles(reali);
+        } catch { /* se la fonte reale non risponde, restano Libretto/Piano/contratto */ }
+        return out;
+      };
+      const daContratto = async () => {
+        const out = [];
+        try {
+          // signed_at (letto da /api/contract/status) viene scritto PRIMA che il
+          // PDF sia generato: la generazione e' best-effort, in try/except sia in
+          // proposta.py che in contract.py. Un partner puo' quindi avere
+          // signed_at valorizzato senza che esista alcuna riga in contract_pdfs
+          // — mostrare la voce solo su signed_at produrrebe un "Contratto
+          // firmato" che scarica un vero 404. Usiamo signed_at solo per la data
+          // e mostriamo la voce SOLO se /api/contract/pdf conferma che il PDF
+          // esiste davvero (rigenera se la riga manca, fallisce se non firmato
+          // o se la generazione non riesce).
+          const rc = await fetch(`/api/contract/status/${partnerId}`, { headers: authHeaders() });
+          if (rc.ok) {
+            const dc = await rc.json();
+            if (dc?.signed) {
+              const rp = await fetch(`/api/contract/pdf/${partnerId}`, { headers: authHeaders() });
+              if (rp.ok) {
+                const dp = await rp.json();
+                if (dp?.success && dp?.pdf_url) {
+                  out.push({
+                    id: "r-contratto", folderId: "documenti",
+                    name: "Contratto firmato", category: "Contratto",
+                    size: "PDF", date: dc.signed_at ? dc.signed_at.slice(0, 10) : "—",
+                    owner: "👤 Tu", type: "pdf", createdAt: dc.signed_at || null,
+                    icon: FileCheck, iconColor: "text-emerald-600",
+                    url: dp.pdf_url,
+                  });
+                }
+              }
+            }
+          }
+        } catch { /* nessun contratto in lista se il check fallisce */ }
+        return out;
+      };
+      // Le tre fonti sono indipendenti: in parallelo, non una dopo l'altra.
+      const [dDrive, dMateriali, dContratto] = await Promise.all([daDrive(), daMateriali(), daContratto()]);
+      if (livelloPartner === "start") {
+        // Il cliente Start ha il SUO libretto: un solo PDF sempre aggiornato con i
+        // materiali approvati (al posto dei due documenti della Partnership).
+        reali.push({
+          id: "r-libretto-start", folderId: "master_pdf",
+          name: "Il_tuo_progetto_Start.pdf", category: "Libretto Start",
+          size: "PDF", date: "sempre aggiornato", owner: "⚙️ CIAK", type: "pdf",
+          icon: Award, iconColor: "text-amber-600",
+          url: `/api/partner-journey/start-libretto-pdf/${partnerId}`,
+        });
+      } else {
+        reali.push(...documentiPartnership);
+      }
+      reali.push(...dDrive, ...dMateriali, ...dContratto);
+      if (!annullato) { setFiles(reali); setCaricamento(false); }
     })();
     return () => { annullato = true; };
-  }, [partnerId]);
+  }, [partnerId, ricarica]);
   const [previewFileModal, setPreviewFileModal] = useState(null);
 
   // Stato espansione menu a tendina cartelle (tutte aperte di default)
   const [openFolders, setOpenFolders] = useState({
     brand_kit: true,
+    social: true,
     scripts: true,
-    video: true,
     funnel: true,
+    documenti: true,
     master_pdf: true,
   });
 
@@ -271,25 +263,49 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
     });
   };
 
-  const handleUploadSimulated = (e) => {
-    e.preventDefault();
-    const newFile = {
-      id: `f-${Date.now()}`,
-      folderId: selectedFolderId === "all" ? "brand_kit" : selectedFolderId,
-      name: "Documento_Caricato_Dal_Partner.pdf",
-      category: "Documento Utente",
-      size: "1.5 MB",
-      date: "Oggi",
-      owner: "👤 Tu",
-      type: "pdf",
-      icon: FileText,
-      iconColor: "text-blue-600",
-      url: "#"
-    };
-    setFiles([newFile, ...files]);
-    setUploadModalOpen(false);
-    alert("File caricato con successo!");
+  // Solo supervisione admin: toglie il file dall'archivio del partner per tutti (record conservato, ripristinabile).
+  const rimuoviMateriale = async (file) => {
+    const chiama = (extra) => fetch(`/api/partner-step-materials/${encodeURIComponent(file.id)}/visibility`, {
+      method: "PATCH",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ partner_id: partnerId, visibility: "removed", reason: "Rimosso dall'admin dalla pagina Materiali", ...extra }),
+    });
+    let r = await chiama({});
+    // più record con lo stesso file_id (collisione storica): si precisa col nome
+    if (r.status === 409) r = await chiama({ original_name: file.name });
+    if (!r.ok) throw new Error(`rimozione non riuscita (${r.status})`);
+    setRicarica((n) => n + 1);
   };
+
+  const openTelegramDelivery = () => {
+    window.open(telegramFallbackUrl, "_blank", "noopener");
+    setUploadModalOpen(false);
+  };
+
+  // Sereno skin: same real data and the same authenticated open/download
+  // handlers, only restyled. The current UI stays the default.
+  if (PARTNER_SERENO_ENABLED) {
+    return (
+      <SerenoMateriali
+        folders={DRIVE_FOLDERS}
+        files={files}
+        loading={caricamento}
+        onOpen={apriFile}
+        onDownload={scaricaFile}
+        telegramUrl={telegramFallbackUrl}
+        upload={(file, onProgress) => uploadPartnerFile(partnerId, file, onProgress, undefined, { notify: !isAdminUser(getPartnerUser()) })}
+        onUploaded={() => setRicarica((n) => n + 1)}
+        onRemove={partnerId && isAdminUser(getPartnerUser()) ? rimuoviMateriale : null}
+        uploadDisabledReason={!partnerId ? "Il caricamento sarà disponibile appena il tuo profilo è pronto." : ""}
+        uploadNotifiesTeam={!isAdminUser(getPartnerUser())}
+        uploadWarning={
+          partnerId && isAdminUser(getPartnerUser())
+            ? "Vista supervisione: il file viene aggiunto all'area di questo partner e lui lo vedrà. Il team non riceve l'avviso di nuovo caricamento."
+            : ""
+        }
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white font-[Poppins,system-ui,sans-serif] text-slate-900 pb-16">
@@ -457,12 +473,14 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
 
                             {/* TASTI AZIONE */}
                             <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                              <button
-                                onClick={() => apriFile(file)}
-                                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs inline-flex items-center gap-1.5 transition"
-                              >
-                                <Eye className="h-3.5 w-3.5 text-amber-600" /> Apri
-                              </button>
+                              {file.anteprima !== false && (
+                                <button
+                                  onClick={() => apriFile(file)}
+                                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs inline-flex items-center gap-1.5 transition"
+                                >
+                                  <Eye className="h-3.5 w-3.5 text-amber-600" /> Apri
+                                </button>
+                              )}
 
                               <button
                                 onClick={() => scaricaFile(file)}
@@ -496,33 +514,28 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
             </button>
 
             <div>
-              <span className="text-xs font-mono font-bold text-amber-600 uppercase">Cloud Vault Upload</span>
-              <h3 className="text-lg font-bold text-slate-950 mt-0.5">Carica un File</h3>
+              <span className="text-xs font-mono font-bold text-amber-600 uppercase">Consegna materiali</span>
+              <h3 className="text-lg font-bold text-slate-950 mt-0.5">Inviaci un file</h3>
             </div>
 
-            <form onSubmit={handleUploadSimulated} className="space-y-4">
-              <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center space-y-2 bg-slate-50 hover:border-amber-400 transition cursor-pointer">
-                <Upload className="h-7 w-7 text-amber-600 mx-auto" />
-                <p className="text-xs font-bold text-slate-800">Trascina qui il tuo file oppure sfoglia</p>
-                <p className="text-[11px] text-slate-400">PDF, DOCX, MP4, PNG (Max 100MB)</p>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-900 block">Cartella Destinazione:</label>
-                <select className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 outline-none">
-                  {DRIVE_FOLDERS.map((f) => (
-                    <option key={f.id} value={f.id}>{f.name}</option>
-                  ))}
-                </select>
+            <div className="space-y-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700 space-y-1.5">
+                <p className="font-bold text-slate-900">Il caricamento diretto non è ancora attivo.</p>
+                <p>
+                  Per consegnarci un documento in modo sicuro e tracciato, invialo al team
+                  sul tuo canale Telegram dedicato: lo archiviamo noi nella cartella giusta
+                  e lo ritrovi qui tra i tuoi materiali.
+                </p>
               </div>
 
               <button
-                type="submit"
+                type="button"
+                onClick={openTelegramDelivery}
                 className="w-full py-3 bg-yellow-400 text-slate-950 font-bold rounded-xl text-xs hover:bg-yellow-300 transition shadow-sm"
               >
-                CONFERMA CARICAMENTO
+                Invia il file su Telegram
               </button>
-            </form>
+            </div>
           </div>
         </div>
       )}

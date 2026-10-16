@@ -13,7 +13,7 @@ gli effetti.
 L'effetto peggiore e' su `account`: `_activate_partner_account_and_notify`
 genera un `partner_setup_token` nuovo e sovrascrive il precedente. Il primo
 link — quello gia' partito via Systeme verso il cliente — muore. Il partner
-paga EUR 2.790 e clicca un link non valido.
+paga EUR 2.990 e clicca un link non valido.
 """
 import asyncio
 import importlib.util
@@ -50,7 +50,7 @@ def _doc():
         "prospect_nome": "Mario Bianchi",
         "contratto_firmato_at": (datetime.now(timezone.utc) - timedelta(days=1)).isoformat(),
         "stato": "contratto_firmato",
-        "contract_params": {"corrispettivo": 2790},
+        "contract_params": {"corrispettivo": 2990},
     }
 
 
@@ -61,7 +61,7 @@ def counted_effects(monkeypatch):
     Gli `await asyncio.sleep(0)` creano il punto di interleaving che in
     produzione e' dato dall'I/O verso Mongo, Systeme e Telegram.
     """
-    calls = {"account": 0, "journey": 0, "tags": 0, "notification": 0}
+    calls = {"account": 0, "contract_pdf": 0, "journey": 0, "tags": 0, "notification": 0}
 
     async def _count(name):
         calls[name] += 1
@@ -70,6 +70,9 @@ def counted_effects(monkeypatch):
 
     async def account(partner_id, email, nome):
         await _count("account")
+
+    async def contract_pdf(token, partner_id, email, nome, pdf_state):
+        await _count("contract_pdf")
 
     async def journey(partner_id, **kwargs):
         await _count("journey")
@@ -81,6 +84,7 @@ def counted_effects(monkeypatch):
         await _count("notification")
 
     monkeypatch.setattr(proposta, "_activate_partner_account_and_notify", account)
+    monkeypatch.setattr(proposta, "_finalize_signed_contract_effect", contract_pdf)
     monkeypatch.setattr(proposta, "_seed_operativo_journey_from_funnel", journey)
     monkeypatch.setattr(proposta, "_finalization_tags", tags)
     monkeypatch.setattr(proposta, "_notify_telegram", notify)
@@ -149,6 +153,7 @@ async def test_failed_effect_is_retried_on_next_call(monkeypatch):
         return None
 
     monkeypatch.setattr(proposta, "_activate_partner_account_and_notify", flaky)
+    monkeypatch.setattr(proposta, "_finalize_signed_contract_effect", noop)
     monkeypatch.setattr(proposta, "_seed_operativo_journey_from_funnel", noop)
     monkeypatch.setattr(proposta, "_finalization_tags", noop)
     monkeypatch.setattr(proposta, "_notify_telegram", noop)

@@ -5,6 +5,8 @@ import { PianoOperativoWidget } from "../components/PianoOperativoWidget";
 import { useJourneyState } from "../operativo/hooks/useJourneyState";
 import { groupJourneySteps, hasMaterialOutput } from "../operativo/journeyPresentation";
 import StepMaterialsModal from "./StepMaterialsModal";
+import { PARTNER_SERENO_ENABLED } from '../sereno/feature';
+import SerenoJourney from '../sereno/SerenoJourney';
 
 const PHASE_COPY = {
   esamina: {
@@ -28,7 +30,7 @@ function displayStatus(status) {
 }
 
 export function MetodoEvoPage({ partnerId }) {
-  const { state } = useJourneyState(partnerId);
+  const { state, loading, error, refresh } = useJourneyState(partnerId);
   const [selectedStep, setSelectedStep] = useState(null);
   const phases = useMemo(
     () => groupJourneySteps(state?.steps || [], state?.macro_phases || []),
@@ -37,6 +39,12 @@ export function MetodoEvoPage({ partnerId }) {
   const totalSteps = state?.steps?.length || 20;
   const completedCount = state?.steps?.filter((step) => step.status === "done").length || 0;
   const progress = totalSteps ? Math.round((completedCount / totalSteps) * 100) : 0;
+
+  if (PARTNER_SERENO_ENABLED) return <>
+    <SerenoJourney state={state} loading={loading} error={error} onRetry={refresh}
+      onMaterials={step => setSelectedStep({ ...step, id: step.step_id, title: step.label })} />
+    {selectedStep && <StepMaterialsModal partnerId={partnerId} step={selectedStep} onClose={() => setSelectedStep(null)} />}
+  </>;
 
   return (
     <div className="min-h-screen bg-white text-slate-900 pb-16">

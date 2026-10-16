@@ -6,7 +6,7 @@
  * Il backend persisteva gia' ogni indizio di fallimento
  * (finalizzazione_partnership.<effetto>="failed", bozza_errore,
  * ciak_client_access_recovery, ciak_orphan_purchases) ma nessuna schermata li
- * leggeva: un cliente poteva pagare 2.790 EUR e restare senza account senza
+ * leggeva: un cliente poteva pagare 2.990 EUR e restare senza account senza
  * che nessuno se ne accorgesse.
  *
  * Backend: GET  /api/admin/ciak/consegne-mancate

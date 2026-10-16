@@ -21,7 +21,7 @@ Invarianti:
     (`auth.py:211`): scriverne uno solo lascia l'utente fuori senza errori.
     Il cliente Start entra con magic link, quindi non ne serve nessuno;
   - `users.role` resta `cliente`. Il ruolo `partner` aprirebbe TUTTE le guardie
-    dell'area partner a un cliente da 499 EUR.
+    dell'area partner a un cliente da 390 EUR.
 """
 from __future__ import annotations
 
@@ -60,7 +60,10 @@ async def _nicchia_from_diagnostic(db, client: dict[str, Any], email: str) -> st
         session = await db.diagnostic_sessions.find_one({"email": email}, {"_id": 0})
     if not session:
         return ""
-    raw = session.get("competenza_raw") or (session.get("answers") or {}).get("competenza") or ""
+    # Schema attuale: risposte APERTE in responses.qX; fallback ai campi vecchi.
+    raw = ((session.get("responses") or {}).get("q1_competenza")
+           or session.get("competenza_raw")
+           or (session.get("answers") or {}).get("competenza") or "")
     return str(raw).strip()
 
 

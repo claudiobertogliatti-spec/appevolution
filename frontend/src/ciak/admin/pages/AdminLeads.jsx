@@ -1,10 +1,12 @@
 /**
- * Ciak Admin — Leads & Pipeline. Lista da GET /api/admin/ciak/leads.
+ * Ciak Admin — Lead inbound. Lista da GET /api/admin/ciak/leads: iscritti alla
+ * masterclass PIÙ chi ha compilato il questionario senza opt-in (canale
+ * Mariangela, link diretto), una riga per email, ordinati per ultima attività.
  */
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { apiGet, adminFetch } from "../api";
+import { apiGet, adminFetch, getAdminUser, SCOPE_DENIED_DETAIL } from "../api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const STATO_LABEL = {
@@ -14,29 +16,74 @@ const STATO_LABEL = {
   4: "Evoluzione Strategica",
 };
 
+// Stati del funnel gratuito (il backend normalizza già quelli storici €27).
 const STATE_LABEL = {
   lead_created: "Lead",
-  ciak_started: "Diagnostica avviata",
-  ciak_completed: "Diagnostica completata",
-  report_generated: "Report generato",
-  clicked_67: "Click €27",
-  purchased_67: "Acquisto €27",
+  ciak_started: "Questionario iniziato",
+  ciak_completed: "Questionario completato",
+  report_generated: "Analisi pronta",
   call_booked: "Call prenotata",
-  call_done: "Call effettuata",
-  partner_approved: "Partner approvato",
-  partner_active: "Partner attivo",
+  call_done: "Call fatta",
 };
 
-function StatoBadge({ stato, preliminary }) {
+const SOURCE_LABEL = {
+  mariangela: "Mariangela",
+  questionario_diretto: "Questionario diretto",
+  masterclass_landing: "Masterclass",
+  masterclass_gate: "Masterclass",
+  landing_hero: "Sito",
+  landing_secondary: "Sito",
+};
+
+// Le 4 tappe che contano per capire la situazione reale di un lead, a colpo
+// d'occhio: questionario compilato, report/blueprint generato, call fissata,
+// call fatta. Ognuna con la sua data (da state_history, non dedotta dal solo
+// current_state) — un pallino pieno + data al passaggio del mouse, vuoto se
+// la tappa non è ancora avvenuta.
+const STAGES = [
+  { key: "questionario_at", label: "Questionario" },
+  { key: "report_at", label: "Analisi pronta" },
+  { key: "call_booked_at", label: "Call fissata" },
+  { key: "call_done_at", label: "Call fatta" },
+];
+
+function formatDate(iso) {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "2-digit" });
+  } catch {
+    return iso;
+  }
+}
+
+function StageTracker({ item }) {
+  return (
+    <div className="flex items-center gap-1">
+      {STAGES.map((s) => {
+        const ts = item[s.key];
+        const date = formatDate(ts);
+        return (
+          <span
+            key={s.key}
+            title={`${s.label}${date ? ": " + date : " — non ancora"}`}
+            className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+              ts ? "bg-slate-900 text-yellow-400" : "bg-gray-100 text-slate-300"
+            }`}
+          >
+            {ts ? "✓" : "·"}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function StatoBadge({ stato }) {
   if (!stato) return <span className="text-slate-300">—</span>;
   return (
     <span
-      className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-        preliminary
-          ? "bg-gray-100 text-slate-500"
-          : "bg-slate-900 text-yellow-400"
-      }`}
-      title={preliminary ? "Stato preliminare (Checkpoint)" : "Stato confermato (8 Domande)"}
+      className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-slate-900 text-yellow-400"
+      title="Stato dal questionario"
     >
       S{stato} {STATO_LABEL[stato]}
     </span>
@@ -51,17 +98,22 @@ export function AdminLeads({ onAuthExpired }) {
   const [error, setError] = useState(null);
   const [q, setQ] = useState("");
   const [stato, setStato] = useState("");
-  const [onlyPurchased, setOnlyPurchased] = useState(false);
+  const [onlyCall, setOnlyCall] = useState(false);
   const [offset, setOffset] = useState(0);
   const [pendingDelete, setPendingDelete] = useState(null);
+  // L'account commerciale non elimina lead (backend: 403, ciak_admin.py
+  // _COMMERCIAL_FORBIDDEN_METHODS): il bottone non le compare proprio.
+  const canDelete = getAdminUser()?.admin_type !== "mariangela";
   const [deleting, setDeleting] = useState(false);
+  const [pendingEdit, setPendingEdit] = useState(null); // { email, nome, phone }
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const load = useCallback(() => {
     setData(null);
     apiGet("/leads", {
       q,
       stato: stato || null,
-      only_purchased: onlyPurchased || null,
+      only_call: onlyCall || null,
       limit: PAGE,
       offset,
     })
@@ -70,7 +122,7 @@ export function AdminLeads({ onAuthExpired }) {
         if (e.message === "AUTH_EXPIRED") onAuthExpired();
         else setError(e.message);
       });
-  }, [q, stato, onlyPurchased, offset, onAuthExpired]);
+  }, [q, stato, onlyCall, offset, onAuthExpired]);
 
   useEffect(() => {
     load();
@@ -92,17 +144,44 @@ export function AdminLeads({ onAuthExpired }) {
       load();
     } catch (err) {
       if (err.message === "AUTH_EXPIRED") onAuthExpired?.();
-      else toast.error("Errore nell'eliminazione del lead.");
+      else if (err.message === SCOPE_DENIED_DETAIL) {
+        setPendingDelete(null);
+        toast.error(err.message);
+      } else toast.error("Errore nell'eliminazione del lead.");
     } finally {
       setDeleting(false);
     }
   };
 
+  // Modifica: SOLO nome e telefono. Email = chiave cross-collezione, in sola lettura.
+  const saveEdit = async () => {
+    const it = pendingEdit;
+    if (!it?.email) return;
+    setSavingEdit(true);
+    try {
+      const res = await adminFetch("/api/admin/ciak/lead", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: it.email, nome: it.nome, phone: it.phone }),
+      });
+      if (!res.ok) throw new Error("Errore modifica");
+      setPendingEdit(null);
+      toast.success("Lead aggiornato.");
+      load();
+    } catch (err) {
+      if (err.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else toast.error("Errore nella modifica del lead.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   return (
-    <div className="p-10">
-      <h1 className="text-2xl font-semibold text-slate-900 mb-1">Leads & Pipeline</h1>
+    <div className="p-6 md:p-8">
+      <h1 className="text-2xl font-semibold text-slate-900 mb-1">Lead inbound · dal funnel</h1>
       <p className="text-slate-500 mb-6">
-        Ogni lead dall'opt-in masterclass, arricchito con Checkpoint e 8 Domande.
+        Chi si è iscritto alla masterclass e chi ha compilato il questionario, anche senza
+        iscrizione (canale Mariangela). In alto chi si è mosso per ultimo.
       </p>
 
       {/* Filtri */}
@@ -111,7 +190,7 @@ export function AdminLeads({ onAuthExpired }) {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && (setOffset(0), load())}
-          placeholder="Cerca per email…"
+          placeholder="Cerca per nome o email…"
           className="px-4 py-2 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900 w-64"
         />
         <select
@@ -131,13 +210,13 @@ export function AdminLeads({ onAuthExpired }) {
         <label className="flex items-center gap-2 text-sm text-slate-600">
           <input
             type="checkbox"
-            checked={onlyPurchased}
+            checked={onlyCall}
             onChange={(e) => {
-              setOnlyPurchased(e.target.checked);
+              setOnlyCall(e.target.checked);
               setOffset(0);
             }}
           />
-          Solo chi ha acquistato
+          Solo con call fissata o fatta
         </label>
       </div>
 
@@ -151,17 +230,18 @@ export function AdminLeads({ onAuthExpired }) {
               <thead>
                 <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
                   <th className="px-5 py-3 font-semibold">Lead</th>
-                  <th className="px-5 py-3 font-semibold">Source</th>
-                  <th className="px-5 py-3 font-semibold">Checkpoint</th>
-                  <th className="px-5 py-3 font-semibold">8 Domande</th>
-                  <th className="px-5 py-3 font-semibold">Pipeline</th>
+                  <th className="px-5 py-3 font-semibold">Fonte</th>
+                  <th className="px-5 py-3 font-semibold">Stato</th>
+                  <th className="px-5 py-3 font-semibold" title="Questionario · Analisi pronta · Call fissata · Call fatta">
+                    Percorso
+                  </th>
                   <th className="px-5 py-3 font-semibold"></th>
                 </tr>
               </thead>
               <tbody>
                 {data.items.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-5 py-10 text-center text-slate-400">
+                    <td colSpan={5} className="px-5 py-10 text-center text-slate-400">
                       Nessun lead trovato.
                     </td>
                   </tr>
@@ -176,30 +256,44 @@ export function AdminLeads({ onAuthExpired }) {
                       <div className="font-medium text-slate-900">{l.nome || "—"}</div>
                       <div className="text-slate-500 text-xs">{l.email}</div>
                     </td>
-                    <td className="px-5 py-3 text-slate-500 text-xs">{l.source || "—"}</td>
-                    <td className="px-5 py-3">
-                      <StatoBadge stato={l.checkpoint_stato} preliminary />
+                    <td className="px-5 py-3 text-slate-500 text-xs">
+                      {SOURCE_LABEL[l.source] || l.source || "—"}
+                      {l.solo_questionario && (
+                        <div className="text-[11px] text-slate-400">senza iscrizione masterclass</div>
+                      )}
                     </td>
                     <td className="px-5 py-3">
                       <StatoBadge stato={l.stato_finale} />
                     </td>
-                    <td className="px-5 py-3 text-slate-600 text-xs">
-                      {l.diagnostic_state ? STATE_LABEL[l.diagnostic_state] || l.diagnostic_state : "—"}
-                      {l.purchased && (
-                        <span className="ml-2 text-yellow-600 font-medium">€27 ✓</span>
-                      )}
+                    <td className="px-5 py-3">
+                      <StageTracker item={l} />
+                      <div className="mt-1 text-slate-400 text-[11px]">
+                        {l.diagnostic_state ? STATE_LABEL[l.diagnostic_state] || l.diagnostic_state : "—"}
+                      </div>
                     </td>
                     <td className="px-5 py-3 text-right whitespace-nowrap">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setPendingDelete(l);
+                          setPendingEdit({ email: l.email, nome: l.nome || "", phone: l.phone || "" });
                         }}
-                        title="Elimina lead"
-                        className="text-xs font-medium text-red-600 hover:text-red-700 hover:underline mr-3"
+                        title="Modifica lead"
+                        className="text-xs font-medium text-slate-600 hover:text-slate-900 hover:underline mr-3"
                       >
-                        Elimina
+                        Modifica
                       </button>
+                      {canDelete && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPendingDelete(l);
+                          }}
+                          title="Elimina lead"
+                          className="text-xs font-medium text-red-600 hover:text-red-700 hover:underline mr-3"
+                        >
+                          Elimina
+                        </button>
+                      )}
                       <span className="text-slate-300">›</span>
                     </td>
                   </tr>
@@ -236,7 +330,7 @@ export function AdminLeads({ onAuthExpired }) {
       <ConfirmDialog
         open={!!pendingDelete}
         title={pendingDelete ? `Elimina ${pendingDelete.email}` : ""}
-        body="Verranno rimossi opt-in, Checkpoint e 8 Domande collegati. Operazione irreversibile."
+        body="Verranno rimossi l'iscrizione e il questionario collegati. Operazione irreversibile."
         confirmLabel="Elimina"
         cancelLabel="Annulla"
         destructive
@@ -244,6 +338,36 @@ export function AdminLeads({ onAuthExpired }) {
         onConfirm={confirmDelete}
         onCancel={() => setPendingDelete(null)}
       />
+
+      {pendingEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" role="presentation" onClick={() => setPendingEdit(null)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="edit-lead-title" className="w-full max-w-md rounded-xl bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)]" onClick={(e) => e.stopPropagation()}>
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Modifica lead</p>
+            <h2 id="edit-lead-title" className="mt-1 text-lg font-semibold text-slate-900 truncate">{pendingEdit.email}</h2>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Nome</label>
+                <input value={pendingEdit.nome} onChange={(e) => setPendingEdit((p) => ({ ...p, nome: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Telefono</label>
+                <input value={pendingEdit.phone} onChange={(e) => setPendingEdit((p) => ({ ...p, phone: e.target.value }))}
+                  placeholder="+39…" className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Email · non modificabile</label>
+                <input value={pendingEdit.email} readOnly disabled
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm text-slate-500" />
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setPendingEdit(null)} className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400 transition-colors">Annulla</button>
+              <button type="button" onClick={saveEdit} disabled={savingEdit} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-yellow-400 hover:bg-slate-800 disabled:opacity-50 transition-colors">{savingEdit ? "Salvo…" : "Salva"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

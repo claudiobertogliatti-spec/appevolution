@@ -31,10 +31,36 @@ export function clearSession() {
   localStorage.removeItem(USER_KEY);
 }
 
+// Nessuna chiamata admin deve poter restare appesa all'infinito: senza un
+// tetto, uno stallo del proxy Vercel→Cloud Run lasciava la pagina in
+// caricamento per sempre (caso consegna Blueprint). fetchWithTimeout abortisce
+// dopo `timeoutMs` e traduce l'abort in un errore leggibile, così il chiamante
+// spegne lo spinner e mostra un messaggio invece di girare a vuoto.
+const DEFAULT_TIMEOUT_MS = 45000;
+
+export async function fetchWithTimeout(url, options = {}) {
+  const { timeoutMs = DEFAULT_TIMEOUT_MS, signal: _ignored, ...rest } = options;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...rest, signal: controller.signal });
+  } catch (e) {
+    if (e && e.name === "AbortError") {
+      throw new Error(
+        "Ci ha messo troppo tempo: la richiesta è stata interrotta. " +
+          "L'operazione potrebbe essere comunque andata a buon fine — ricarica la pagina per controllare."
+      );
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Login via /api/auth/login. Ritorna { ok, error?, user? }. */
 export async function login(email, password) {
   try {
-    const res = await fetch("/api/auth/login", {
+    const res = await fetchWithTimeout("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: email.trim(), password }),
@@ -63,6 +89,41 @@ export async function login(email, password) {
   }
 }
 
+// Testo del 403 che il backend dà a un account a scope ridotto (Mariangela)
+// su una funzione fuori dal suo reparto: NON è una sessione scaduta, quindi
+// si mostra il messaggio invece di fare logout (routers/ciak_admin.py).
+export const SCOPE_DENIED_DETAIL = "Questo account ha accesso solo al reparto Acquisizione.";
+
+// Altri 403 di permesso (token valido, funzione non concessa a quell'account):
+// da quando il token porta admin_type scattano davvero, e non devono sloggare.
+// backend/routers/collaborator_settlements.py::require_billing_admin (Antonella).
+const PERMISSION_DENIED_DETAILS = new Set([
+  SCOPE_DENIED_DETAIL,
+  "Contabilita' collaboratori riservata",
+]);
+
+/**
+ * 401, o 403 da token scaduto/non valido → logout ("AUTH_EXPIRED").
+ * 403 di permesso (scope commerciale, contabilità) → errore leggibile, la sessione resta.
+ */
+async function ensureAuthorized(res) {
+  if (res.status === 401) {
+    clearSession();
+    throw new Error("AUTH_EXPIRED");
+  }
+  if (res.status === 403) {
+    let detail = "";
+    try {
+      detail = (await res.clone().json())?.detail || "";
+    } catch {
+      detail = "";
+    }
+    if (PERMISSION_DENIED_DETAILS.has(detail)) throw new Error(detail);
+    clearSession();
+    throw new Error("AUTH_EXPIRED");
+  }
+}
+
 /** GET autenticato su /api/admin/ciak/*. Lancia su 401 (token scaduto). */
 export async function apiGet(path, params = {}) {
   const token = getToken();
@@ -70,13 +131,10 @@ export async function apiGet(path, params = {}) {
     Object.entries(params).filter(([, v]) => v !== null && v !== undefined && v !== "")
   ).toString();
   const url = `/api/admin/ciak${path}${qs ? `?${qs}` : ""}`;
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (res.status === 401 || res.status === 403) {
-    clearSession();
-    throw new Error("AUTH_EXPIRED");
-  }
+  await ensureAuthorized(res);
   if (!res.ok) {
     throw new Error(`Errore ${res.status}`);
   }
@@ -86,7 +144,7 @@ export async function apiGet(path, params = {}) {
 /** PUT JSON autenticato su /api/admin/ciak/*. Idem semantica di apiGet. */
 export async function apiPut(path, body = {}) {
   const token = getToken();
-  const res = await fetch(`/api/admin/ciak${path}`, {
+  const res = await fetchWithTimeout(`/api/admin/ciak${path}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -94,10 +152,7 @@ export async function apiPut(path, body = {}) {
     },
     body: JSON.stringify(body),
   });
-  if (res.status === 401 || res.status === 403) {
-    clearSession();
-    throw new Error("AUTH_EXPIRED");
-  }
+  await ensureAuthorized(res);
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`Errore ${res.status}${text ? `: ${text.slice(0, 200)}` : ""}`);
@@ -108,7 +163,7 @@ export async function apiPut(path, body = {}) {
 /** POST JSON autenticato su /api/admin/ciak/*. Idem semantica di apiGet. */
 export async function apiPost(path, body = {}) {
   const token = getToken();
-  const res = await fetch(`/api/admin/ciak${path}`, {
+  const res = await fetchWithTimeout(`/api/admin/ciak${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -116,10 +171,7 @@ export async function apiPost(path, body = {}) {
     },
     body: JSON.stringify(body),
   });
-  if (res.status === 401 || res.status === 403) {
-    clearSession();
-    throw new Error("AUTH_EXPIRED");
-  }
+  await ensureAuthorized(res);
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`Errore ${res.status}${text ? `: ${text.slice(0, 200)}` : ""}`);
@@ -133,7 +185,7 @@ export async function apiPost(path, body = {}) {
  */
 export async function apiPatch(path, body = {}) {
   const token = getToken();
-  const res = await fetch(`/api/admin/ciak${path}`, {
+  const res = await fetchWithTimeout(`/api/admin/ciak${path}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -141,10 +193,7 @@ export async function apiPatch(path, body = {}) {
     },
     body: JSON.stringify(body),
   });
-  if (res.status === 401 || res.status === 403) {
-    clearSession();
-    throw new Error("AUTH_EXPIRED");
-  }
+  await ensureAuthorized(res);
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`Errore ${res.status}${text ? `: ${text.slice(0, 200)}` : ""}`);
@@ -155,15 +204,13 @@ export async function apiPatch(path, body = {}) {
 /** POST multipart autenticato, senza impostare Content-Type (lo aggiunge il browser col boundary). */
 export async function apiMultipart(path, formData) {
   const token = getToken();
-  const res = await fetch(`/api/admin/ciak${path}`, {
+  const res = await fetchWithTimeout(`/api/admin/ciak${path}`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
+    timeoutMs: 120000,
   });
-  if (res.status === 401 || res.status === 403) {
-    clearSession();
-    throw new Error("AUTH_EXPIRED");
-  }
+  await ensureAuthorized(res);
   if (!res.ok) {
     const data = await res.json().catch(() => null);
     throw new Error(data?.detail || `Errore ${res.status}`);
@@ -194,16 +241,31 @@ export async function downloadAdminFile(path, fallbackName) {
  */
 export async function adminFetch(path, options = {}) {
   const token = getToken();
-  const res = await fetch(path, {
+  const res = await fetchWithTimeout(path, {
     ...options,
     headers: {
       ...(options.headers || {}),
       Authorization: `Bearer ${token}`,
     },
   });
-  if (res.status === 401 || res.status === 403) {
-    clearSession();
-    throw new Error("AUTH_EXPIRED");
-  }
+  await ensureAuthorized(res);
   return res;
+}
+
+/**
+ * Legge il messaggio d'errore reale da una risposta non-ok (`{"detail": "..."}`,
+ * lo shape di HTTPException di FastAPI). Prima di questa funzione un 502/500
+ * arrivava in UI come solo "Errore 502" — il motivo vero (es. l'eccezione della
+ * generazione AI del Blueprint) restava chiuso nel body della risposta, mai
+ * letto dal chiamante. `res.clone()` perché il body si legge una sola volta e
+ * il chiamante potrebbe già averci provato.
+ */
+export async function errorDetail(res) {
+  try {
+    const data = await res.clone().json();
+    if (data && typeof data.detail === "string" && data.detail.trim()) return data.detail;
+  } catch {
+    // body non-JSON o già consumato: usa il fallback sotto
+  }
+  return `Errore ${res.status}`;
 }

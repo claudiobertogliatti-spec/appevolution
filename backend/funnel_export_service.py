@@ -4,6 +4,8 @@ Generates formatted documents for Systeme.io manual import
 """
 
 import os
+import re
+import html
 import logging
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -14,6 +16,34 @@ logger = logging.getLogger(__name__)
 # Storage for exports
 EXPORTS_PATH = Path("/app/storage/funnel_exports")
 EXPORTS_PATH.mkdir(parents=True, exist_ok=True)
+
+_UNSAFE_NAME = re.compile(r"[^A-Za-z0-9_-]+")
+_EXPORT_FILE = re.compile(r"[A-Za-z0-9_.-]+\.html")
+
+
+def safe_export_name(name) -> str:
+    """Parte del nome file ricavata da un dato fornito dal chiamante: solo lettere, cifre, _ e -."""
+    return _UNSAFE_NAME.sub("_", str(name or "")).strip("_")[:60] or "partner"
+
+
+def _escape_tree(value):
+    """Copia dei dati del chiamante con ogni stringa HTML-escapata: i campi dell'export sono testo da copiare."""
+    if isinstance(value, str):
+        return html.escape(value)
+    if isinstance(value, dict):
+        return {k: _escape_tree(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_escape_tree(v) for v in value]
+    return value
+
+
+def resolve_export_path(filename) -> Optional[Path]:
+    """Percorso di un export, solo se e' un .html direttamente dentro EXPORTS_PATH; altrimenti None."""
+    name = str(filename or "")
+    if not _EXPORT_FILE.fullmatch(name) or ".." in name:
+        return None
+    path = (EXPORTS_PATH / name).resolve()
+    return path if path.parent == EXPORTS_PATH.resolve() else None
 
 
 class FunnelExportService:
@@ -53,7 +83,7 @@ class FunnelExportService:
         
         # Save to file
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"funnel_export_{partner_name.replace(' ', '_')}_{timestamp}.html"
+        filename = f"funnel_export_{safe_export_name(partner_name)}_{timestamp}.html"
         filepath = EXPORTS_PATH / filename
         
         with open(filepath, 'w', encoding='utf-8') as f:
@@ -62,7 +92,6 @@ class FunnelExportService:
         return {
             "success": True,
             "filename": filename,
-            "filepath": str(filepath),
             "html_content": html_content,
             "sections_exported": len(approved_sections),
             "generated_at": datetime.now().isoformat(),
@@ -77,10 +106,11 @@ class FunnelExportService:
     ) -> str:
         """Generate the formatted HTML export document"""
         
+        partner_data = _escape_tree(partner_data)
         partner_name = partner_data.get("name", "Partner")
         partner_niche = partner_data.get("niche", "")
         offer_name = partner_data.get("offer_name", "Programma Acceleratore")
-        offer_price = partner_data.get("offer_price", "297€")
+        offer_price = partner_data.get("offer_price") or "Da definire"
         
         # Build sections HTML
         sections_html = ""
@@ -339,7 +369,7 @@ class FunnelExportService:
     
     def _render_section(self, section: Dict, is_approved: bool) -> str:
         """Render a single funnel section to HTML"""
-        
+        section = _escape_tree(section)
         section_id = section.get("id", 0)
         icon = section.get("icon", "📄")
         title = section.get("title", "Sezione")
@@ -514,7 +544,7 @@ class FunnelExportService:
         </div>
         """
     
-    def list_exports(self, partner_id: Optional[str] = None) -> List[Dict]:
+    def list_exports(self) -> List[Dict]:
         """List all export files"""
         exports = []
         
@@ -522,7 +552,6 @@ class FunnelExportService:
             stat = file.stat()
             exports.append({
                 "filename": file.name,
-                "filepath": str(file),
                 "size_bytes": stat.st_size,
                 "created_at": datetime.fromtimestamp(stat.st_mtime).isoformat()
             })

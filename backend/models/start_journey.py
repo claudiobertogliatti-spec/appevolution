@@ -75,7 +75,7 @@ START_ONLY_STEPS_DEFINITION: list[dict[str, Any]] = [
         "code": "S-3",
         "fase_legacy": "F2",
         "macro_phase": "esamina",
-        "label": "Strategia e calendario 90 giorni",
+        "label": "Strategia e ciclo contenuti 60 giorni",
         "owner": "MARCO",
         "completion_policy": "content_plan_90d_approved",
         "material_categories": ["strategia_contenuti", "calendario_contenuti"],
@@ -179,7 +179,7 @@ def only_real_partners(query: dict[str, Any] | None = None) -> dict[str, Any]:
 
     Il ponte di identita' crea un record `partners` per ogni cliente Start: e'
     cio' che permette ai motori esistenti di servirlo. Senza questo filtro un
-    cliente da 499 EUR verrebbe contato come partner da 2.790 nel cockpit, nelle
+    cliente da 499 EUR verrebbe contato come partner da 2.990 nel cockpit, nelle
     metriche e nei check diagnostici — cioe' un numero sbagliato in una call di
     vendita.
 

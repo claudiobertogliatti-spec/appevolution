@@ -94,6 +94,7 @@ class Credito(BaseModel):
     # La rata resta nei conti, perche' i soldi sono dovuti; sparisce dall'elenco
     # di chi chiamare oggi, perche' quella telefonata non va fatta.
     non_sollecitare: bool = False
+    owner: Optional[str] = None       # responsabile back office (es. Valentina/Stefania/Debora)
     documento: Optional[str] = None   # dove sta la lettera dell'accordo
     nota: Optional[str] = None
     creato_at: Optional[str] = None
@@ -135,6 +136,28 @@ def stato_effettivo_rata(rata: dict, oggi: Optional[date] = None) -> str:
     return RATA_DA_VERIFICARE if scad < oggi else RATA_ATTESA
 
 
+def concilia_rate_con_saldato(credito: dict, oggi_iso: Optional[str] = None) -> dict:
+    """
+    Se il credito e' `saldato`, le sue rate devono risultare tutte `incassata`.
+
+    Le rate sono la fonte di verita' del sistema: `residuo_totale` e l'incassato
+    dell'obiettivo leggono lo stato delle RATE, non `credito.stato`. Un credito
+    segnato saldato ma con rate lasciate `attesa` sbaglia due volte -- il residuo
+    le conta come da recuperare, e l'obiettivo NON le conta come incassato. Qui
+    si allinea la causa (le rate), cosi' ogni lettore torna coerente da solo.
+    Modifica il dict in place e lo restituisce.
+    """
+    if credito.get("stato") != CREDITO_SALDATO:
+        return credito
+    oggi_iso = oggi_iso or datetime.now(timezone.utc).isoformat()
+    for r in credito.get("rate") or []:
+        if r.get("stato") != RATA_INCASSATA:
+            r["stato"] = RATA_INCASSATA
+            if not r.get("incassata_at"):
+                r["incassata_at"] = oggi_iso
+    return credito
+
+
 def rate_del_mese(crediti: List[dict], anno: int, mese: int) -> List[dict]:
     """Le rate che scadono nel mese indicato, ordinate per data."""
     fuori = []
@@ -164,10 +187,13 @@ def riepilogo(crediti: List[dict], anno: int, mese: int) -> dict:
     rate_mese = rate_del_mese(crediti, anno, mese)
     aperti = [c for c in crediti if c.get("stato") in (CREDITO_APERTO, CREDITO_IN_PIANO)]
 
+    # Previsto = quello che ci si aspetta di incassare ancora questo mese. Fuori
+    # sia l'incassato (gia' entrato) sia la saltata (esito terminale: non arriva).
+    # Tenere le saltate qui gonfiava il previsto con soldi che si sa non arrivano.
     da_incassare = sum(
         float(r.get("importo") or 0)
         for r in rate_mese
-        if r["stato_effettivo"] != RATA_INCASSATA
+        if r["stato_effettivo"] not in (RATA_INCASSATA, RATA_SALTATA)
     )
     incassato = sum(
         float(r.get("importo") or 0)
@@ -216,14 +242,16 @@ def riepilogo(crediti: List[dict], anno: int, mese: int) -> dict:
             for r in tutte
             if not r.get("scadenza") and r["stato_effettivo"] != RATA_INCASSATA
         ],
-        # Quanto resta da incassare in tutto: la somma delle rate non incassate,
-        # non `importo_totale` -- che include anche quello gia' rientrato.
+        # Quanto resta da recuperare in tutto: la somma delle rate ancora aperte,
+        # non `importo_totale` -- che include anche quello gia' rientrato. Fuori le
+        # incassate (rientrate) e le saltate (esito terminale: non si recuperano).
         # Solo i crediti veri: quanto c'e' da rincorrere.
         "residuo_totale": round(
             sum(
                 float(r.get("importo") or 0)
                 for r in tutte
-                if r["stato_effettivo"] != RATA_INCASSATA and r["tipo"] == TIPO_CREDITO
+                if r["stato_effettivo"] not in (RATA_INCASSATA, RATA_SALTATA)
+                and r["tipo"] == TIPO_CREDITO
             ),
             2,
         ),

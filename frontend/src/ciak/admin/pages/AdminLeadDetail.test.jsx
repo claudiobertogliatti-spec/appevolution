@@ -1,7 +1,5 @@
 /**
- * Ciak Admin — scheda lead: "segna €27 pagato" e' un'azione sensibile
- * (registra purchased_67). Non deve partire da un confirm() del browser ma da
- * una conferma in pagina col nome del lead.
+ * Ciak Admin — scheda lead: consegna Blueprint (conferma call) e stato post-call.
  */
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 jest.mock(
@@ -9,10 +7,16 @@ jest.mock(
   () => ({ useParams: () => ({ email: "mario%40x.it" }), useNavigate: () => jest.fn() }),
   { virtual: true }
 );
-jest.mock("../api", () => ({ apiGet: jest.fn(), apiPost: jest.fn(), adminFetch: jest.fn() }));
+jest.mock("../api", () => ({
+  apiGet: jest.fn(),
+  adminFetch: jest.fn(),
+  getAdminUser: jest.fn(() => null),
+  errorDetail: jest.fn(async () => "Errore"),
+  SCOPE_DENIED_DETAIL: "Questo account ha accesso solo al reparto Acquisizione.",
+}));
 
 import { AdminLeadDetail } from "./AdminLeadDetail";
-import { apiGet, apiPost } from "../api";
+import { apiGet, adminFetch, getAdminUser } from "../api";
 
 const LEAD = {
   email: "mario@x.it",
@@ -21,32 +25,271 @@ const LEAD = {
   checkpoints: [],
   latest_diagnostic: null,
   qualified_for_proposta: false,
+  blueprint: { stato: "pronto", generato_at: "2026-09-29T10:00:00+00:00" },
 };
 
 beforeEach(() => {
   jest.clearAllMocks();
   apiGet.mockResolvedValue(LEAD);
-  apiPost.mockResolvedValue({ already_purchased: false });
 });
 
-test("segnare €27 pagato apre una conferma in pagina, non un window.confirm", async () => {
-  const spy = jest.spyOn(window, "confirm");
+test('"Ho fatto la call di consegna" consegna il Blueprint via admin/consegna-blueprint', async () => {
+  adminFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ success: true, client_id: "c1", magic_link: "https://ciak.io/cliente/accesso?token=tk" }),
+  });
   render(<AdminLeadDetail onAuthExpired={() => {}} />);
-  const trigger = await screen.findByRole("button", { name: /Segna 27 EUR come pagato/i });
+  const trigger = await screen.findByRole("button", { name: /Ho fatto la call di consegna/i });
   fireEvent.click(trigger);
-  expect(spy).not.toHaveBeenCalled();
   const dialog = screen.getByRole("dialog");
   expect(dialog.textContent).toMatch(/mario@x\.it/);
-  spy.mockRestore();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Invia il Blueprint" }));
+  await waitFor(() =>
+    expect(adminFetch).toHaveBeenCalledWith(
+      "/api/ciak/client/admin/consegna-blueprint",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ email: "mario@x.it" }),
+      })
+    )
+  );
+  // il link d'accesso restituito viene mostrato all'admin (findByText lancia se assente)
+  expect(await screen.findByText(/token=tk/)).toBeTruthy();
 });
 
-test("confermando registra l'acquisto via apiPost /lead/mark-purchased", async () => {
+test("invio registrato: il bottone sparisce e compare il riepilogo verde", async () => {
+  apiGet.mockResolvedValue({
+    ...LEAD,
+    latest_diagnostic: { current_state: "call_done" },
+    blueprint: { stato: "pronto", consegna_inviata_at: "2026-09-29T14:31:19+00:00" },
+  });
   render(<AdminLeadDetail onAuthExpired={() => {}} />);
-  const trigger = await screen.findByRole("button", { name: /Segna 27 EUR come pagato/i });
-  fireEvent.click(trigger);
-  const dialog = screen.getByRole("dialog");
-  fireEvent.click(within(dialog).getByRole("button", { name: "Segna pagato" }));
+  expect(await screen.findByText(/Blueprint inviato al cliente il/i)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /invia il Blueprint/i })).toBeNull();
+});
+
+test("call fatta ma Blueprint mai inviato: si può ancora inviare a mano", async () => {
+  apiGet.mockResolvedValue({
+    ...LEAD,
+    latest_diagnostic: { current_state: "call_done" },
+    blueprint: { stato: "pronto" },
+  });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  expect(await screen.findByText(/Blueprint non ancora inviato/i)).toBeTruthy();
+  const btn = screen.getByRole("button", { name: "Invia il Blueprint al cliente" });
+  expect(btn.disabled).toBe(false);
+  expect(screen.queryByText(/Blueprint inviato al cliente il/i)).toBeNull();
+});
+
+test("senza Blueprint pronto l'invio al cliente è bloccato", async () => {
+  apiGet.mockResolvedValue({ ...LEAD, blueprint: { stato: "mancante" } });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  const trigger = await screen.findByRole("button", { name: /Ho fatto la call di consegna/i });
+  expect(trigger.disabled).toBe(true);
+  expect(screen.getByText(/Prima genera il Blueprint/i)).toBeTruthy();
+});
+
+test('"Genera Blueprint" chiama solo la generazione, nessun invio al cliente', async () => {
+  apiGet.mockResolvedValue({ ...LEAD, blueprint: { stato: "mancante" } });
+  adminFetch.mockResolvedValue({ ok: true, json: async () => ({ stato: "pronto" }) });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Genera Blueprint" }));
   await waitFor(() =>
-    expect(apiPost).toHaveBeenCalledWith("/lead/mark-purchased", { email: "mario@x.it" })
+    expect(adminFetch).toHaveBeenCalledWith(
+      "/api/ciak/client/admin/blueprint/genera",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ email: "mario@x.it", force: false }) })
+    )
   );
+  expect(adminFetch).not.toHaveBeenCalledWith("/api/ciak/client/admin/consegna-blueprint", expect.anything());
+});
+
+test("errore di generazione: il motivo reale è visibile", async () => {
+  apiGet.mockResolvedValue({ ...LEAD, blueprint: { stato: "errore", errore: "Anthropic API error: credit balance too low" } });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  expect(await screen.findByText(/credit balance too low/)).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Riprova a generare" })).toBeTruthy();
+});
+
+test("Blueprint inviato prima del salvataggio: mostra 'Già inviato' e il PDF spedito", async () => {
+  apiGet.mockResolvedValue({
+    ...LEAD,
+    latest_diagnostic: { current_state: "call_done" },
+    blueprint: { stato: "inviato_prima", consegna_inviata_at: "2026-09-29T14:31:19+00:00", pdf_url: "https://cdn.test/bp.pdf" },
+  });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  expect(await screen.findByText("Già inviato")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Apri il PDF inviato" }).getAttribute("href")).toBe("https://cdn.test/bp.pdf");
+  expect(screen.queryByRole("button", { name: "Genera Blueprint" })).toBeNull();
+});
+
+test("ripristino a call fatta: passa dalla conferma e chiama l'endpoint dedicato", async () => {
+  apiGet.mockResolvedValue({
+    ...LEAD,
+    latest_diagnostic: { current_state: "call_done" },
+    blueprint: { stato: "inviato_prima", consegna_inviata_at: "2026-09-29T14:31:19+00:00" },
+  });
+  adminFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ ok: true, incassi_tolti: { payments: 1, payment_transactions: 1 }, start_attivato_da: [], account_eliminato: { ciak_clients: 1 } }),
+  });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  fireEvent.click(await screen.findByRole("button", { name: /Riporta a: call fatta/i }));
+  const dialog = screen.getByRole("dialog");
+  fireEvent.click(within(dialog).getByRole("button", { name: "Riporta a call fatta" }));
+  await waitFor(() =>
+    expect(adminFetch).toHaveBeenCalledWith(
+      "/api/admin/ciak/lead/riporta-a-call-fatta",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ email: "mario@x.it" }) })
+    )
+  );
+  expect(await screen.findByText(/Tolti 2 record di incasso/)).toBeTruthy();
+});
+
+test("il ripristino non compare prima della call", async () => {
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  await screen.findByRole("button", { name: /Ho fatto la call di consegna/i });
+  expect(screen.queryByRole("button", { name: /Riporta a: call fatta/i })).toBeNull();
+});
+
+test("account commerciale (Mariangela): niente genera, invio, proposta o ripristino", async () => {
+  getAdminUser.mockReturnValue({ admin_type: "mariangela" });
+  apiGet.mockResolvedValue({
+    ...LEAD,
+    qualified_for_proposta: true,
+    latest_diagnostic: { current_state: "call_done", scoring: { stato_finale: 3 } },
+    blueprint: { stato: "mancante" },
+  });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  expect(await screen.findByText(/lo prepara Claudio prima della call/i)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /Genera Blueprint/i })).toBeNull();
+  expect(screen.queryByRole("button", { name: /invia il Blueprint/i })).toBeNull();
+  expect(screen.queryByRole("button", { name: /Genera Proposta Partnership/i })).toBeNull();
+  expect(screen.queryByText("Ripristino")).toBeNull();
+  getAdminUser.mockReturnValue(null);
+});
+
+test("account commerciale con Blueprint pronto: può scaricarlo, non rigenerarlo", async () => {
+  getAdminUser.mockReturnValue({ admin_type: "mariangela" });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  expect(await screen.findByRole("button", { name: /Scarica Blueprint PDF/i })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Rigenera" })).toBeNull();
+  // Non le si chiede di "confermare la call": l'invio non è suo.
+  expect(screen.getByText(/L'invio al cliente, dopo la call, lo fa Claudio/i)).toBeTruthy();
+  expect(screen.queryByText(/quando confermi di aver fatto la call/i)).toBeNull();
+  getAdminUser.mockReturnValue(null);
+});
+
+test("generazione negata per permesso: si legge il motivo, non 'può essere ancora in corso'", async () => {
+  apiGet.mockResolvedValue({ ...LEAD, blueprint: { stato: "mancante" } });
+  adminFetch.mockRejectedValue(new Error("Questo account ha accesso solo al reparto Acquisizione."));
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Genera Blueprint" }));
+  expect(await screen.findByText("Questo account ha accesso solo al reparto Acquisizione.")).toBeTruthy();
+  expect(screen.queryByText(/può essere ancora in corso/i)).toBeNull();
+});
+
+test("la scheda dice subito se e' un lead, un cliente Start o un partner", async () => {
+  apiGet.mockResolvedValue({ ...LEAD, ruolo: { tipo: "cliente_start", label: "Cliente Ciak Start", dettaglio: "Ha pagato Ciak Start (390 €)." } });
+  const { unmount } = render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  const badge = await screen.findByTestId("ruolo-contatto");
+  expect(badge.textContent).toMatch(/Cliente Ciak Start/);
+  expect(badge.textContent).toMatch(/Ha pagato/);
+  unmount();
+
+  apiGet.mockResolvedValue({ ...LEAD, ruolo: { tipo: "lead", label: "Lead", dettaglio: "Non ha ancora pagato nessuna offerta." } });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  expect((await screen.findByTestId("ruolo-contatto")).textContent).toMatch(/^Lead/);
+});
+
+describe("recupero accesso del cliente", () => {
+  test("se il lead ha un account cliente, «Link di accesso» crea il link senza mandare mail", async () => {
+    apiGet.mockResolvedValue({ ...LEAD, client_id: "c1" });
+    adminFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true, link: "https://www.ciak.io/cliente/accesso?token=NEW", scade_il: "2026-11-04T09:00:00+00:00" }),
+    });
+    render(<AdminLeadDetail onAuthExpired={() => {}} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Link di accesso" }));
+    await waitFor(() =>
+      expect(adminFetch).toHaveBeenCalledWith(
+        "/api/admin/ciak/clients/c1/link-accesso",
+        expect.objectContaining({ method: "POST", body: JSON.stringify({ email: "mario@x.it" }) })
+      )
+    );
+    expect((await screen.findByLabelText("Link di accesso")).value).toBe("https://www.ciak.io/cliente/accesso?token=NEW");
+    expect(screen.getByText(/Nessuna mail è partita/)).toBeTruthy();
+  });
+
+  test("senza account cliente il pulsante non c'è", async () => {
+    apiGet.mockResolvedValue({ ...LEAD, client_id: null });
+    render(<AdminLeadDetail onAuthExpired={() => {}} />);
+    await screen.findByText(/Anagrafica lead/);
+    expect(screen.queryByRole("button", { name: "Link di accesso" })).toBeNull();
+  });
+
+  test("non c'è per l'account commerciale (il backend glielo rifiuterebbe)", async () => {
+    getAdminUser.mockReturnValue({ admin_type: "mariangela" });
+    apiGet.mockResolvedValue({ ...LEAD, client_id: "c1" });
+    render(<AdminLeadDetail onAuthExpired={() => {}} />);
+    await screen.findByText(/Anagrafica lead/);
+    expect(screen.queryByRole("button", { name: "Link di accesso" })).toBeNull();
+  });
+
+  test("la proposta non mostra più un URL /insider/ (non apre più nulla)", async () => {
+    apiGet.mockResolvedValue({ ...LEAD, qualified_for_proposta: true, latest_diagnostic: { id: "d1", scoring: { stato_finale: "A" } } });
+    adminFetch.mockResolvedValue({ ok: true, json: async () => ({ url: "https://www.ciak.io/proposta/TKN", status: "draft" }) });
+    render(<AdminLeadDetail onAuthExpired={() => {}} />);
+    fireEvent.click(await screen.findByRole("button", { name: /Genera Proposta Partnership/ }));
+    await screen.findByText(/Il cliente la trova nella sua area/);
+    expect(document.body.textContent).not.toMatch(/\/insider\//);
+  });
+});
+
+describe("?vai= porta la scheda sulla sezione giusta (menu Azioni della pagina Lead)", () => {
+  const scrollIntoView = jest.fn();
+  beforeEach(() => {
+    scrollIntoView.mockClear();
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoView;
+  });
+  afterEach(() => window.history.pushState({}, "", "/"));
+
+  test("?vai=blueprint scorre al pannello Blueprint", async () => {
+    window.history.pushState({}, "", "/admin/leads/mario%40x.it?vai=blueprint");
+    render(<AdminLeadDetail onAuthExpired={() => {}} />);
+    await screen.findByText("Questionario (1)");
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+    expect(scrollIntoView.mock.instances[0].id).toBe("lead-blueprint");
+  });
+
+  test("?vai=questionario scorre alla sezione Questionario", async () => {
+    window.history.pushState({}, "", "/admin/leads/mario%40x.it?vai=questionario");
+    render(<AdminLeadDetail onAuthExpired={() => {}} />);
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+    expect(scrollIntoView.mock.instances[0].id).toBe("lead-questionario");
+  });
+
+  test("senza ?vai= o con una sezione che non c'e' la scheda resta aperta dall'inizio", async () => {
+    render(<AdminLeadDetail onAuthExpired={() => {}} />);
+    await screen.findByText("Questionario (1)");
+    window.history.pushState({}, "", "/admin/leads/mario%40x.it?vai=proposta"); // lead non qualificato: niente blocco proposta
+    render(<AdminLeadDetail onAuthExpired={() => {}} />);
+    await waitFor(() => expect(screen.getAllByText("Questionario (1)").length).toBe(2));
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+});
+
+test("Modifica: si aggiunge il cognome dalla scheda e la scheda si ricarica", async () => {
+  adminFetch.mockResolvedValue({ ok: true, json: async () => ({ success: true }) });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  fireEvent.click(await screen.findByRole("button", { name: /Modifica nome, cognome o email/i }));
+  const dialog = screen.getByRole("dialog");
+  fireEvent.change(within(dialog).getByLabelText("Cognome"), { target: { value: "Rossi" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Salva le modifiche" }));
+  await waitFor(() =>
+    expect(adminFetch).toHaveBeenCalledWith(
+      "/api/admin/ciak/lead",
+      expect.objectContaining({ method: "PATCH", body: JSON.stringify({ email: "mario@x.it", nome: "Mario", cognome: "Rossi", phone: "" }) })
+    )
+  );
+  await waitFor(() => expect(apiGet.mock.calls.length).toBeGreaterThan(1)); // ricarica la scheda
 });

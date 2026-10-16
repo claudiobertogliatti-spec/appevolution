@@ -12,16 +12,58 @@ import logging
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/stefania", tags=["stefania"])
+security = HTTPBearer(auto_error=False)
 
 db = None
 def set_db(database):
     global db
     db = database
+
+# Gli agenti con cui un partner puo' parlare (roster canonico: frontend/src/ciak/partner/operativo/agents.js).
+AGENTI_CHAT_PARTNER = frozenset({"STEFANIA", "VALENTINA", "ANDREA", "GAIA", "MARCO", "MATTEO"})
+
+
+def _testo_sicuro(valore, massimo: int) -> str:
+    """Testo libero del partner reso innocuo per un messaggio Telegram in Markdown: niente simboli di
+    formattazione, a capo ridotti a spazi, lunghezza limitata."""
+    pulito = "".join(c if c not in "*_`[]()\\" else " " for c in str(valore or ""))
+    return " ".join(pulito.split())[:massimo]
+
+
+# ─── Autenticazione ───────────────────────────────────────────────────────────
+# Prima di ottobre 2026 questi endpoint erano aperti: chiunque conoscesse un `partner_id` poteva
+# leggere il contesto di quel partner (nome, nicchia, step, offerta) e il suo storico di chat, e
+# scrivere/chiudere escalation. Ora: il partner solo per se' stesso (l'admin in supervisione per
+# chiunque), le letture/scritture di servizio solo admin.
+
+async def _require_partner_self(partner_id: str, credentials: Optional[HTTPAuthorizationCredentials]):
+    """Il partner e' chi dice di essere (o e' un admin in supervisione). 401/403 altrimenti.
+
+    Un `partner_id` vuoto non e' mai valido. Chi ha accesso come cliente Start passa solo per il
+    proprio id (regola di `require_partner_or_admin_for_partner`)."""
+    from routers.partner_journey import require_partner_or_admin_for_partner
+
+    if not str(partner_id or "").strip():
+        raise HTTPException(status_code=400, detail="partner_id mancante")
+    return await require_partner_or_admin_for_partner(str(partner_id), credentials)
+
+
+async def _require_admin(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
+    from auth import decode_token
+
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    data = decode_token(credentials.credentials)
+    if not data or data.role not in ("admin", "superadmin"):
+        raise HTTPException(status_code=403, detail="Accesso riservato agli admin")
+    return data
+
 
 # ─── Voce Partner (regola di tono universale, vince su tutto) ──────────────────
 
@@ -212,6 +254,16 @@ async def build_partner_context(partner_id: str, partner_name: str, phase: str, 
     except Exception as e:
         logger.warning(f"[stefania_chat] Impossibile caricare partner_journey_steps: {e}")
 
+    # === OFFERTA: il prezzo viene dall'hub, mai dall'agente ===
+    try:
+        if db is not None:
+            from services import offer_price
+            hub = await db.partner_hub.find_one({"partner_id": str(partner_id)}, {"_id": 0}) or {}
+            lines.append("")
+            lines.append(offer_price.chat_block(hub.get("offerName"), hub.get("offerPrice"), hub.get("offerIncludes")))
+    except Exception as e:
+        logger.warning(f"[stefania_chat] Impossibile caricare l'offerta dall'hub: {e}")
+
     return "\n".join(lines)
 
 # ─── Models ───────────────────────────────────────────────────────────────────
@@ -236,8 +288,15 @@ class EscalationRequest(BaseModel):
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
 @router.post("/chat")
-async def stefania_chat(data: ChatMessage):
-    """Chat partner con Stefania — contesto fase e step iniettato ad ogni messaggio."""
+async def stefania_chat(
+    data: ChatMessage,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+):
+    """Chat partner con Stefania — contesto fase e step iniettato ad ogni messaggio.
+
+    Autenticata: il partner scrive solo per il proprio `partner_id` (401/403 prima di leggere
+    qualunque dato del partner o chiamare il modello)."""
+    await _require_partner_self(data.partner_id, credentials)
     import anthropic
 
     api_key = (
@@ -265,12 +324,18 @@ async def stefania_chat(data: ChatMessage):
 
     # Selezione system prompt: se target_agent passato, usa quello (sub-progetto A
     # AgentDrawer manda target_agent per step per cambiare voce/persona).
-    resolved_agent = (data.target_agent or "STEFANIA").upper()
+    # Il partner puo' scegliere SOLO tra gli agenti ufficiali (CLAUDE.md «Team AI Ciak»): le altre
+    # chiavi di AGENT_SYSTEM_PROMPTS (MAIN, ELENA, RESEARCH) sono prompt interni, non per i partner.
+    richiesto = (data.target_agent or "STEFANIA").strip().upper()
+    if richiesto not in AGENTI_CHAT_PARTNER:
+        logger.warning(f"[stefania_chat] target_agent={data.target_agent!r} non ammesso: uso STEFANIA")
+        richiesto = "STEFANIA"
+    resolved_agent = richiesto
     base_prompt = STEFANIA_SYSTEM_PROMPT
-    if data.target_agent and data.target_agent.upper() != "STEFANIA":
+    if resolved_agent != "STEFANIA":
         try:
             from agent_prompts import get_agent_prompt
-            base_prompt = get_agent_prompt(data.target_agent)
+            base_prompt = get_agent_prompt(resolved_agent)
         except Exception as e:
             logger.warning(f"[stefania_chat] target_agent={data.target_agent} non risolto: {e} — fallback STEFANIA")
 
@@ -360,11 +425,15 @@ async def stefania_chat(data: ChatMessage):
 
 
 @router.post("/escalation")
-async def create_escalation(data: EscalationRequest):
-    """Escalation a Claudio per situazioni critiche."""
+async def create_escalation(
+    data: EscalationRequest,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+):
+    """Escalation a Claudio per situazioni critiche. Autenticata: parte un messaggio Telegram."""
+    await _require_partner_self(data.partner_id, credentials)
     escalation_doc = {
         "id": str(uuid.uuid4()),
-        "partner_id": data.partner_id,
+        "partner_id": str(data.partner_id),
         "partner_name": data.partner_name,
         "partner_phase": data.partner_phase,
         "message": data.message,
@@ -376,9 +445,9 @@ async def create_escalation(data: EscalationRequest):
         if db is not None:
             await db.stefania_escalations.insert_one(escalation_doc)
         await _send_telegram_escalation(
-            data.partner_name or "Partner",
-            data.partner_phase or "N/D",
-            data.message,
+            _testo_sicuro(data.partner_name or "Partner", 80),
+            _testo_sicuro(data.partner_phase or "N/D", 20),
+            _testo_sicuro(data.message, 500),
         )
     except Exception as e:
         logger.error(f"[stefania_chat] Escalation error: {e}")
@@ -391,8 +460,8 @@ async def create_escalation(data: EscalationRequest):
 
 
 @router.get("/conversations/{partner_id}")
-async def get_conversation_history(partner_id: str):
-    """Storico conversazione — per review admin."""
+async def get_conversation_history(partner_id: str, _admin=Depends(_require_admin)):
+    """Storico conversazione — per review admin (solo admin: sono conversazioni private del partner)."""
     try:
         doc = await db.stefania_conversations.find_one(
             {"partner_id": partner_id}, {"_id": 0}
@@ -405,7 +474,7 @@ async def get_conversation_history(partner_id: str):
 
 
 @router.get("/escalations")
-async def get_escalations(status: str = None):
+async def get_escalations(status: str = None, _admin=Depends(_require_admin)):
     query = {}
     if status:
         query["status"] = status
@@ -416,7 +485,7 @@ async def get_escalations(status: str = None):
 
 
 @router.patch("/escalations/{escalation_id}")
-async def update_escalation(escalation_id: str, status: str):
+async def update_escalation(escalation_id: str, status: str, _admin=Depends(_require_admin)):
     await db.stefania_escalations.update_one(
         {"id": escalation_id},
         {"$set": {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}},

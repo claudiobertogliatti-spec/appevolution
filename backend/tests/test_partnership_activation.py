@@ -229,7 +229,7 @@ class TestPartnershipEndpoints:
         assert data.get("success") == True, "Response should have success=True"
         assert "checkout_url" in data, "Response should contain checkout_url"
         assert "session_id" in data, "Response should contain session_id"
-        assert data.get("amount") == 2790.00, f"Amount should be 2790.00, got {data.get('amount')}"
+        assert data.get("amount") == 2990.00, f"Amount should be 2990.00, got {data.get('amount')}"
         assert data.get("currency") == "eur", "Currency should be eur"
         
         # Verify checkout_url is a valid Stripe URL

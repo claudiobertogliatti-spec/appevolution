@@ -249,7 +249,7 @@ Secondo partner completato col protocollo (dopo il pilota Sarah Arensi). Dettagl
 
 Scritto in produzione e riletto alla fonte:
 - `la-tua-storia` da 7 a **21/21** risposte (13 dai suoi vocali + S08 composta da noi).
-- Offerta nell'hub: `offerName` "Sabai Academy", `offerPrice` "297€ (listino 497€)",
+- Offerta nell'hub: `offerName` "Sabai Academy", `offerPrice` "297€ (listino 497€)" (🔴 **aggiornato il 5/10/2026 da Claudio: `147€ (listino 247€)`**, riletto alla fonte),
   `offerIncludes` (4 livelli + 12 moduli). `offerGuarantee` lasciato **vuoto per scelta** (regola 6).
 - ~~Fase corretta **F2 -> F6**~~ 🔴 **FALSO, verificato in produzione il 6/8/2026:**
   `GET /api/partners/23` (endpoint aperto) risponde `fase = "F2"` **e** `phase = "F2"`,
@@ -275,3 +275,5 @@ Tre canali usati per questa migrazione **non hanno richiesto alcun token**:
   `PATCH /api/admin/partner/{id}/journey` (`collection: partners`) per la fase.
 Il 29/7 si era perso un giro sull'automazione Chrome (l'admin React congela la tab) per prendere
 un token che non serviva. Sono endpoint aperti: e' anche un tema di sicurezza da valutare a parte.
+
+⚠️ **Aggiornamento 5/10/2026: oggi NON sono piu aperti.** Il codice richiede un token admin: `GET /api/admin/partner/{id}/full-data` e `PATCH /api/admin/partner/{id}/step/{step_id}` con `require_admin_role` (`server.py:3684`, `:3764`), `PATCH /api/partner-hub/{id}/field` con `require_partner_or_admin` (`server.py:5007`). Il token admin sta in `localStorage` alla chiave `ciak_admin_token`; senza, risposta 401 "Token non valido o scaduto".

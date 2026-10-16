@@ -17,6 +17,7 @@ from pathlib import Path
 
 from jose import jwt
 
+from services import youtube_playlist
 from models.start_journey import (
     is_start_tier,
     journey_definition_for_tier,
@@ -44,7 +45,7 @@ async def _resolve_ciak_start_client(
 ):
     """Risolve un token cliente Ciak Start sul SUO partner_id, o None.
 
-    Il cliente Ciak Start (499 EUR) entra con magic link e riceve un JWT
+    Il cliente Ciak Start (390 EUR) entra con magic link e riceve un JWT
     `role="ciak_client"` (`ciak_clients._create_client_jwt`), non un token
     partner. Emettergli un token `role="partner"` sarebbe piu' semplice ma
     aprirebbe TUTTE le guardie dell'area partner a chi ha comprato un percorso
@@ -123,7 +124,9 @@ async def require_partner_or_admin_for_partner(
             raise HTTPException(status_code=404, detail="Utente non trovato")
 
         user_partner_id = str(user.get("partner_id") or "")
-        if user_partner_id != str(partner_id):
+        # Un utente senza `partner_id` collegato non e' "il partner di id vuoto": "" == "" non
+        # deve mai autorizzare (fail-open trovato in revisione, 14/10/2026).
+        if not user_partner_id or not str(partner_id).strip() or user_partner_id != str(partner_id):
             raise HTTPException(status_code=403, detail="Partner non autorizzato")
 
         return token_data
@@ -1822,6 +1825,163 @@ async def set_lesson_youtube_url(
     }
 
 
+async def _load_partner_masterclass(partner_id: str, override_video_id: Optional[str]):
+    """Doc masterclass del partner. La masterclass sta in `masterclass_factory`
+    (set-youtube-url) o in `partner_masterclass` (upload): si prova l'una, poi
+    l'altra. Se il finale non e' registrato da nessuna parte, l'admin puo' passare
+    `masterclass_video_id` a mano (caso di masterclass montate fuori dall'app)."""
+    doc = await db.masterclass_factory.find_one({"partner_id": partner_id}, {"_id": 0})
+    if not doc:
+        doc = await db.partner_masterclass.find_one({"partner_id": partner_id}, {"_id": 0})
+    if override_video_id:
+        doc = {**(doc or {}), "video_youtube_id": override_video_id}
+    return doc
+
+
+@router.post("/videocorso/{partner_id}/normalize-youtube-titles")
+async def normalize_youtube_titles(
+    partner_id: str,
+    dry_run: bool = Query(
+        True,
+        description="True (default): mostra il piano senza toccare YouTube. "
+        "False: esegue davvero le rinomine.",
+    ),
+    masterclass_video_id: Optional[str] = Query(
+        None,
+        description="Id YouTube della masterclass finale, se non e' registrata "
+        "nel sistema (montata fuori dall'app). Viene inclusa nel rename.",
+    ),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Rinomina i video FINALI del partner (videocorso + masterclass) su YouTube
+    con titoli chiari e ordinabili ("Cognome · M01·L01 — titolo").
+
+    La playlist YouTube del partner e' un backup privato dove finiscono TUTTI i
+    render: senza titoli chiari non si distingue il video buono dai vecchi. Qui si
+    rinominano SOLO i finali (quelli con `video_youtube_id`, cioe' i pubblicati su
+    Systeme); i vecchi restano ma non confondono piu'. `dry_run=True` (default)
+    restituisce 'titolo attuale -> nuovo' senza cambiare niente. Solo admin.
+    """
+    await require_admin_token(credentials)
+    partner = await get_partner_or_404(partner_id)
+    videocorso = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0})
+    masterclass = await _load_partner_masterclass(partner_id, masterclass_video_id)
+
+    from services.youtube_titles import build_title_plan
+    plan = build_title_plan(partner, videocorso, masterclass)
+    if not plan:
+        return {
+            "success": True, "partner_id": partner_id, "dry_run": dry_run,
+            "message": "Nessun video finale con id YouTube da rinominare.",
+            "items": [], "total": 0,
+        }
+
+    from youtube_uploader import youtube_uploader
+    if not youtube_uploader.is_authenticated():
+        raise HTTPException(status_code=503, detail="YouTube non autenticato sul backend")
+
+    snippets = youtube_uploader.get_videos_snippets([p["video_id"] for p in plan])
+
+    items = []
+    for p in plan:
+        vid = p["video_id"]
+        exists = vid in snippets
+        current_title = snippets.get(vid, {}).get("title") if exists else None
+        changed = exists and current_title != p["target_title"]
+        item = {
+            "video_id": vid,
+            "kind": p["kind"],
+            "lesson_id": p["lesson_id"],
+            "current_title": current_title,
+            "target_title": p["target_title"],
+            "exists_on_youtube": exists,
+            "changed": changed,
+        }
+        if not dry_run and changed:
+            res = youtube_uploader.rename_video(vid, p["target_title"])
+            item["renamed"] = bool(res.get("success"))
+            if not res.get("success"):
+                item["error"] = res.get("error")
+        items.append(item)
+
+    return {
+        "success": True,
+        "partner_id": partner_id,
+        "dry_run": dry_run,
+        "total": len(items),
+        "to_change": sum(1 for i in items if i["changed"]),
+        "already_ok": sum(1 for i in items if i["exists_on_youtube"] and not i["changed"]),
+        "missing_on_youtube": [i["video_id"] for i in items if not i["exists_on_youtube"]],
+        "renamed": sum(1 for i in items if i.get("renamed")) if not dry_run else 0,
+        "items": items,
+    }
+
+
+@router.post("/videocorso/{partner_id}/prune-playlist")
+async def prune_partner_playlist(
+    partner_id: str,
+    dry_run: bool = Query(
+        True,
+        description="True (default): mostra cosa verrebbe rimosso. "
+        "False: rimuove davvero dalla playlist.",
+    ),
+    masterclass_video_id: Optional[str] = Query(
+        None, description="Id YouTube della masterclass finale: viene TENUTA."
+    ),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Ripulisce la playlist-backup del partner: TIENE solo i finali (le lezioni
+    con `video_youtube_id` + la masterclass indicata) e RIMUOVE dalla playlist i
+    vecchi render/duplicati. ⚠️ Rimuove SOLO dalla playlist: i video restano su
+    YouTube (non-in-elenco), niente viene cancellato. `dry_run=True` (default)
+    mostra i candidati senza toccare nulla. Solo admin.
+    """
+    await require_admin_token(credentials)
+    partner = await get_partner_or_404(partner_id)
+    playlist_id = partner.get("youtube_playlist_id")
+    if not playlist_id:
+        raise HTTPException(status_code=400, detail="Il partner non ha una playlist YouTube")
+
+    videocorso = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0})
+    masterclass = await _load_partner_masterclass(partner_id, masterclass_video_id)
+
+    from services.youtube_titles import build_title_plan, playlist_removal_plan
+    plan = build_title_plan(partner, videocorso, masterclass)
+    keep_ids = {p["video_id"] for p in plan}
+    if masterclass_video_id:
+        keep_ids.add(masterclass_video_id)
+
+    from youtube_uploader import youtube_uploader
+    if not youtube_uploader.is_authenticated():
+        raise HTTPException(status_code=503, detail="YouTube non autenticato sul backend")
+
+    listing = youtube_uploader.get_playlist_videos(playlist_id)
+    playlist_items = listing.get("videos", [])
+    to_remove = playlist_removal_plan(keep_ids, playlist_items)
+
+    removed, errors = 0, []
+    if not dry_run:
+        for it in to_remove:
+            res = youtube_uploader.remove_video_from_playlist(it["playlist_item_id"])
+            if res.get("success"):
+                removed += 1
+            else:
+                errors.append({"video_id": it["video_id"], "error": res.get("error")})
+
+    return {
+        "success": True,
+        "partner_id": partner_id,
+        "playlist_id": playlist_id,
+        "dry_run": dry_run,
+        "total_in_playlist": len(playlist_items),
+        "keep_count": len(keep_ids),
+        "to_remove_count": len(to_remove),
+        "to_remove": to_remove,
+        "removed": removed,
+        "errors": errors,
+    }
+
+
 @router.post("/videocorso/submit-video-link")
 async def submit_videocorso_video_link(
     req: VideoLinkRequest,
@@ -1953,33 +2113,16 @@ async def approve_masterclass_video(
         if exc.status_code != 404:
             raise
 
-    # Aggiungi alla playlist YouTube del partner SOLO ora (approvazione admin):
-    # la playlist contiene solo video approvati, mai gli scarti in review.
+    # La playlist aspetta il controllo del montaggio, come per le lezioni: editing -> verifica
+    # di Antonella -> playlist -> Systeme. Se la masterclass e' gia' stata verificata la si
+    # aggiunge adesso, altrimenti ci pensera' l'esito in coda. (13/10/2026)
     playlist_note = ""
-    yt_id = doc.get("video_youtube_id")
-    if yt_id:
-        try:
-            import asyncio
-            from video_pipeline_task import create_youtube_playlist_sync, add_to_youtube_playlist_sync
-            loop = asyncio.get_event_loop()
-            playlist_id = (partner or {}).get("youtube_playlist_id")
-            if not playlist_id:
-                playlist_id = await loop.run_in_executor(
-                    None, create_youtube_playlist_sync, (partner or {}).get("name", partner_id)
-                )
-                if playlist_id:
-                    await db.partners.update_one(
-                        {"id": partner_id},
-                        {"$set": {
-                            "youtube_playlist_id": playlist_id,
-                            "youtube_playlist_url": f"https://www.youtube.com/playlist?list={playlist_id}",
-                        }},
-                    )
-            if playlist_id:
-                ok = await loop.run_in_executor(None, add_to_youtube_playlist_sync, yt_id, playlist_id)
-                playlist_note = "\n📋 Aggiunto a playlist partner" if ok else ""
-        except Exception as e:
-            logging.warning(f"[MASTERCLASS] Playlist add (approve) non bloccante: {e}")
+    esito_mc = await _esito_masterclass(partner_id, doc)
+    if youtube_playlist.verificata(esito_mc):
+        res = await youtube_playlist.aggiungi_video(db, partner_id, doc.get("video_youtube_id") or "")
+        playlist_note = "\n📋 Aggiunto a playlist partner" if res["ok"] else ""
+    else:
+        playlist_note = f"\n📋 Playlist: {youtube_playlist.motivo_attesa(esito_mc)}"
 
     await notify_telegram(
         f"✅ VIDEO MASTERCLASS APPROVATO\n\n"
@@ -2072,6 +2215,7 @@ def _build_lesson_review_response(lesson: dict) -> dict:
         "words": lesson.get("review_words", []),
         "cut_segments": lesson.get("review_cut_segments", []),
         "filler_report": lesson.get("review_filler_report"),
+        "cut_stats": lesson.get("review_cut_stats"),
         "review_note": lesson.get("review_note"),
         "pipeline_error": lesson.get("pipeline_error"),
         "script": lesson.get("script_content") or lesson.get("approved_script") or lesson.get("script") or "",
@@ -2099,10 +2243,78 @@ async def get_videocorso_review_data(
     return _build_lesson_review_response(lesson)
 
 
+class LessonReviewVideoRequest(BaseModel):
+    partner_id: str
+    lesson_id: str
+
+
+@router.post("/videocorso/review-video-url")
+async def get_videocorso_review_video_url(
+    req: LessonReviewVideoRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Admin: indirizzo breve (30 min) per vedere il grezzo accanto al testo nella revisione dei tagli."""
+    await require_admin_token(credentials)
+    await get_partner_or_404(req.partner_id)
+    doc = await db.partner_videocorso.find_one({"partner_id": req.partner_id}) or {}
+    lesson = (doc.get("lessons") or {}).get(req.lesson_id) or {}
+    from services import ciak_review_video as crv
+    if lesson.get("pipeline_status") != "da_revisionare" or not crv.split_gs_url(lesson.get("video_raw_url") or ""):
+        raise HTTPException(status_code=404, detail="Anteprima non disponibile per questa lezione")
+    from auth import JWT_ALGORITHM, JWT_SECRET_KEY
+    token = crv.make_token(jwt, JWT_SECRET_KEY, JWT_ALGORITHM, req.partner_id, req.lesson_id)
+    return {"url": f"/api/partner-journey/videocorso/review-video/{req.partner_id}/{req.lesson_id}?t={token}",
+            "expires_in": crv.TOKEN_TTL_S}
+
+
+@router.get("/videocorso/review-video/{partner_id}/{lesson_id}")
+async def stream_videocorso_review_video(
+    partner_id: str, lesson_id: str, request: Request, t: str = Query(""),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Grezzo della lezione a pezzi (Range) per il lettore della revisione.
+
+    Mai senza autorizzazione: o un admin con il suo accesso (header Authorization), oppure il gettone breve `t`
+    (30 min, solo per questa lezione, rilasciato agli admin da /review-video-url) per il tag <video>, che non puo
+    mandare l'header."""
+    from auth import JWT_ALGORITHM, JWT_SECRET_KEY
+    from services import ciak_review_video as crv
+    if credentials:
+        await require_admin_token(credentials)
+    elif not crv.verify_token(jwt, JWT_SECRET_KEY, JWT_ALGORITHM, t, partner_id, lesson_id):
+        raise HTTPException(status_code=403, detail="Gettone non valido o scaduto")
+    doc = await db.partner_videocorso.find_one({"partner_id": partner_id}) or {}
+    lesson = (doc.get("lessons") or {}).get(lesson_id) or {}
+    where = crv.split_gs_url(lesson.get("video_raw_url") or "")
+    if not where:
+        raise HTTPException(status_code=404, detail="Video non disponibile")
+    from google.cloud import storage as gcs_storage
+    loop = asyncio.get_event_loop()
+
+    def _meta():
+        blob = gcs_storage.Client().bucket(where[0]).blob(where[1])
+        blob.reload()
+        return blob
+
+    blob = await loop.run_in_executor(None, _meta)
+    size = int(blob.size or 0)
+    rng = crv.parse_range(request.headers.get("range"), size)
+    if rng is None:
+        return Response(status_code=416, headers={"Content-Range": f"bytes */{size}"})
+    start, end = rng
+    data = await loop.run_in_executor(None, lambda: blob.download_as_bytes(start=start, end=end))
+    return Response(content=data, status_code=206, media_type=blob.content_type or "video/mp4", headers={
+        "Content-Range": f"bytes {start}-{end}/{size}", "Accept-Ranges": "bytes",
+        "Cache-Control": "private, max-age=300", "Content-Length": str(len(data)),
+    })
+
+
 class LessonReviewApproveRequest(BaseModel):
     partner_id: str
     lesson_id: str
     disabled_cut_ids: list = []
+    # tagli aggiunti a mano sul testo: [{"start_s": 57.0, "end_s": 74.0}, ...]
+    custom_cuts: list = []
 
 
 @router.post("/videocorso/review-approve")
@@ -2118,10 +2330,13 @@ async def approve_videocorso_review(
     lesson = (doc.get("lessons") or {}).get(req.lesson_id) if doc else None
     if not lesson or lesson.get("pipeline_status") != "da_revisionare":
         raise HTTPException(status_code=400, detail="Nessuna revisione in attesa per questa lezione")
-    segs = lesson.get("review_cut_segments", [])
-    disabled = set(req.disabled_cut_ids or [])
-    for s in segs:
-        s["enabled"] = s.get("id") not in disabled
+    from services.ciak_lesson_review_cuts import apply_review_decisions
+    try:
+        segs = apply_review_decisions(
+            [s for s in lesson.get("review_cut_segments", []) if s.get("type") != "manual"],
+            req.disabled_cut_ids, req.custom_cuts, float(lesson.get("video_raw_duration_s") or 0))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     enabled_count = sum(1 for s in segs if s.get("enabled"))
     lk = f"lessons.{req.lesson_id}"
     now = datetime.now(timezone.utc).isoformat()
@@ -2280,36 +2495,21 @@ async def set_masterclass_youtube_url(
     now = datetime.now(timezone.utc).isoformat()
     partner_name = partner.get("name", req.partner_id)
 
-    # Playlist YouTube: crea se non esiste, poi aggiungi il video
+    # Playlist YouTube: solo dopo il controllo del montaggio (vedi services/youtube_playlist.py).
     playlist_id = partner.get("youtube_playlist_id")
     playlist_url = partner.get("youtube_playlist_url")
     playlist_note = ""
-
     if yt_id:
-        try:
-            from video_pipeline_task import create_youtube_playlist_sync, add_to_youtube_playlist_sync
-            loop = asyncio.get_event_loop()
-
-            if not playlist_id:
-                playlist_id = await loop.run_in_executor(
-                    None, create_youtube_playlist_sync, partner_name
-                )
-                if playlist_id:
-                    playlist_url = f"https://www.youtube.com/playlist?list={playlist_id}"
-                    await db.partners.update_one(
-                        {"id": req.partner_id},
-                        {"$set": {"youtube_playlist_id": playlist_id, "youtube_playlist_url": playlist_url}}
-                    )
-                    playlist_note = f"\n📋 Playlist creata: {playlist_url}"
-
-            if playlist_id:
-                ok = await loop.run_in_executor(
-                    None, add_to_youtube_playlist_sync, yt_id, playlist_id
-                )
-                if ok and not playlist_note:
-                    playlist_note = f"\n📋 Video aggiunto alla playlist partner"
-        except Exception as e:
-            logging.warning(f"[MASTERCLASS] Playlist error (non bloccante): {e}")
+        _doc_mc = await db.masterclass_factory.find_one({"partner_id": req.partner_id}, {"_id": 0, "output_version": 1}) or {}
+        _esito = await _esito_masterclass(req.partner_id, _doc_mc)
+        if youtube_playlist.verificata(_esito):
+            res = await youtube_playlist.aggiungi_video(db, req.partner_id, yt_id)
+            if res["ok"]:
+                playlist_id = res["playlist_id"]
+                playlist_url = f"https://www.youtube.com/playlist?list={playlist_id}"
+                playlist_note = "\n📋 Video aggiunto alla playlist partner"
+        else:
+            playlist_note = f"\n📋 Playlist: {youtube_playlist.motivo_attesa(_esito)}"
 
     await db.masterclass_factory.update_one(
         {"partner_id": req.partner_id},
@@ -2361,35 +2561,21 @@ async def approve_videocorso_video(
         }}
     )
 
-    # Aggiungi alla playlist YouTube del partner SOLO ora (approvazione admin).
-    try:
-        import asyncio
-        partner = await db.partners.find_one({"id": partner_id})
-        vc = await db.partner_videocorso.find_one({"partner_id": partner_id})
-        lesson = ((vc or {}).get("lessons") or {}).get(lesson_id, {})
-        yt_id = lesson.get("video_youtube_id") or ""
-        if yt_id:
-            from video_pipeline_task import create_youtube_playlist_sync, add_to_youtube_playlist_sync
-            loop = asyncio.get_event_loop()
-            playlist_id = (partner or {}).get("youtube_playlist_id")
-            if not playlist_id:
-                playlist_id = await loop.run_in_executor(
-                    None, create_youtube_playlist_sync, (partner or {}).get("name", partner_id)
-                )
-                if playlist_id:
-                    await db.partners.update_one(
-                        {"id": partner_id},
-                        {"$set": {
-                            "youtube_playlist_id": playlist_id,
-                            "youtube_playlist_url": f"https://www.youtube.com/playlist?list={playlist_id}",
-                        }},
-                    )
-            if playlist_id:
-                await loop.run_in_executor(None, add_to_youtube_playlist_sync, yt_id, playlist_id)
-    except Exception as e:
-        logging.warning(f"[VIDEOCORSO] Playlist add (approve) non bloccante: {e}")
+    # La playlist NON si popola qui. La sequenza voluta e': editing -> verifica di Antonella ->
+    # playlist -> Systeme. Prima l'approvazione admin poteva precedere il controllo del montaggio,
+    # e il video entrava nella playlist del partner senza che nessuno l'avesse guardato per intero.
+    # Se la lezione e' GIA' stata verificata (ordine invertito) la si aggiunge adesso. (13/10/2026)
+    from services import youtube_playlist, coda_antonella as _ca
+    _vc = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0, "lessons": 1}) or {}
+    _les = (_vc.get("lessons") or {}).get(lesson_id, {})
+    _chiave = _ca.chiave_lezione(partner_id, lesson_id, int(_les.get("output_version") or 0))
+    _esito = await db.ciak_coda_lezioni.find_one({"_id": _chiave}, {"_id": 0, "esito": 1})
+    if youtube_playlist.verificata(_esito):
+        await youtube_playlist.aggiungi_video(db, partner_id, _les.get("video_youtube_id") or "")
+        return {"success": True, "message": f"Lezione {lesson_id} approvata"}
+    return {"success": True, "message": f"Lezione {lesson_id} approvata",
+            "playlist": f"non aggiunta: {youtube_playlist.motivo_attesa(_esito)}"}
 
-    return {"success": True, "message": f"Lezione {lesson_id} approvata"}
 
 
 class PartnerLessonReviewRequest(BaseModel):
@@ -3772,8 +3958,16 @@ async def _get_lancio_status_unchecked(partner_id: str):
     """Recupera lo stato di preparazione al lancio"""
     partner = await get_partner_or_404(partner_id)
     
-    # Verifica prerequisiti
-    masterclass = await db.partner_masterclass.find_one({"partner_id": partner_id}, {"_id": 0})
+    # Verifica prerequisiti.
+    # La masterclass sta in `masterclass_factory` (set-youtube-url + approvazione,
+    # vedi riga ~2085) o in `partner_masterclass` (upload). Prima si leggeva SOLO
+    # partner_masterclass, mai popolata dal flusso factory → il gate lancio non
+    # passava mai (publish-funnel sempre 400). La gemella get_partner_journey_progress
+    # era gia' stata corretta a leggere masterclass_factory: qui si allinea.
+    masterclass = (
+        await db.masterclass_factory.find_one({"partner_id": partner_id}, {"_id": 0})
+        or await db.partner_masterclass.find_one({"partner_id": partner_id}, {"_id": 0})
+    )
     videocorso = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0})
     funnel = await db.partner_funnel.find_one({"partner_id": partner_id}, {"_id": 0})
     lancio = await db.partner_lancio.find_one({"partner_id": partner_id}, {"_id": 0})
@@ -5712,6 +5906,12 @@ async def get_partner_leads(
     }
 
 
+def _csv_safe(value):
+    """Neutralizza le formule: un campo che inizia con = + - @ (o tab/CR) viene eseguito da Excel."""
+    text = "" if value is None else str(value)
+    return "'" + text if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text
+
+
 @router.post("/leads/export-csv/{partner_id}")
 async def export_leads_csv(
     partner_id: str,
@@ -5741,15 +5941,15 @@ async def export_leads_csv(
     
     # Data
     for lead in leads:
-        writer.writerow([
+        writer.writerow([_csv_safe(v) for v in (
             lead.get("name", ""),
             lead.get("email", ""),
             lead.get("phone", ""),
             lead.get("created_at", ""),
             lead.get("funnel_origin", ""),
             lead.get("status", ""),
-            lead.get("notes", "")
-        ])
+            lead.get("notes", ""),
+        )])
     
     output.seek(0)
     
@@ -6656,6 +6856,19 @@ async def confirm_video_upload(
             upsert=True
         )
     elif req.video_type == "videocorso" and req.lesson_id:
+        # Tetto di tre video in lavorazione per partner: oltre, la coda di controllo diventa
+        # impossibile da programmare (vedi services/limite_video.py). Non vale per una lezione
+        # gia' in coda che viene rimandata: il posto e' gia' suo.
+        from services import limite_video, coda_antonella as _coda
+        _vc = await db.partner_videocorso.find_one({"partner_id": req.partner_id}, {"_id": 0, "lessons": 1}) or {}
+        _lessons = _vc.get("lessons") or {}
+        _esiti = {}
+        async for _e in db.ciak_coda_lezioni.find({"partner_id": str(req.partner_id)}, {"_id": 1, "esito": 1}):
+            _esiti[_e["_id"]] = _e
+        _stato = limite_video.stato_upload(_lessons, _esiti, _coda.chiave_lezione, str(req.partner_id))
+        if not _stato["puo_caricare"] and req.lesson_id not in _stato["lezioni_in_lavorazione"]:
+            raise HTTPException(status_code=409, detail=_stato["messaggio"])
+
         # NB: partner_videocorso.lessons è un DICT keyed per lesson_id (vedi
         # upload_videocorso_lesson / approve_videocorso_lesson / pipeline set_status),
         # NON un array — quindi niente operatore posizionale `$`.
@@ -6722,6 +6935,56 @@ _LEGACY_STEP_MIGRATIONS = [
     ("10-funnel-team-work", "10-sistema-vendita"),
     ("09-funnel-asset", "10-sistema-vendita"),
 ]
+
+
+# Gli step della vecchia numerazione restano nel database (la migrazione sotto li
+# archivia come `skipped`, con i loro dati: documenti e video caricati allora). Non
+# appartengono piu' al percorso: il registry non li conosce, quindi la vista partner
+# mostrava il loro ID grezzo ("09-funnel-asset") sotto "Non richiesto" e li contava nel
+# totale. Si nascondono qui, una volta per tutti i partner; i documenti NON si toccano.
+_LEGACY_STEP_IDS = frozenset(old for old, _ in _LEGACY_STEP_MIGRATIONS)
+
+
+def visible_journey_steps(steps: list) -> list:
+    """Step da mostrare al partner: via quelli della vecchia numerazione e quelli
+    che nessuna definizione conosce (senza definizione la label sarebbe l'ID)."""
+    return [
+        s for s in steps
+        if s.get("step_id") not in _LEGACY_STEP_IDS and step_definition(s.get("step_id"))
+    ]
+def passo_corrente(steps: list):
+    """Lo step su cui il partner si trova adesso: il primo aperto CHE TOCCA A LUI.
+
+    Il team apre in anticipo gli step di sua competenza e non li richiude. Andolfi ne aveva
+    cinque aperti insieme (F-13, F-16, F-17, F-18, F-19) e tre non hanno nemmeno una schermata
+    partner: mostrarli come "il tuo prossimo passo" mandava il partner su una pagina vuota.
+    Si parte comunque dopo l'ultimo completato: un singolo step lasciato indietro a meta'
+    strada non deve riportare la vista all'inizio del percorso (regola del 30/07/2026).
+    """
+    if not steps:
+        return None
+    ultimo_done = max((i for i, s in enumerate(steps) if s.get("status") == "done"), default=-1)
+    aperti = [s for s in steps[ultimo_done + 1:] if s.get("status") in ("in_progress", "pending")]
+    scelto = next((s for s in aperti if s.get("azione", "partner") == "partner"), None)
+    if scelto:
+        return scelto
+    # Nessuno step del partner davanti: resta quello del team (ci stiamo lavorando noi),
+    # poi un eventuale step rimasto indietro, infine l'ultimo (percorso finito).
+    return next(iter(aperti), None) \
+        or next((s for s in steps if s.get("status") == "in_progress"), None) \
+        or steps[-1]
+
+
+async def _esito_masterclass(partner_id: str, doc: Optional[dict] = None) -> Optional[dict]:
+    """L'esito del controllo di Antonella sulla masterclass, per la versione attuale del montaggio.
+
+    Serve a tenere la stessa regola delle lezioni anche sulle due vie piu' vecchie
+    (`approve-masterclass`, `set-youtube-url`): in playlist solo dopo il controllo.
+    """
+    from services import coda_antonella as _ca
+    versione = max(1, int((doc or {}).get("output_version") or 1))
+    chiave = _ca.chiave_lezione(str(partner_id), _ca.MASTERCLASS_ID, versione)
+    return await db.ciak_coda_lezioni.find_one({"_id": chiave}, {"_id": 0, "esito": 1})
 
 
 async def _project_legacy_phase(partner_id: str):
@@ -6858,6 +7121,8 @@ async def get_operativo_state(
             {"partner_id": partner_id}, {"_id": 0}
         ).sort("step_number", 1).to_list(length=40)
 
+    steps = visible_journey_steps(steps)
+
     # La definizione in codice resta la fonte dei metadati presentazionali e di policy.
     # Si guarda a TUTTI gli step conosciuti (canonici + start-only): chi e' salito
     # da Ciak Start si porta dietro i 4 step Start, che devono restare etichettati.
@@ -6869,6 +7134,8 @@ async def get_operativo_state(
         s["owner"] = meta.get("owner")
         s["completion_policy"] = meta.get("completion_policy")
         s["material_categories"] = meta.get("material_categories", [])
+        # chi deve muoversi: "partner" oppure "team" (vedi models/partner_journey_step.py)
+        s["azione"] = meta.get("azione", "partner")
 
     # Il punto in cui si trova il partner e' il FRONTE del percorso: il primo step
     # aperto DOPO l'ultimo completato. Prendendo il primo `in_progress` in assoluto,
@@ -6880,17 +7147,11 @@ async def get_operativo_state(
         (i for i, s in enumerate(steps) if s["status"] == "done"),
         default=-1,
     )
-    current_step = next(
-        (s for s in steps[ultimo_done + 1:] if s["status"] in ("in_progress", "pending")),
-        None,
-    )
-    if not current_step:
-        # Nessuno step aperto dopo l'ultimo completato: se ne e' rimasto qualcuno
-        # indietro lo si mostra comunque, altrimenti il journey e' finito.
-        current_step = next((s for s in steps if s["status"] == "in_progress"), None)
-    if not current_step:
-        # Tutti done -> partner ha completato il journey
-        current_step = steps[-1] if steps else None
+    # Il team apre in anticipo gli step di sua competenza e non li richiude: Andolfi ne
+    # aveva cinque aperti insieme, di cui tre (F-16, F-18, F-19) senza nemmeno una schermata
+    # partner. Il passo corrente e' quindi il primo aperto CHE TOCCA AL PARTNER; gli step del
+    # team restano aperti nei dati ma non diventano mai "il tuo prossimo passo". (13/10/2026)
+    current_step = passo_corrente(steps)
 
     # Stato "Avvio" (step 1-2 pre-percorso, non in macro-fasi)
     avvio_steps = [s for s in steps if s["step_id"] in AVVIO_STEP_IDS]
@@ -7822,6 +8083,27 @@ async def get_stefania_context(
     }
 
 
+_OPERATIVO_IMAGE_EXTS = (
+    "jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "heic", "heif", "tif", "tiff", "avif",
+)
+_OPERATIVO_VIDEO_EXTS = ("mp4", "mov", "avi", "webm", "mkv")
+
+
+def operativo_resource_type(ext: str) -> str:
+    """Cloudinary resource_type per un upload del Percorso.
+    Solo le immagini vere -> "image"; i video -> "video"; tutto il resto
+    (PDF e documenti Office: xlsx, docx, pptx, csv, txt, zip…) -> "raw", così
+    Cloudinary li accetta e sono serviti/scaricabili. Prima gli Office cadevano
+    su "image" -> Cloudinary li rifiutava -> fallback locale /static non servibile
+    da _serve -> 404 all'apertura nei Materiali del partner."""
+    e = (ext or "").lower()
+    if e in _OPERATIVO_VIDEO_EXTS:
+        return "video"
+    if e in _OPERATIVO_IMAGE_EXTS:
+        return "image"
+    return "raw"
+
+
 async def _register_operativo_file_in_files(
     partner_id, filename, ext, resource_type, is_video, is_pdf, url, stored, size,
 ):
@@ -7829,7 +8111,7 @@ async def _register_operativo_file_in_files(
     così compare in 'I miei file' (Workspace) ed è eliminabile. Best-effort:
     non deve mai rompere l'upload se fallisce."""
     try:
-        category = "video" if is_video else ("document" if is_pdf else "image")
+        category = "video" if is_video else ("image" if resource_type == "image" else "document")
         await db.files.insert_one({
             "file_id": uuid.uuid4().hex,
             "original_name": filename or f"upload.{ext}",
@@ -7865,7 +8147,7 @@ async def upload_operativo_file(
     ext = (file.filename or "file").rsplit(".", 1)[-1].lower() if "." in (file.filename or "") else "bin"
     is_video = ext in ("mp4", "mov", "avi", "webm", "mkv")
     is_pdf = ext == "pdf"
-    resource_type = "video" if is_video else ("raw" if is_pdf else "image")
+    resource_type = operativo_resource_type(ext)
 
     try:
         from cloudinary_service import upload_file_direct, is_cloudinary_configured
@@ -7958,6 +8240,35 @@ async def get_piano_operativo_pdf(
         headers={
             "Content-Disposition": f'attachment; filename="piano_operativo_master_{partner_id}.pdf"'
         },
+    )
+
+
+@router.get("/start-libretto-pdf/{partner_id}")
+async def get_start_libretto_pdf(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Il libretto del progetto per il cliente Ciak Start: un solo PDF, sempre aggiornato.
+
+    Mostra solo i materiali APPROVATI dal team. E' l'equivalente di Start del
+    Libretto di Progetto (Partnership), ma con parole e contenuti di Start.
+    """
+    from services.ciak_client_accounts import has_start_entitlement
+    from services.start_libretto import genera_libretto_start_pdf
+
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+    client = await db.ciak_clients.find_one({"id": partner_id}, {"_id": 0})
+    if not client or not has_start_entitlement(client):
+        raise HTTPException(status_code=404, detail="Questo documento e' per i clienti Ciak Start")
+    try:
+        pdf_bytes = await genera_libretto_start_pdf(db, partner_id)
+    except Exception as exc:  # noqa: BLE001
+        logging.getLogger(__name__).exception("[START_LIBRETTO] PDF non generato per %s: %s", partner_id, exc)
+        raise HTTPException(status_code=500, detail="Non riesco a preparare il documento adesso: riprova fra poco.")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="il_tuo_progetto_start_{partner_id}.pdf"'},
     )
 
 

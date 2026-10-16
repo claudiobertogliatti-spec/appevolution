@@ -34,7 +34,18 @@ const EMOZIONI = ["Motivato", "Tranquillo", "Compreso", "Curioso", "Sicuro", "Is
 const ESPRESSIONI_SLOTS = 3;
 const EMOZIONI_MAX = 5;
 
-export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraft }) {
+/**
+ * Riusato anche dal cliente Ciak Start (decisione di Claudio, 11/10/2026): stesso form,
+ * ma con tre aggiustamenti passati dal chiamante e senza toccare il percorso EVO:
+ *  - `uploadFn(file)` -> url: upload con l'accesso del cliente (default: quello del partner);
+ *  - `onFinalize(payload)`: invia ai servizi di Start invece di generare il PDF partner;
+ *  - `logoFotoObbligatori` (default true): in Start logo e foto sono facoltativi;
+ *  - `ctaLabel`/`titolo`: testi del pulsante e del titolo.
+ */
+export default function Step03BrandKit({
+  step, partnerId, onComplete, onSaveDraft,
+  uploadFn, onFinalize, logoFotoObbligatori = true, ctaLabel, titolo,
+}) {
   const initial = step?.data || {};
 
   const [logo, setLogo] = useState(initial.logo_url || "");
@@ -68,7 +79,7 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
   );
 
   useEffect(() => {
-    if (!partnerId) return;
+    if (!partnerId || onFinalize) return; // il documento partner non esiste per i clienti Start
     axios
       .get(`${API}/api/partner/brand-kit/document/${partnerId}`, { headers: authHeaders() })
       .then((r) => setDoc(r.data || null))
@@ -137,7 +148,7 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
     setBusy(true);
     setError(null);
     try {
-      const url = await uploadFile(file, partnerId);
+      const url = await (uploadFn ? uploadFn(file) : uploadFile(file, partnerId));
       if (kind === "logo") {
         setLogo(url);
         update({ logo_url: url });
@@ -156,8 +167,7 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
   const paroleChiaveFilled = paroleChiave.filter((p) => (p || "").trim()).length;
   const toneOk = tone.trim().length >= TONE_MIN;
   const canComplete =
-    logo &&
-    foto &&
+    (!logoFotoObbligatori || (logo && foto)) &&
     validColors &&
     toneOk &&
     paroleChiaveFilled >= PAROLE_CHIAVE_MIN &&
@@ -185,6 +195,12 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
         espressioni: espressioni.filter((p) => (p || "").trim()),
         emozioni,
       };
+      if (onFinalize) {
+        // Cliente Start: invio ai servizi Start; la schermata di fine la decide il chiamante.
+        await onFinalize(payload);
+        if (onComplete) onComplete(payload);
+        return;
+      }
       if (onSaveDraft) await onSaveDraft(payload);
       const res = await axios.post(
         `${API}/api/partner/brand-kit/finalize`,
@@ -200,7 +216,9 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
       });
       if (onComplete) onComplete({ ...payload, approval_status: res.data.approval_status });
     } catch (e) {
-      if (e?.response?.status === 409) {
+      if (onFinalize) {
+        setError("Non sono riuscito a inviare. Controlla la connessione e riprova.");
+      } else if (e?.response?.status === 409) {
         setError(e.response.data?.detail || "Brand kit già approvato dal team.");
       } else if (e?.response?.status === 400) {
         setError(e.response.data?.detail || "Brand kit incompleto.");
@@ -235,8 +253,8 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
   return (
     <StepBase
       step={step}
-      title="Il tuo marchio: logo, foto e colori"
-      ctaLabel={submitting ? "Sto generando il brand kit..." : "Genera Brand Kit"}
+      title={titolo || "Il tuo marchio: logo, foto e colori"}
+      ctaLabel={submitting ? (onFinalize ? "Invio..." : "Sto generando il brand kit...") : (ctaLabel || "Genera Brand Kit")}
       ctaDisabled={!canComplete}
       onCta={finalize}
       secondaryNote="Carichi quello che hai; al resto pensiamo noi. Servono a dare al tuo progetto un’immagine coerente."
@@ -260,13 +278,13 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
       <SectionHeader title="Identità visiva" subtitle="Logo, foto, colori." />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
         <UploadSlot
-          label="Logo (PNG/SVG con sfondo trasparente)"
+          label={logoFotoObbligatori ? "Logo (PNG/SVG con sfondo trasparente)" : "Logo, se ce l'hai (PNG/SVG con sfondo trasparente)"}
           accept="image/*,.svg"
           url={logo}
           onPick={(f) => handleUpload("logo", f)}
         />
         <UploadSlot
-          label="Foto personale"
+          label={logoFotoObbligatori ? "Foto personale" : "Una tua foto, se vuoi"}
           accept="image/*"
           url={foto}
           onPick={(f) => handleUpload("foto", f)}

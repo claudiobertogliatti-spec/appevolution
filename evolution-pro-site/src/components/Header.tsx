@@ -22,6 +22,7 @@ export function Header() {
           <a href="#ciak">Piattaforma</a>
           <a href="#testimonianze">Testimonianze</a>
           <a href="#faq">FAQ</a>
+          <a href="/blog/">Blog</a>
         </nav>
         <a className="button button--primary site-header__cta" href={siteContent.primaryCta.href}>
           {siteContent.primaryCta.label}

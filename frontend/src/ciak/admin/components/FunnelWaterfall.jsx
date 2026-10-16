@@ -67,7 +67,7 @@ export function FunnelWaterfall({ stages = [], northStar = {} }) {
         ))}
       </div>
       <p className="mt-3 text-[11px] text-slate-400">
-        Le conversioni di Ciak Start e Partnership sono calcolate sui Blueprint (lo split per punteggio dopo le 8 Domande).
+        Le conversioni di Ciak Start e Partnership sono calcolate sui Blueprint (lo split per punteggio dopo le 10 Domande).
       </p>
     </section>
   );

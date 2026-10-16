@@ -73,6 +73,18 @@ def test_unknown_app_env_is_rejected(monkeypatch):
         security.get_app_env()
 
 
+@pytest.mark.parametrize("role", ["admin", "superadmin", "operations"])
+def test_operations_staff_authorized_accepts_staff(monkeypatch, role):
+    security = _module(monkeypatch)
+    assert security.operations_staff_authorized(role) is True
+
+
+@pytest.mark.parametrize("role", ["partner", "ciak_client", "", None, "guest"])
+def test_operations_staff_authorized_rejects_non_staff(monkeypatch, role):
+    security = _module(monkeypatch)
+    assert security.operations_staff_authorized(role) is False
+
+
 def test_ci_runs_secret_scan_and_security_regressions():
     workflow = (
         Path(__file__).resolve().parents[2] / ".github" / "workflows" / "ci.yml"

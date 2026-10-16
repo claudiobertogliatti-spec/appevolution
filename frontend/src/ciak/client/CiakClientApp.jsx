@@ -4,45 +4,119 @@ import {
 } from "react-router-dom";
 import { ClientLayout } from "./ClientLayout";
 import {
-  clientGet, getClientToken, getClientUser, magicLogin,
+  clientGet, getClientToken, getClientUser, magicLogin, requestAccess,
 } from "./api";
 import { ClientHome } from "./pages/ClientHome";
-import { BlueprintPage } from "./pages/BlueprintPage";
 import { StartPage } from "./pages/StartPage";
+import { StartPlusPage } from "./pages/StartPlusPage";
+import { StartDomandePage } from "./pages/StartDomandePage";
+import { StartMarchioPage } from "./pages/StartMarchioPage";
 import { PartnershipEducationPage } from "./pages/PartnershipEducationPage";
+import { SimulatorePage } from "./pages/SimulatorePage";
+import StartArea from "./start/StartArea";
+// Il benvenuto di Ciak Start e' suo: cosa si e' acquistato e cosa si fa insieme.
+// Il Metodo E.V.O. (corso, lezioni, vendita, lancio) e' della Partnership.
+import BenvenutoStart from "./BenvenutoStart";
+import { markWelcomeSeen, welcomeAlreadySeen } from "./welcomeStart";
 
 function AccessPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const [error, setError] = useState(null);
+  const [email, setEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
 
   useEffect(() => {
     const token = params.get("token");
     if (!token) {
-      setError("Link mancante");
+      setError("no-token");
       return;
     }
     magicLogin(token)
       .then(() => navigate("/cliente", { replace: true }))
-      .catch((e) => setError(e.message));
+      .catch(() => setError("scaduto"));
   }, [params, navigate]);
+
+  const showForm = error !== null;
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!email.trim() || sending) return;
+    setSending(true);
+    try {
+      await requestAccess(email.trim());
+      setSent(true);
+    } finally {
+      setSending(false);
+    }
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-6 text-center">
-      <div>
+      <div className="w-full max-w-sm">
         <img src="/ciak/logo.webp" alt="Ciak.io" className="mx-auto mb-6 h-10 w-auto" />
         <h1 className="text-2xl font-semibold text-slate-900">Accesso al percorso Ciak</h1>
-        <p className="mt-2 text-sm text-slate-500">{error || "Sto preparando la tua area..."}</p>
+        {!showForm ? (
+          <p className="mt-2 text-sm text-slate-500">Sto preparando la tua area...</p>
+        ) : sent ? (
+          <p className="mt-3 text-sm leading-relaxed text-slate-600">
+            Se l'email corrisponde a un account, ti abbiamo inviato il link d'accesso.
+            Controlla la posta (anche lo spam).
+          </p>
+        ) : (
+          <>
+            <p className="mt-2 text-sm leading-relaxed text-slate-500">
+              {error === "no-token" ? (
+                "Inserisci la tua email e ti rimandiamo il link d'accesso."
+              ) : (
+                <>
+                  Per ragioni di sicurezza il link d'accesso scade dopo 30 giorni.
+                  Inserisci la tua email qui sotto per riceverne uno nuovo; oltre quella
+                  data scrivi ad{" "}
+                  <a href="mailto:assistenza@evolution-pro.it" className="font-semibold text-slate-700 underline">
+                    assistenza@evolution-pro.it
+                  </a>.
+                </>
+              )}
+            </p>
+            <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-3 text-left">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="La tua email"
+                className="rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200"
+              />
+              <button
+                type="submit"
+                disabled={sending}
+                className="rounded-lg bg-yellow-400 px-5 py-3 text-sm font-bold text-slate-900 transition hover:brightness-95 disabled:opacity-60"
+              >
+                {sending ? "Invio in corso..." : "Rimandami l'accesso"}
+              </button>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
+// Ciak Start attivo: lo dice il server (stessa regola dell'admin, anche per gli account attivati
+// a mano); `access_level` resta come ripiego per le risposte vecchie.
+function haStartAttivo(dashboard) {
+  return dashboard?.start?.attivo === true || dashboard?.client?.access_level === "cliente_start";
+}
+
 function ProtectedClient() {
   const token = getClientToken();
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const [dashboard, setDashboard] = useState(null);
   const [error, setError] = useState(null);
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -55,7 +129,7 @@ function ProtectedClient() {
       .then((data) => {
         if (cancelled) return;
         setDashboard(data);
-        if (waitForStart && data.client?.access_level !== "cliente_start" && attempts < 10) {
+        if (waitForStart && !haStartAttivo(data) && attempts < 10) {
           attempts += 1;
           timer = window.setTimeout(loadDashboard, 1500);
         }
@@ -74,9 +148,38 @@ function ProtectedClient() {
   if (error) return <div className="p-8 text-slate-600">Errore: {error}</div>;
   if (!dashboard) return <div className="p-8 text-slate-400">Caricamento percorso...</div>;
 
+  const startAttivo = haStartAttivo(dashboard);
   const startPaymentConfirmed = params.get("checkout") === "start"
     && params.get("payment") === "success"
-    && dashboard.client?.access_level === "cliente_start";
+    && startAttivo;
+
+  const clientId = dashboard.client?.id;
+  const showWelcome = startAttivo
+    && !welcomeDismissed
+    && !welcomeAlreadySeen(clientId);
+
+  // Gate di benvenuto al primo accesso del cliente Start, a schermo intero,
+  // poi si prosegue sul percorso.
+  if (showWelcome) {
+    return (
+      <BenvenutoStart
+        clientName={dashboard.client?.name}
+        consegne={dashboard.start?.consegne || []}
+        onStart={() => {
+          markWelcomeSeen(clientId);
+          setWelcomeDismissed(true);
+          // Dopo il benvenuto si comincia dal lavoro vero: le domande.
+          navigate("/cliente/start/domande");
+        }}
+      />
+    );
+  }
+
+  // Chi ha Ciak Start attivo ha la sua area, nella grafica dell'area partner.
+  // Blueprint e Partnership restano con l'area di sempre.
+  if (startAttivo) {
+    return <StartArea dashboard={dashboard} pagamentoConfermato={startPaymentConfirmed} />;
+  }
 
   return (
     <ClientLayout client={dashboard.client || getClientUser()}>
@@ -88,9 +191,14 @@ function ProtectedClient() {
       ) : null}
       <Routes>
         <Route index element={<ClientHome dashboard={dashboard} />} />
-        <Route path="blueprint" element={<BlueprintPage dashboard={dashboard} />} />
+        {/* Il Blueprint vive nella Home, personalizzata: il vecchio indirizzo rimanda li'. */}
+        <Route path="blueprint" element={<Navigate to="/cliente" replace />} />
         <Route path="start" element={<StartPage dashboard={dashboard} />} />
+        <Route path="start-plus" element={<StartPlusPage dashboard={dashboard} />} />
+        <Route path="start/domande" element={<StartDomandePage dashboard={dashboard} />} />
+        <Route path="start/marchio" element={<StartMarchioPage dashboard={dashboard} />} />
         <Route path="partnership" element={<PartnershipEducationPage dashboard={dashboard} />} />
+        <Route path="simulatore" element={<SimulatorePage />} />
         <Route path="*" element={<Navigate to="/cliente" replace />} />
       </Routes>
     </ClientLayout>

@@ -12,6 +12,7 @@
  */
 import { useEffect, useState } from "react";
 import { apiGet, apiPut } from "../api";
+import { toast } from "sonner";
 
 function fmtDate(iso) {
   if (!iso) return "—";
@@ -97,7 +98,7 @@ export function SiteConfig({ onAuthExpired }) {
       load();
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
-      else alert(`Errore: ${e.message}`);
+      else toast.error(`Errore: ${e.message}`);
     }
   };
 

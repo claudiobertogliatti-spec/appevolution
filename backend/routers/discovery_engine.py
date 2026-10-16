@@ -22,6 +22,9 @@ import json
 import httpx
 from motor.motor_asyncio import AsyncIOMotorClient
 from routers.ciak_admin import require_ciak_admin
+from report_key_auth import require_admin_or_report_key
+from services.discovery_summary import summarize_run, aggregate_places_results
+import asyncio
 
 router = APIRouter(prefix="/api/discovery", tags=["discovery-engine"])
 
@@ -240,6 +243,13 @@ class DiscoveryLead(BaseModel):
     systeme_contact_id: Optional[str] = None
     systeme_injected_at: Optional[str] = None
 
+    # Assegnazione operativa (outbound umano — es. trattative ProVideo di Mariangela).
+    # owner = persona responsabile del lead; next_followup = data ISO del prossimo
+    # contatto/scadenza. Impostati all'inserimento manuale, modificabili.
+    owner: Optional[str] = None
+    next_followup: Optional[str] = None
+    notes_admin: Optional[str] = None
+
 
 class SearchQuery(BaseModel):
     """Query di ricerca per discovery"""
@@ -318,7 +328,7 @@ async def check_duplicate(source: str, username: str, email: Optional[str] = Non
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/import-csv")
-async def import_discovery_leads_csv(file: UploadFile = File(...)):
+async def import_discovery_leads_csv(file: UploadFile = File(...), admin=Depends(require_ciak_admin)):
     """
     Importa lead da file CSV nella collection discovery_leads.
     Deduplicazione automatica su email/platform_username.
@@ -352,6 +362,7 @@ async def import_discovery_leads_csv(file: UploadFile = File(...)):
     imported = 0
     duplicates = 0
     errors = 0
+    hot_leads = 0
     error_details = []
     
     for row_num, row in enumerate(reader, start=2):
@@ -422,6 +433,7 @@ async def import_discovery_leads_csv(file: UploadFile = File(...)):
             
             # Create alert for hot leads
             if score >= 80:
+                hot_leads += 1
                 await db.system_alerts.insert_one({
                     "type": "hot_lead_discovered",
                     "lead_id": lead_id,
@@ -449,18 +461,22 @@ async def import_discovery_leads_csv(file: UploadFile = File(...)):
     
     logger.info(f"[DISCOVERY] CSV import: {imported} imported, {duplicates} duplicates, {errors} errors")
     
+    total_rows = imported + duplicates + errors
+    if total_rows == 0:
+        raise HTTPException(status_code=400, detail="Il CSV non contiene righe da importare")
+    summary = summarize_run(total_rows, errors, imported)
     return {
-        "success": True,
+        **summary,
         "imported": imported,
         "duplicates": duplicates,
         "errors": errors,
-        "hot_leads": len([1 for _ in range(imported) if _ >= 80]),  # Approximate
+        "hot_leads": hot_leads,
         "error_details": error_details[:10] if errors > 0 else []
     }
 
 
 @router.post("/leads")
-async def create_lead(lead: DiscoveryLead):
+async def create_lead(lead: DiscoveryLead, admin=Depends(require_ciak_admin)):
     """Crea un nuovo lead nel database"""
     # Check duplicato
     is_duplicate = await check_duplicate(lead.source.value, lead.platform_username, lead.email)
@@ -503,12 +519,12 @@ class ImportLeadItem(BaseModel):
 
 class ImportLeadsRequest(BaseModel):
     """Request per importazione massiva"""
-    leads: List[ImportLeadItem]
+    leads: List[ImportLeadItem] = Field(..., min_length=1)
     auto_score: bool = False  # Se true, calcola automaticamente lo score
 
 
 @router.post("/import")
-async def import_leads(request: ImportLeadsRequest, background_tasks: BackgroundTasks):
+async def import_leads(request: ImportLeadsRequest, background_tasks: BackgroundTasks, admin=Depends(require_ciak_admin)):
     """
     Importa una lista di lead da fonti esterne.
     
@@ -590,12 +606,14 @@ async def import_leads(request: ImportLeadsRequest, background_tasks: Background
     
     logger.info(f"[DISCOVERY IMPORT] Completato: {results['imported']} importati, {results['skipped']} saltati")
     
+    total = len(request.leads)
+    summary = summarize_run(total, len(results["errors"]), results["imported"])
     return {
-        "success": True,
+        **summary,
         "imported": results["imported"],
         "skipped": results["skipped"],
         "errors": results["errors"],
-        "total_processed": len(request.leads)
+        "total_processed": total
     }
 
 
@@ -649,7 +667,7 @@ class ImportCSVRequest(BaseModel):
 
 
 @router.post("/import/csv")
-async def import_leads_from_csv(request: ImportCSVRequest):
+async def import_leads_from_csv(request: ImportCSVRequest, admin=Depends(require_ciak_admin)):
     """
     Importa lead da contenuto CSV.
     
@@ -689,10 +707,11 @@ async def import_leads_from_csv(request: ImportCSVRequest):
 
 @router.get("/leads/hot")
 async def get_hot_leads(
-    limit: int = 20, 
+    limit: int = 20,
     min_score: int = 80,
     only_with_email: bool = True,
-    outreach_status: Optional[str] = None
+    outreach_status: Optional[str] = None,
+    admin=Depends(require_ciak_admin),
 ):
     """
     Ritorna i lead HOT (score >= 80) ordinati per score.
@@ -747,10 +766,13 @@ async def get_leads(
     status: Optional[LeadStatus] = None,
     source: Optional[LeadSource] = None,
     min_score: int = 0,
+    in_lavorazione: Optional[bool] = None,
     limit: int = 50,
-    skip: int = 0
+    skip: int = 0,
+    admin=Depends(require_ciak_admin),
 ):
-    """Lista leads con filtri"""
+    """Lista leads con filtri. `in_lavorazione`: true = già in pipeline (approvati);
+    false = coda di ingresso (da assegnare/approvare)."""
     query = {}
     if status:
         query["status"] = status.value
@@ -758,6 +780,10 @@ async def get_leads(
         query["source"] = source.value
     if min_score > 0:
         query["score_total"] = {"$gte": min_score}
+    if in_lavorazione is True:
+        query["in_lavorazione"] = True
+    elif in_lavorazione is False:
+        query["in_lavorazione"] = {"$ne": True}
     
     leads = await db.discovery_leads.find(
         query, {"_id": 0, "website_html": 0}  # Escludi HTML pesante
@@ -774,7 +800,7 @@ async def get_leads(
 
 
 @router.get("/leads/{lead_id}")
-async def get_lead(lead_id: str):
+async def get_lead(lead_id: str, admin=Depends(require_ciak_admin)):
     """Dettaglio singolo lead"""
     lead = await db.discovery_leads.find_one({"id": lead_id}, {"_id": 0})
     if not lead:
@@ -821,6 +847,13 @@ async def update_lead(lead_id: str, body: dict, admin=Depends(require_ciak_admin
         "lavorazione_manuale",
         # Campi Google Places
         "business_phone", "business_address", "profession_category",
+        # Assegnazione operativa outbound (ProVideo/Mariangela)
+        "owner", "next_followup",
+        # Da dove arriva il contatto (ex_cliente | setter | rete): sceglie il messaggio
+        # di risveglio consigliato nella scheda.
+        "origine",
+        # Cancello verso la pipeline di lavorazione (approvato+assegnato → board)
+        "in_lavorazione",
     }
     update = {k: v for k, v in body.items() if k in allowed}
     if not update:
@@ -838,7 +871,7 @@ async def update_lead(lead_id: str, body: dict, admin=Depends(require_ciak_admin
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/search")
-async def search_leads(query: SearchQuery, background_tasks: BackgroundTasks):
+async def search_leads(query: SearchQuery, background_tasks: BackgroundTasks, admin=Depends(require_ciak_admin)):
     """
     Gaia esegue ricerca lead su piattaforma specificata.
     Restituisce risultati e avvia analisi in background.
@@ -1294,7 +1327,7 @@ class PlacesSearchRequest(BaseModel):
 
 
 @router.get("/search-places/professions")
-async def get_profession_groups():
+async def get_profession_groups(admin=Depends(require_ciak_admin)):
     """Lista categorie di professionisti offline disponibili per la ricerca"""
     return {
         "groups": {k: v["label"] for k, v in PROFESSION_GROUPS.items()},
@@ -1304,7 +1337,7 @@ async def get_profession_groups():
 
 
 @router.post("/search-places")
-async def search_places(request: PlacesSearchRequest, background_tasks: BackgroundTasks):
+async def search_places(request: PlacesSearchRequest, background_tasks: BackgroundTasks, admin=Depends(require_ciak_admin)):
     """
     Cerca liberi professionisti su Google Places.
     Ottimizzato per target offline: premia assenza sito, presenza telefono,
@@ -1331,38 +1364,50 @@ async def search_places(request: PlacesSearchRequest, background_tasks: Backgrou
     else:
         queries_to_run = [(request.profession, request.profession)]
 
-    total_imported = 0
-    total_skipped = 0
-    total_hot = 0
-    errors = []
-
     cities_to_run = ITALIAN_CITIES if request.all_italy else [request.city]
+    queries_total = len(cities_to_run) * len(queries_to_run)
+
+    # Esecuzione in PARALLELO con concorrenza limitata: il vecchio doppio for
+    # sincrono su tutte le città × query (con all_italy) accumulava decine di
+    # chiamate in una sola richiesta → timeout. Il semaphore tiene il carico
+    # sotto controllo (rate limit/costo) accorciando molto il tempo totale.
+    sem = asyncio.Semaphore(6)
     async with httpx.AsyncClient(timeout=30) as client:
-        for city in cities_to_run:
-            for query_text, category_label in queries_to_run:
+        async def run_one(city, query_text, category_label):
+            async with sem:
                 try:
-                    result = await _run_places_query(
+                    r = await _run_places_query(
                         client, api_key, query_text, category_label,
                         city, request.max_results,
                         request.min_rating, request.only_without_website,
                         request.only_with_website
                     )
-                    total_imported += result["imported"]
-                    total_skipped += result["skipped"]
-                    total_hot += result["hot"]
+                    return {"ok": True, "imported": r["imported"], "skipped": r["skipped"], "hot": r["hot"]}
                 except Exception as e:
-                    errors.append(f"{query_text} ({city}): {str(e)}")
                     logger.error(f"[PLACES] Errore query '{query_text}' in {city}: {e}")
+                    return {"ok": False, "error": f"{query_text} ({city}): {str(e)}"}
 
+        tasks = [run_one(city, q, cat) for city in cities_to_run for (q, cat) in queries_to_run]
+        results = await asyncio.gather(*tasks)
+
+    total_imported, total_skipped, total_hot, errors = aggregate_places_results(results)
+    summary = summarize_run(queries_total, len(errors), total_imported)
+    ambito = "in tutta Italia" if request.all_italy else f"({request.city})"
+    if summary["status"] == "failed":
+        message = f"Ricerca non riuscita: tutte le {queries_total} ricerche sono andate in errore."
+    elif summary["status"] == "partial":
+        message = f"{total_imported} nuovi lead {ambito}; {len(errors)} ricerche su {queries_total} non riuscite."
+    else:
+        message = f"{total_imported} nuovi lead da Google Places {ambito}."
     return {
-        "success": True,
+        **summary,
         "city": request.city,
         "profession": request.profession,
         "new_leads": total_imported,
         "duplicates_skipped": total_skipped,
         "hot_leads": total_hot,
         "errors": errors,
-        "message": f"{total_imported} nuovi lead da Google Places ({request.city})"
+        "message": message,
     }
 
 
@@ -1457,6 +1502,7 @@ async def _run_places_query(
 
             lead_id = generate_lead_id("google_places", place_id)
             doc = {
+                "_id": lead_id,
                 "id": lead_id,
                 "source": "google_places",
                 "display_name": name,
@@ -1532,6 +1578,9 @@ async def _run_places_query(
             logger.info(f"[PLACES] Importato: {name} | score={score} | phone={bool(phone)} | website={has_website}")
 
         except Exception as e:
+            if getattr(e, "code", None) == 11000:
+                skipped += 1
+                continue
             logger.error(f"[PLACES] Errore su place {place.get('name', '?')}: {e}")
             continue
 
@@ -1683,7 +1732,7 @@ def calculate_offline_professional_score(
 
 
 @router.post("/analyze-website/{lead_id}")
-async def analyze_website(lead_id: str):
+async def analyze_website(lead_id: str, admin=Depends(require_ciak_admin)):
     """
     Gaia scarica e analizza il sito web del lead.
     Sistema ibrido: Ollama (se disponibile) + Fallback automatico a Claude.
@@ -1787,7 +1836,7 @@ async def analyze_website(lead_id: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/score/{lead_id}")
-async def score_lead(lead_id: str):
+async def score_lead(lead_id: str, admin=Depends(require_ciak_admin)):
     """
     Calcola lo score AI del lead.
     - Lead Google Places → scoring offline professional (assenza digitale)
@@ -1920,7 +1969,7 @@ async def score_lead(lead_id: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/generate-outreach/{lead_id}")
-async def generate_first_contact_v2(lead_id: str, request: Optional[GenerateOutreachRequest] = None):
+async def generate_first_contact_v2(lead_id: str, request: Optional[GenerateOutreachRequest] = None, admin=Depends(require_ciak_admin)):
     """
     Stefania genera un messaggio di primo contatto personalizzato
     con un "regalo strategico" basato sui dati reali del lead.
@@ -2072,7 +2121,7 @@ Genera il messaggio:"""
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/outreach/approve/{lead_id}")
-async def approve_outreach(lead_id: str, request: ApproveOutreachRequest = None):
+async def approve_outreach(lead_id: str, request: ApproveOutreachRequest = None, admin=Depends(require_ciak_admin)):
     """
     Antonella approva il messaggio (con possibile modifica).
     Dopo approvazione, il messaggio è pronto per l'invio.
@@ -2109,7 +2158,7 @@ async def approve_outreach(lead_id: str, request: ApproveOutreachRequest = None)
 
 
 @router.post("/outreach/send/{lead_id}")
-async def mark_outreach_sent(lead_id: str):
+async def mark_outreach_sent(lead_id: str, admin=Depends(require_ciak_admin)):
     """Segna il messaggio come inviato"""
     lead = await db.discovery_leads.find_one({"id": lead_id})
     if not lead:
@@ -2129,7 +2178,7 @@ async def mark_outreach_sent(lead_id: str):
 
 
 @router.post("/leads/{lead_id}/avvia-outreach")
-async def avvia_outreach(lead_id: str, background_tasks: BackgroundTasks):
+async def avvia_outreach(lead_id: str, background_tasks: BackgroundTasks, admin=Depends(require_ciak_admin)):
     """
     Avvia l'outreach per un lead specifico:
     1. Cambia stato a 'contacted'
@@ -2281,7 +2330,7 @@ Non menzionare Evolution PRO. Chiudi con una domanda aperta."""
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/integrations/status")
-async def get_integrations_status():
+async def get_integrations_status(admin=Depends(require_ciak_admin)):
     """
     Stato delle integrazioni per discovery su vari canali.
     STUB: Le integrazioni LinkedIn/Instagram/Facebook/Google verranno 
@@ -2326,7 +2375,7 @@ async def get_integrations_status():
 
 
 @router.post("/integrations/linkedin/search")
-async def linkedin_search_stub(query: str = "", limit: int = 10):
+async def linkedin_search_stub(query: str = "", limit: int = 10, admin=Depends(require_ciak_admin)):
     """
     STUB: Ricerca lead su LinkedIn.
     TODO: Implementare con Apify LinkedIn Scraper.
@@ -2347,7 +2396,7 @@ async def linkedin_search_stub(query: str = "", limit: int = 10):
 
 
 @router.post("/integrations/instagram/search")
-async def instagram_search_stub(hashtags: List[str] = None, limit: int = 10):
+async def instagram_search_stub(hashtags: List[str] = None, limit: int = 10, admin=Depends(require_ciak_admin)):
     if hashtags is None:
         hashtags = []
     """
@@ -2370,7 +2419,7 @@ async def instagram_search_stub(hashtags: List[str] = None, limit: int = 10):
 
 
 @router.post("/integrations/facebook/search")
-async def facebook_search_stub(groups: List[str] = None, limit: int = 10):
+async def facebook_search_stub(groups: List[str] = None, limit: int = 10, admin=Depends(require_ciak_admin)):
     if groups is None:
         groups = []
     """
@@ -2393,7 +2442,7 @@ async def facebook_search_stub(groups: List[str] = None, limit: int = 10):
 
 
 @router.post("/integrations/google/search")
-async def google_search_stub(keywords: str = "", location: str = "Italia", limit: int = 10):
+async def google_search_stub(keywords: str = "", location: str = "Italia", limit: int = 10, admin=Depends(require_ciak_admin)):
     """
     STUB: Ricerca siti web professionisti via Google.
     TODO: Implementare custom scraper o Apify.
@@ -2426,7 +2475,7 @@ class AutoApproveSettings(BaseModel):
 
 
 @router.get("/settings/auto-approve")
-async def get_auto_approve_settings():
+async def get_auto_approve_settings(admin=Depends(require_ciak_admin)):
     """Recupera le impostazioni correnti di auto-approvazione"""
     settings = await db.admin_settings.find_one({"type": "auto_approve_outreach"})
     if not settings:
@@ -2444,7 +2493,7 @@ async def get_auto_approve_settings():
 
 
 @router.put("/settings/auto-approve")
-async def update_auto_approve_settings(settings: AutoApproveSettings):
+async def update_auto_approve_settings(settings: AutoApproveSettings, admin=Depends(require_ciak_admin)):
     """Aggiorna le impostazioni di auto-approvazione"""
     await db.admin_settings.update_one(
         {"type": "auto_approve_outreach"},
@@ -2461,7 +2510,7 @@ async def update_auto_approve_settings(settings: AutoApproveSettings):
 
 
 @router.post("/trigger-auto-approve")
-async def trigger_auto_approve():
+async def trigger_auto_approve(admin=Depends(require_ciak_admin)):
     """
     Forza l'esecuzione manuale del job di auto-approvazione.
     Utile per testing o per forzare l'elaborazione immediata.
@@ -2501,7 +2550,7 @@ async def check_auto_approve(lead: dict) -> bool:
 
 
 @router.post("/lead/{lead_id}/start-email-sequence")
-async def start_email_sequence(lead_id: str, background_tasks: BackgroundTasks):
+async def start_email_sequence(lead_id: str, background_tasks: BackgroundTasks, admin=Depends(require_ciak_admin)):
     """
     Avvia la sequenza email di vendita analisi €67 per un lead.
     
@@ -2510,8 +2559,14 @@ async def start_email_sequence(lead_id: str, background_tasks: BackgroundTasks):
     - Email 2 (D+2): Caso studio / risultato concreto
     - Email 3 (D+4): Presentazione analisi €67 con CTA checkout
     - Email 4 (D+7): Reminder con urgenza
+
+    ⛔ RITIRATA (9/9): l'analisi è GRATUITA e il checkout €27 è ritirato (410).
+    L'endpoint non avvia più l'outbound €67; le email restano bozze legacy.
+    Riattivare solo con copy nuova approvata (analisi gratuita → callback).
     """
-    lead = await db.discovery_leads.find_one({"id": lead_id})
+    return {"success": False, "reason": "sequenza_email_67_ritirata",
+            "message": "Sequenza email €67 ritirata: l'analisi è gratuita."}
+    lead = await db.discovery_leads.find_one({"id": lead_id})  # pragma: no cover — legacy
     if not lead:
         raise HTTPException(status_code=404, detail="Lead non trovato")
     
@@ -2601,7 +2656,7 @@ async def start_email_sequence(lead_id: str, background_tasks: BackgroundTasks):
 
 
 @router.post("/lead/{lead_id}/stop-email-sequence")
-async def stop_email_sequence(lead_id: str):
+async def stop_email_sequence(lead_id: str, admin=Depends(require_ciak_admin)):
     """Ferma la sequenza email per un lead (es. dopo acquisto o unsubscribe)"""
     lead = await db.discovery_leads.find_one({"id": lead_id})
     if not lead:
@@ -2621,7 +2676,7 @@ async def stop_email_sequence(lead_id: str):
 
 
 @router.post("/outreach/response/{lead_id}")
-async def mark_response(lead_id: str, request: MarkResponseRequest):
+async def mark_response(lead_id: str, request: MarkResponseRequest, admin=Depends(require_ciak_admin)):
     """
     Registra la risposta del lead.
     Se positiva, attiva integrazione Systeme.io.
@@ -2755,12 +2810,17 @@ async def inject_to_systeme(lead_id: str) -> dict:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/worker/cleanup-duplicates")
-async def cleanup_duplicates():
+async def cleanup_duplicates(admin=Depends(require_ciak_admin)):
     """
-    Worker che pulisce i duplicati ogni 24 ore.
+    Pulizia duplicati, solo lancio manuale di un admin (il job notturno è
+    spento dal 29/9/2026, vedi scheduler.py). Cancella in blocco: niente chiave
+    report (sola lettura) e niente account commerciale (ciak_admin.py,
+    _COMMERCIAL_FORBIDDEN_METHODS).
     Logica:
     1. Raggruppa per email (se presente)
-    2. Raggruppa per username + platform
+    2. Raggruppa per username + platform, solo username non vuoti: prima un
+       username mancante finiva nel gruppo "" e i lead inseriti a mano
+       venivano cancellati tutti tranne uno
     3. Mantiene il lead con score più alto
     """
     if db is None:
@@ -2775,7 +2835,9 @@ async def cleanup_duplicates():
     try:
         # 1. Trova duplicati per email
         pipeline_email = [
-            {"$match": {"email": {"$ne": None, "$exists": True}}},
+            # Stringa vuota esclusa come None: altrimenti tutti i lead senza
+            # email finirebbero in un unico gruppo "duplicato".
+            {"$match": {"email": {"$type": "string", "$nin": [""]}}},
             {"$group": {
                 "_id": {"$toLower": "$email"},
                 "count": {"$sum": 1},
@@ -2795,6 +2857,7 @@ async def cleanup_duplicates():
         
         # 2. Trova duplicati per username + platform
         pipeline_username = [
+            {"$match": {"platform_username": {"$type": "string", "$nin": ["", None]}}},
             {"$group": {
                 "_id": {
                     "username": {"$toLower": "$platform_username"},
@@ -2829,8 +2892,249 @@ async def cleanup_duplicates():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# RICERCA AUTOMATICA GIORNALIERA — alimenta la pipeline di acquisizione
+# ═══════════════════════════════════════════════════════════════════════════════
+# Obiettivo (deciso con Claudio 19/9/2026): portare ~20 lead NUOVI al giorno senza
+# lavoro manuale, ruotando su tutte le professioni ICP × città italiane. I lead
+# atterrano in `discovery_leads` (stato "discovered") pronti da lavorare a mano in
+# Prospect/Pipeline. ⛔ NESSUN invio automatico: rispetta la policy canali (outbound
+# umano, no email massive a freddo). Dedup nativo per google_place_id.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Cursore di rotazione persistito: combo_idx scorre gruppo-professione (interno) ×
+# città (esterno), così ogni giorno pesca combinazioni fresche e non ri-batte
+# sempre gli stessi risultati già importati.
+_AUTOSEARCH_MAX_COMBOS = 6   # tetto combinazioni/giorno per limitare costo API Places
+
+
+@router.post("/worker/autosearch")
+async def worker_autosearch(
+    target_new: int = 20,
+    max_combos: int = _AUTOSEARCH_MAX_COMBOS,
+    admin=Depends(require_admin_or_report_key),
+):
+    """Ricerca automatica giornaliera: importa ~`target_new` lead nuovi ruotando su
+    professioni ICP × città. Chiamato dallo scheduler. Fail-closed senza chiave.
+
+    Bilancia costo/risultato: prova combinazioni finché raggiunge target_new NUOVI
+    importati o esaurisce `max_combos` (tetto per limitare le chiamate Places Details).
+    """
+    api_key = os.environ.get("GOOGLE_PLACES_API_KEY")
+    if not api_key:
+        return {"configured": False, "note": "GOOGLE_PLACES_API_KEY non configurata."}
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database non inizializzato")
+
+    groups = list(PROFESSION_GROUPS.keys())
+    n_groups = len(groups)
+    n_cities = len(ITALIAN_CITIES)
+
+    state = await db.discovery_autosearch_state.find_one({"_id": "cursor"}) or {}
+    idx = int(state.get("combo_idx", 0))
+
+    total_new = total_skipped = total_hot = combos_tried = 0
+    errors: list[str] = []
+    touched: list[dict] = []
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        while total_new < target_new and combos_tried < max_combos:
+            group_key = groups[idx % n_groups]
+            city = ITALIAN_CITIES[(idx // n_groups) % n_cities]
+            group = PROFESSION_GROUPS[group_key]
+            combo_new = 0
+            for query_text in group["queries"]:
+                try:
+                    r = await _run_places_query(
+                        client, api_key, query_text, group["label"], city,
+                        20, 0.0, False, False,
+                    )
+                    total_new += r["imported"]
+                    total_skipped += r["skipped"]
+                    total_hot += r["hot"]
+                    combo_new += r["imported"]
+                except Exception as e:  # noqa: BLE001
+                    logger.error(f"[AUTOSEARCH] '{query_text}' {city}: {e}")
+                    errors.append(f"{query_text} ({city}): {str(e)[:120]}")
+            touched.append({"group": group["label"], "city": city, "new": combo_new})
+            idx += 1
+            combos_tried += 1
+
+    now = datetime.now(timezone.utc).isoformat()
+    await db.discovery_autosearch_state.update_one(
+        {"_id": "cursor"},
+        {"$set": {"combo_idx": idx, "last_run": now, "last_new": total_new}},
+        upsert=True,
+    )
+    log_doc = {
+        "job": "daily_lead_autosearch",
+        "executed_at": now,
+        "new_leads": total_new,
+        "skipped_duplicates": total_skipped,
+        "hot_leads": total_hot,
+        "combos_tried": combos_tried,
+        "target_new": target_new,
+        "touched": touched,
+        "errors": errors,
+        "status": "success" if not errors else ("partial" if total_new else "failed"),
+    }
+    await db.celery_job_logs.insert_one(dict(log_doc))
+    logger.info(
+        f"[AUTOSEARCH] +{total_new} nuovi lead ({combos_tried} combo, {total_hot} caldi, "
+        f"{total_skipped} già presenti, {len(errors)} errori)"
+    )
+    return log_doc
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SYNC SYSTEME → CIAK — porta un segmento di contatti Systeme in lavorazione
+# ═══════════════════════════════════════════════════════════════════════════════
+# I lead lavorati confluiscono in Systeme (taggati per fonte). Questo endpoint fa
+# il contrario: prende un SEGMENTO (per tag) e lo porta in `discovery_leads` così
+# Mariangela + Carlo possono lavorarlo nel workspace (chiamata/contatto/avanzamento).
+# ⛔ SOLO import (nessun invio). Esclude disiscritti/bounce. Dedup per email.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class SystemeSyncIn(BaseModel):
+    tag_id: int
+    limit: int = 200          # tetto contatti importati per run (ritmo sostenibile)
+    source_label: Optional[str] = None  # etichetta fonte sui lead importati
+
+
+def _systeme_field(contact: dict, slug: str) -> str:
+    for f in contact.get("fields", []) or []:
+        if f.get("slug") == slug:
+            return (f.get("value") or "").strip()
+    return ""
+
+
+# Mappa i tag Systeme → fase della pipeline di lavorazione, così i lead importati
+# atterrano nella colonna giusta (il lavoro reale degli ultimi mesi), non tutti come
+# "Nuovo". Priorità alto→basso: vince la fase più avanzata. Tag da ciak_systeme /
+# state machine (vedi Systeme dashboard).
+_SYSTEME_STAGE_RULES = [
+    ("converted", {"ciak_bought_67", "ciak_bought_27", "ciak_bought_499",
+                   "partner_attivo", "contratto_firmato", "analisi_pagata", "decisione_positiva"}),
+    ("qualified", {"call_prenotata", "ciak_call_booked", "call_fatta"}),
+    ("responded_positive", {"ciak_completed", "questionario_compilato",
+                            "riattivazione_risposto", "riattivazione_caldo"}),
+    ("contacted", {"ciak_cold_outreach_places", "ciak_cold_outreach_legacy", "ciak_started",
+                   "lead_registrato", "lista_fredda",
+                   "riattivazione_lotto_1", "lista_fredda_tag1", "lista_fredda_tag2",
+                   "lista_fredda_tag3", "lista_fredda_tag4"}),
+    # ⛔ `ciak_optin_masterclass` NON è "contattato": è un opt-in di massa alla
+    # masterclass. Chi si è fermato lì (solo questo tag) cade nel default
+    # "discovered" → colonna "Nuovo", da svegliare con una chiamata di Mariangela.
+    # Chi ha anche completato il questionario matcha prima "responded_positive".
+]
+
+
+def _systeme_pipeline_status(tags: list) -> str:
+    names = {(t.get("name") or "").strip().lower() for t in (tags or [])}
+    for stage, keys in _SYSTEME_STAGE_RULES:
+        if names & {k.lower() for k in keys}:
+            return stage
+    return "discovered"
+
+
+@router.post("/worker/sync-from-systeme")
+async def sync_from_systeme(body: SystemeSyncIn, admin=Depends(require_admin_or_report_key)):
+    """Importa in `discovery_leads` i contatti Systeme che hanno `tag_id`, pronti da
+    lavorare. Esclude disiscritti/bounce e i già presenti (dedup email). Nessun invio.
+    """
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database non inizializzato")
+    api_key = os.environ.get("SYSTEME_API_KEY", "")
+    if not api_key:
+        return {"configured": False, "note": "SYSTEME_API_KEY non configurata."}
+
+    base = "https://api.systeme.io/api"
+    headers = {"X-API-Key": api_key, "Content-Type": "application/json"}
+    limit = max(1, min(int(body.limit or 200), 2000))
+    source = (body.source_label or "systeme").strip().lower()
+
+    imported = skipped_existing = excluded = fetched = 0
+    cursor: Optional[int] = None
+    now = datetime.now(timezone.utc)
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            while imported < limit:
+                params = {"tags": str(body.tag_id), "order": "asc", "limit": 100}
+                if cursor:
+                    params["startingAfter"] = cursor
+                r = await client.get(f"{base}/contacts", headers=headers, params=params)
+                if r.status_code >= 400:
+                    return {"configured": True, "error": f"Systeme HTTP {r.status_code}: {r.text[:200]}"}
+                data = r.json()
+                items = data.get("items", []) or []
+                if not items:
+                    break
+                for c in items:
+                    fetched += 1
+                    cursor = c.get("id") or cursor
+                    email = (c.get("email") or "").strip().lower()
+                    if not email or "@" not in email:
+                        excluded += 1
+                        continue
+                    if c.get("unsubscribed") or c.get("bounced"):
+                        excluded += 1
+                        continue
+                    if await db.discovery_leads.find_one({"email": email}, {"_id": 1}):
+                        skipped_existing += 1
+                        continue
+                    first = _systeme_field(c, "first_name")
+                    surname = _systeme_field(c, "surname")
+                    phone = _systeme_field(c, "phone_number")
+                    display_name = (f"{first} {surname}").strip() or email
+                    lead_id = generate_lead_id("systeme", email)
+                    await db.discovery_leads.insert_one({
+                        "_id": lead_id,
+                        "id": lead_id,
+                        "source": source,
+                        "display_name": display_name,
+                        "platform_username": email,
+                        "platform_url": "",
+                        "email": email,
+                        "business_phone": phone,
+                        "phone": phone,
+                        "niche_detected": surname,
+                        "status": _systeme_pipeline_status(c.get("tags")),
+                        "score_total": 0,
+                        "score_breakdown": {},
+                        "has_website": False,
+                        "followers_count": 0,
+                        "systeme_contact_id": c.get("id"),
+                        "systeme_synced_from_tag": body.tag_id,
+                        "discovered_at": now.isoformat(),
+                        "updated_at": now.isoformat(),
+                    })
+                    imported += 1
+                    if imported >= limit:
+                        break
+                if not data.get("hasMore"):
+                    break
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"[SYSTEME-SYNC] errore tag {body.tag_id}: {e}")
+        return {"configured": True, "error": str(e)[:200]}
+
+    log_doc = {
+        "job": "systeme_sync",
+        "executed_at": now.isoformat(),
+        "tag_id": body.tag_id,
+        "imported": imported,
+        "skipped_existing": skipped_existing,
+        "excluded": excluded,
+        "fetched": fetched,
+        "source_label": source,
+    }
+    await db.celery_job_logs.insert_one(dict(log_doc))
+    logger.info(f"[SYSTEME-SYNC] tag {body.tag_id}: +{imported} importati, {skipped_existing} già presenti, {excluded} esclusi")
+    return log_doc
+
+
 @router.post("/cleanup/ai-validation")
-async def ai_cleanup_validation():
+async def ai_cleanup_validation(admin=Depends(require_ciak_admin)):
     """
     [OLLAMA] Usa Llama 3 locale per validazione AI avanzata dei lead.
     Identifica duplicati semantici, lead sospetti, e normalizza dati.
@@ -2895,7 +3199,7 @@ async def ai_cleanup_validation():
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/stats/today")
-async def get_today_stats():
+async def get_today_stats(admin=Depends(require_ciak_admin)):
     """
     Statistiche per la sezione "Cassa Lead Proattiva" di Antonella.
     """
@@ -2958,7 +3262,7 @@ async def get_today_stats():
 
 
 @router.get("/stats/weekly")
-async def get_weekly_stats():
+async def get_weekly_stats(admin=Depends(require_ciak_admin)):
     """Statistiche settimanali per report"""
     week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
     

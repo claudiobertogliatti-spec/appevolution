@@ -5,6 +5,7 @@ Evolution PRO - Integrated Services
 """
 
 import os
+import uuid
 import httpx
 import asyncio
 import logging
@@ -290,13 +291,75 @@ class SystemeIOError(Exception):
 
 # Import approval workflow
 from approval_workflow import requires_approval, get_task_scope
+from services.operational_tasks import TaskKind, project_legacy_task
+from services.operational_tasks.registry import DEFAULT_TASK_REGISTRY
+from services.operational_tasks.completion import execute_and_verify_registered
+from services.operational_tasks.runner import claim_specific
 
 class BackgroundJobExecutor:
     """Execute agent tasks in background with approval workflow support"""
     
-    def __init__(self):
+    # Durata del lease per un task diretto. Capacità più lunghe (video) avranno
+    # timeout propri quando i loro esecutori verranno collegati.
+    CLAIM_LEASE_SECONDS = 300
+
+    def __init__(self, task_registry=None):
         self.systeme_client = SystemeIOClient()
+        self.task_registry = task_registry or DEFAULT_TASK_REGISTRY
         self.running = False
+        # Identità di questo worker: entra nel lease così due istanze non
+        # lavorano lo stesso task (presa in carico atomica, T05).
+        self.worker_id = f"bg-{uuid.uuid4().hex[:12]}"
+
+    @staticmethod
+    def _eligible_task(task: Dict) -> bool:
+        if not isinstance(task, dict):
+            return False
+        if not isinstance(task.get("id"), str) or not task["id"].strip():
+            return False
+        if not isinstance(task.get("agent"), str) or not task["agent"].strip():
+            return False
+        if not isinstance(task.get("task_type"), str) or not task["task_type"].strip():
+            return False
+        status = task.get("status")
+        if not isinstance(status, str) or status not in {
+            "pending", "in_progress", "approved", "rejected", "awaiting_approval"
+        }:
+            return False
+        try:
+            projection = project_legacy_task(task)
+        except (TypeError, ValueError):
+            return False
+        if projection.kind is TaskKind.AI:
+            return True
+        return (
+            projection.kind is TaskKind.AMBIGUOUS
+            and isinstance(task.get("operational_contract"), dict)
+            and isinstance(task.get("agent"), str)
+        )
+
+    @staticmethod
+    def _blocked_result(task: Dict, error_code: str, message: str, **details) -> Dict:
+        owner_id = task.get("assigned_to") or task.get("direction") or task.get("agent", "operations").lower()
+        return {
+            "success": False,
+            "error_code": error_code,
+            "message": message,
+            "next_action": {"owner_id": owner_id},
+            **details,
+        }
+
+    async def _save_blocked(self, task: Dict, result: Dict) -> Dict:
+        await db.agent_tasks.update_one(
+            {"id": task["id"]},
+            {"$set": {
+                "status": "blocked",
+                "error_code": result["error_code"],
+                "next_action": result.get("next_action", {"owner_id": "operations"}),
+                "result": result,
+            }, "$unset": {"completed_at": ""}},
+        )
+        return result
     
     async def process_pending_tasks(self):
         """Process all pending tasks based on approval workflow"""
@@ -312,6 +375,8 @@ class BackgroundJobExecutor:
         }).sort("created_at", 1).to_list(50)
         
         for task in direct_tasks:
+            if not self._eligible_task(task):
+                continue
             # Double check: se task_type richiede approvazione, setta il flag
             task_type = task.get("task_type", "")
             scope = task.get("scope", "INTERNAL")
@@ -333,9 +398,17 @@ class BackgroundJobExecutor:
                 )
                 # Re-add to processing as approval task
                 continue
-            
-            # Execute directly
-            await self.execute_task(task)
+
+            # Presa in carico ATOMICA prima di eseguire: se un altro worker ha
+            # già preso questo task, claim_specific ritorna None e lo saltiamo.
+            claimed = await claim_specific(
+                db.agent_tasks, task["id"], self.worker_id,
+                lease_seconds=self.CLAIM_LEASE_SECONDS,
+            )
+            if not claimed:
+                continue
+            # Execute directly (sul documento appena preso in carico)
+            await self.execute_task(claimed)
         
         # ─── STEP 2: Task CON APPROVAZIONE (fase 1: generazione) ───
         # Questi vanno: pending → in_progress → awaiting_approval
@@ -370,6 +443,8 @@ class BackgroundJobExecutor:
     
     async def generate_for_approval(self, task: Dict) -> Dict:
         """Generate output for a task that requires approval"""
+        if not self._eligible_task(task):
+            return {"success": False, "error_code": "ineligible_task"}
         task_id = task.get("id")
         agent = task.get("agent", "").upper()
         
@@ -385,6 +460,8 @@ class BackgroundJobExecutor:
             # Generate output (but don't execute external actions)
             result = await self._generate_output(task)
             
+            if not result.get("success"):
+                return await self._save_blocked(task, result)
             # Set to awaiting_approval (NOT completed)
             await db.agent_tasks.update_one(
                 {"id": task_id},
@@ -404,55 +481,57 @@ class BackgroundJobExecutor:
             
         except Exception as e:
             logger.error(f"Task {task_id} generation failed: {e}")
-            await db.agent_tasks.update_one(
-                {"id": task_id},
-                {"$set": {
-                    "status": "failed",
-                    "result": {"success": False, "error": str(e)}
-                }}
+            return await self._save_blocked(
+                task,
+                self._blocked_result(task, "generation_failed", str(e)),
             )
-            return {"success": False, "error": str(e)}
     
     async def execute_approved_task(self, task: Dict) -> Dict:
         """Execute a task that has been approved"""
+        if not self._eligible_task(task):
+            return {"success": False, "error_code": "ineligible_task"}
         task_id = task.get("id")
         agent = task.get("agent", "").upper()
         
         logger.info(f"Executing approved task {task_id} for agent {agent}")
         
         try:
-            # For GAIA tasks, execute the actual Systeme.io action
-            if agent == "GAIA":
-                result = await self._execute_gaia_task(task)
+            if task.get("operational_contract") is not None:
+                result = self._blocked_result(
+                    task,
+                    "approval_provenance_missing",
+                    "Il task approvato non identifica un artefatto versionato già visionato",
+                )
+                return await self._save_blocked(task, result)
+            elif agent == "GAIA":
+                result = self._blocked_result(
+                    task,
+                    "approval_provenance_missing",
+                    "L'approvazione legacy non autorizza un nuovo effetto provider",
+                )
+                return await self._save_blocked(task, result)
             else:
-                # For content generation tasks, the output is already generated
-                # Just mark as completed
-                result = {"success": True, "message": "Output approvato e consegnato"}
-            
-            # Mark completed
-            await db.agent_tasks.update_one(
-                {"id": task_id},
-                {"$set": {
-                    "status": "completed",
-                    "completed_at": datetime.now(timezone.utc).isoformat()
-                }}
-            )
-            
-            return result
-            
+                result = self._blocked_result(
+                    task, "artifact_unverified", "L'approvazione non prova produzione o consegna"
+                )
+                return await self._save_blocked(task, result)
+
         except Exception as e:
             logger.error(f"Approved task {task_id} execution failed: {e}")
-            await db.agent_tasks.update_one(
-                {"id": task_id},
-                {"$set": {
-                    "status": "failed",
-                    "result": {"success": False, "error": str(e)}
-                }}
+            return await self._save_blocked(
+                task,
+                self._blocked_result(
+                    task,
+                    "reconciliation_required",
+                    str(e),
+                    reconciliation_required=True,
+                ),
             )
-            return {"success": False, "error": str(e)}
     
     async def regenerate_with_feedback(self, task: Dict) -> Dict:
         """Regenerate output with reviewer feedback"""
+        if not self._eligible_task(task):
+            return {"success": False, "error_code": "ineligible_task"}
         task_id = task.get("id")
         feedback = task.get("approval", {}).get("feedback", "")
         
@@ -474,6 +553,8 @@ class BackgroundJobExecutor:
             # Regenerate
             result = await self._generate_output(task_with_feedback)
             
+            if not result.get("success"):
+                return await self._save_blocked(task, result)
             # Back to awaiting_approval
             await db.agent_tasks.update_one(
                 {"id": task_id},
@@ -493,35 +574,23 @@ class BackgroundJobExecutor:
             
         except Exception as e:
             logger.error(f"Task {task_id} regeneration failed: {e}")
-            await db.agent_tasks.update_one(
-                {"id": task_id},
-                {"$set": {
-                    "status": "failed",
-                    "result": {"success": False, "error": str(e)}
-                }}
+            return await self._save_blocked(
+                task,
+                self._blocked_result(task, "generation_failed", str(e)),
             )
-            return {"success": False, "error": str(e)}
     
     async def _generate_output(self, task: Dict) -> Dict:
         """Generate output based on task type (without executing external actions)"""
-        agent = task.get("agent", "").upper()
-        
-        if agent == "STEFANIA":
-            return await self._execute_stefania_task(task)
-        elif agent == "GAIA":
-            # For GAIA, just prepare the action (don't execute yet)
-            return {
-                "success": True,
-                "output": f"Azione preparata: {task.get('title')}",
-                "message": "Azione GAIA pronta per esecuzione dopo approvazione"
-            }
-        elif agent == "LUCA":
-            return await self._execute_luca_task(task)
-        else:
-            return {"success": True, "output": task.get("title"), "message": "Task generato"}
+        return self._blocked_result(
+            task,
+            "generator_unavailable",
+            "Nessun generatore senza effetti è registrato per questo task",
+        )
     
     async def execute_task(self, task: Dict) -> Dict:
         """Execute a single task based on agent type (direct, no approval)"""
+        if not self._eligible_task(task):
+            return {"success": False, "error_code": "ineligible_task"}
         task_id = task.get("id")
         agent = task.get("agent", "").upper()
         
@@ -534,6 +603,37 @@ class BackgroundJobExecutor:
         )
         
         try:
+            if task.get("operational_contract") is not None:
+                try:
+                    capability = self.task_registry.get(task.get("task_type"))
+                except Exception as exc:
+                    result = self._blocked_result(
+                        task,
+                        getattr(exc, "code", "unknown_task_type"),
+                        str(exc),
+                    )
+                    return await self._save_blocked(task, result)
+                if capability.policy.requires_approval:
+                    result = self._blocked_result(
+                        task,
+                        "approval_required",
+                        "La capacità richiede un flusso di approvazione con provenienza",
+                    )
+                    return await self._save_blocked(task, result)
+                outcome = await execute_and_verify_registered(task, self.task_registry)
+                result = dict(outcome.result)
+                if outcome.completed:
+                    await db.agent_tasks.update_one(
+                        {"id": task_id},
+                        {"$set": {
+                            "status": "completed",
+                            "result": result,
+                            "completed_at": datetime.now(timezone.utc).isoformat(),
+                        }},
+                    )
+                    return result
+                result.setdefault("next_action", {"owner_id": task.get("direction") or agent.lower()})
+                return await self._save_blocked(task, result)
             result = None
             
             # Route to appropriate executor
@@ -554,30 +654,44 @@ class BackgroundJobExecutor:
             else:
                 result = {"success": False, "error": f"Unknown agent: {agent}"}
             
-            # Update task with result
-            status = "completed" if result.get("success") else "failed"
+            if result.get("success"):
+                result = self._blocked_result(
+                    task,
+                    "verification_unavailable",
+                    "Esecuzione non verificata; risultato conservato per riconciliazione",
+                    provider_result=result,
+                    reconciliation_required=True,
+                )
+            elif "error_code" not in result:
+                result = self._blocked_result(
+                    task,
+                    "execution_failed",
+                    result.get("error", "Esecuzione fallita"),
+                    provider_result=result,
+                )
             await db.agent_tasks.update_one(
                 {"id": task_id},
                 {"$set": {
-                    "status": status,
+                    "status": "blocked",
+                    "error_code": result["error_code"],
+                    "next_action": result["next_action"],
                     "result": result,
-                    "completed_at": datetime.now(timezone.utc).isoformat()
-                }}
+                }, "$unset": {"completed_at": ""}}
             )
             
             return result
             
         except Exception as e:
             logger.error(f"Task {task_id} failed: {e}")
-            await db.agent_tasks.update_one(
-                {"id": task_id},
-                {"$set": {
-                    "status": "failed",
-                    "result": {"success": False, "error": str(e)},
-                    "completed_at": datetime.now(timezone.utc).isoformat()
-                }}
+            return await self._save_blocked(
+                task,
+                self._blocked_result(
+                    task,
+                    "reconciliation_required",
+                    str(e),
+                    reconciliation_required=True,
+                ),
             )
-            return {"success": False, "error": str(e)}
     
     async def _execute_gaia_task(self, task: Dict) -> Dict:
         """Execute GAIA (Systeme.io) task"""
@@ -655,27 +769,29 @@ class BackgroundJobExecutor:
         task_type = task.get("task_type", "")
         
         if task_type == "segment_leads":
-            # Run lead segmentation based on tags
-            total = await db.systeme_contacts.count_documents({})
-            return {"success": True, "message": f"Analizzati {total} lead"}
+            return self._blocked_result(
+                task, "segmentation_unsupported", "Il conteggio contatti non produce una segmentazione"
+            )
         
         return {"success": False, "error": f"Unknown ORION task type: {task_type}"}
     
     async def _execute_marta_task(self, task: Dict) -> Dict:
         """Execute MARTA (CRM) task"""
-        return {"success": True, "message": "MARTA task eseguito"}
+        return self._blocked_result(task, "unsupported_task", "Nessun esecutore MARTA registrato")
     
     async def _execute_andrea_task(self, task: Dict) -> Dict:
         """Execute ANDREA (video) task - requires manual processing"""
-        return {"success": True, "message": "Task ANDREA in coda - richiede elaborazione manuale"}
+        return self._blocked_result(
+            task, "manual_operator_required", "Il task richiede un operatore identificato"
+        )
     
     async def _execute_luca_task(self, task: Dict) -> Dict:
         """Execute LUCA (compliance) task"""
-        return {"success": True, "message": "LUCA task eseguito"}
+        return self._blocked_result(task, "unsupported_task", "Nessun esecutore LUCA registrato")
     
     async def _execute_atlas_task(self, task: Dict) -> Dict:
         """Execute ATLAS (retention) task"""
-        return {"success": True, "message": "ATLAS task eseguito"}
+        return self._blocked_result(task, "unsupported_task", "Nessun esecutore ATLAS registrato")
     
     async def start_worker(self, interval_seconds: int = 60):
         """Start background worker that processes tasks periodically"""

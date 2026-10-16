@@ -2,7 +2,7 @@
 
 Scelta di design (opzione B): NON si emette un token `role="partner"` al
 magic-login. Un token partner aprirebbe *tutte* le guardie dell'area partner a
-un cliente da 499 EUR — comprese le 23 chiuse l'11/8. Si estende invece la
+un cliente da 390 EUR — comprese le 23 chiuse l'11/8. Si estende invece la
 guardia condivisa perche' accetti anche il token cliente, ma solo:
   - se il token e' un `ciak_client` valido,
   - se `sub` e' esattamente il partner_id richiesto (mai un altro),

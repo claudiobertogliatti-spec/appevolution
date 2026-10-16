@@ -89,8 +89,8 @@ Pensa all'azienda come a una catena: uno sconosciuto entra, diventa lead, compra
    Pagina: /admin/lead-manager · /admin/calendario-editoriale
    Numero-guida: nuovi lead/contatti generati.
 
-2. VENDITE — responsabile GAIA
-   Mandato: trasformare i lead in partnership firmate. Pipeline Blueprint, analisi da validare (€67), servizi extra, chiusura. Chi chiude di fatto e' Claudio.
+2. VENDITE — responsabile MARCO
+   Mandato: trasformare i lead in partnership firmate. Pipeline Blueprint, follow-up proposte ferme, servizi extra, chiusura. Chi chiude di fatto e' Claudio.
    Pagina: /admin/pipeline-blueprint · /admin/lead-manager
    Numero-guida: analisi pagate, partnership firmate.
 
@@ -307,9 +307,13 @@ async def build_luca_context() -> str:
         lines.append("")
         lines.append("== CASSA A BREVE (il gate) ==")
 
+        # I crediti servono due volte: per calcolare l'incassato dell'obiettivo
+        # (fonte unica) e per il riepilogo del mese. Una query sola.
+        crediti = await db.crediti.find({}, {"_id": 0}).to_list(500)
+
         ob = await db.obiettivi.find_one({"id": OBIETTIVO_CORRENTE}, {"_id": 0})
         if ob:
-            s = _stato_obiettivo(ob)
+            s = _stato_obiettivo(ob, crediti=crediti)
             lines.append(
                 f"OBIETTIVO {s['titolo']}: target EUR {s['target']:.0f} · "
                 f"incassato EUR {s['incassato']:.0f} · manca EUR {s['gap']:.0f} "
@@ -353,7 +357,6 @@ async def build_luca_context() -> str:
                 f"Non conosci target ne' avanzamento: dillo, non stimarli."
             )
 
-        crediti = await db.crediti.find({}, {"_id": 0}).to_list(500)
         if crediti:
             r = _riepilogo_crediti(crediti, now.year, now.month)
             lines.append(
@@ -397,11 +400,14 @@ async def build_luca_context() -> str:
     try:
         all_partners = await db.partners.find(
             only_real_partners(),
-            {"_id": 0, "id": 1, "name": 1, "phase": 1, "status": 1,
+            {"_id": 0, "id": 1, "name": 1, "phase": 1, "stato": 1,
              "last_activity": 1, "updated_at": 1, "alert": 1}
         ).to_list(300)
 
-        attivi = [p for p in all_partners if str(p.get("status", "")).lower() in ("active", "attivo")]
+        # Attivo = campo `stato` del ciclo di vita (attivo/sospeso/quarantena/ex),
+        # non `status` -- che vale "active" alla creazione e non cambia mai piu'.
+        # Stessa convenzione di daily_report e ciak_admin: assente/None = attivo.
+        attivi = [p for p in all_partners if (p.get("stato") or "attivo") == "attivo"]
         lines.append("")
         lines.append("== DELIVERY (responsabile STEFANIA) ==")
         lines.append(f"Partner totali: {len(all_partners)} · Attivi: {len(attivi)}")
@@ -454,10 +460,10 @@ async def build_luca_context() -> str:
     except Exception as e:
         logger.warning(f"[admin_luca] journey steps: {e}")
 
-    # --- VENDITE + ACQUISIZIONE (Gaia / Luca): lead e pipeline ---
+    # --- VENDITE + ACQUISIZIONE (Marco / Luca): lead e pipeline ---
     try:
         lines.append("")
-        lines.append("== ACQUISIZIONE (Luca) + VENDITE (Gaia) ==")
+        lines.append("== ACQUISIZIONE (Luca) + VENDITE (Marco) ==")
         leads_tot = await db.ciak_leads.count_documents({})
         lines.append(f"Lead Ciak totali: {leads_tot}")
         try:
@@ -557,6 +563,11 @@ async def admin_luca_chat(
     # Contesto live dei 4 reparti
     live_context = await build_luca_context()
     system_prompt = LUCA_AD_SYSTEM.replace("{context}", live_context)
+    # Memoria Ciak (regole scritte dal team). Vuota = nessuna aggiunta, comportamento invariato.
+    from services import ciak_memoria
+    memoria = await ciak_memoria.render_active_block()
+    if memoria:
+        system_prompt += "\n\n" + memoria
 
     messages = []
     for h in history:
@@ -659,9 +670,11 @@ async def luca_daily_report(token_data=Depends(require_admin_or_report_key)):
     target_optimal = 4
     target_new_contacts = 20
 
+    # `data_pagamento_partnership` e' il campo pagamento reale (scritto dal webhook
+    # Stripe e da partnership.py); `partnership_pagata_at` non lo scrive nessuno.
     partnerships_month = await db.partners.count_documents(only_real_partners({
         "$or": [
-            {"partnership_pagata_at": {"$gte": month_start}},
+            {"data_pagamento_partnership": {"$gte": month_start}},
             {"contract_signed_at": {"$gte": month_start}},
         ]
     }))

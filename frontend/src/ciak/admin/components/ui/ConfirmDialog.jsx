@@ -45,7 +45,13 @@ export function ConfirmDialog({
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 p-4"
       role="presentation"
-      onClick={onCancel}
+      // stopPropagation: se il dialog vive dentro un altro modale (overlay con
+      // onClick di chiusura), il click sul backdrop deve chiudere SOLO il dialog,
+      // senza propagarsi e chiudere anche il modale padre.
+      onClick={(e) => {
+        e.stopPropagation();
+        onCancel?.();
+      }}
     >
       <div
         role="dialog"

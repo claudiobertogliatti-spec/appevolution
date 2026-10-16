@@ -1,5 +1,11 @@
 title = "Ciak gitleaks configuration"
 
+# Senza questo blocco gitleaks usa SOLO le regole scritte in questo file (qui
+# nessuna): la scansione risulta sempre "no leaks found". Estende le regole
+# predefinite e aggiunge l'allowlist qui sotto.
+[extend]
+useDefault = true
+
 [allowlist]
 description = "Solo valori esplicitamente fittizi usati dai test"
 regexTarget = "match"

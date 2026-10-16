@@ -164,3 +164,148 @@ test("senza clienti Start lo dice, invece di mostrare una lista vuota ambigua", 
 
   expect(await screen.findByText("Nessun cliente Ciak Start attivo.")).toBeTruthy();
 });
+
+test("la tappa 1 si produce dal pannello: posizionamento e scheda marchio, con le risposte del cliente in vista", async () => {
+  apiGet.mockResolvedValue({
+    ...REPORT,
+    items: REPORT.items.map((r) =>
+      r.tappa === 1 ? { ...r, risposte_ricevute_at: "2026-10-02T10:00:00+00:00", marchio_ricevuto_at: null } : r
+    ),
+  });
+  apiPost.mockResolvedValue({ success: true });
+  render(<ConsegneStart />);
+  await screen.findByText("Posizionamento e brand");
+  expect(screen.getByTestId("risposte-cliente").textContent).toMatch(/ricevute il/);
+  expect(screen.getByTestId("marchio-cliente").textContent).toMatch(/non ancora arrivato/);
+
+  fireEvent.click(screen.getByRole("button", { name: "1a · Genera posizionamento" }));
+  await waitFor(() => expect(apiPost).toHaveBeenCalledWith("/start/client-1/posizionamento/genera", {}));
+  fireEvent.click(screen.getByRole("button", { name: "1b · Genera scheda marchio" }));
+  await waitFor(() => expect(apiPost).toHaveBeenCalledWith("/start/client-1/marchio/genera", {}));
+  fireEvent.click(screen.getByRole("button", { name: "Approva marchio" }));
+  await waitFor(() =>
+    expect(apiPost).toHaveBeenCalledWith("/start/client-1/deliverable/approva", { tipo: "brand_kit" })
+  );
+});
+
+test("profili e vetrina hanno finalmente il loro pulsante Genera, e la vetrina chiede l'indirizzo online", async () => {
+  apiGet.mockResolvedValue(REPORT);
+  apiPost.mockResolvedValue({ success: true });
+  render(<ConsegneStart />);
+  await screen.findByText("Posizionamento e brand");
+  fireEvent.click(screen.getByRole("button", { name: "2a · Genera profili social" }));
+  await waitFor(() => expect(apiPost).toHaveBeenCalledWith("/start/client-1/profili/genera", {}));
+  fireEvent.click(screen.getByRole("button", { name: "2b · Genera sito vetrina" }));
+  await waitFor(() => expect(apiPost).toHaveBeenCalledWith("/start/client-1/vetrina/genera", {}));
+
+  // Senza indirizzo la vetrina non si approva: nessuna chiamata.
+  window.prompt = jest.fn().mockReturnValueOnce(null);
+  apiPost.mockClear();
+  fireEvent.click(screen.getByRole("button", { name: "Approva sito vetrina (online)" }));
+  expect(apiPost).not.toHaveBeenCalled();
+  window.prompt = jest.fn().mockReturnValueOnce("https://www.annarossi.it");
+  fireEvent.click(screen.getByRole("button", { name: "Approva sito vetrina (online)" }));
+  await waitFor(() =>
+    expect(apiPost).toHaveBeenCalledWith("/start/client-1/deliverable/approva", {
+      tipo: "showcase",
+      live_url: "https://www.annarossi.it",
+    })
+  );
+});
+
+const BOZZE = {
+  client_id: "client-1",
+  risposte: { nicchia: "yoga per over 50" },
+  marchio_scelto: { colors: ["#112233"] },
+  items: [
+    {
+      type: "positioning",
+      generato: true,
+      approval_status: "pending_review",
+      contenuto: { frase: "Aiuto le donne over 50 a ritrovare energia", fallback: false },
+    },
+    { type: "brand_kit", generato: false },
+    {
+      type: "showcase",
+      generato: true,
+      approval_status: "pending_review",
+      contenuto: { titolo: "Linda Pavia" },
+      html: "<html><body>vetrina</body></html>",
+    },
+    { type: "content_plan_90d", generato: false, generation_status: "in_corso" },
+  ],
+};
+
+test("Vedi bozze: mostra risposte del cliente e il contenuto generato PRIMA dell'approvazione", async () => {
+  apiGet.mockImplementation((path) =>
+    Promise.resolve(path === "/start/client-1/bozze" ? BOZZE : REPORT)
+  );
+  render(<ConsegneStart />);
+  await screen.findByText("Posizionamento e brand");
+  expect(apiGet).not.toHaveBeenCalledWith("/start/client-1/bozze");
+
+  fireEvent.click(screen.getByRole("button", { name: "Vedi bozze e risposte del cliente" }));
+
+  expect(await screen.findByText("Aiuto le donne over 50 a ritrovare energia")).toBeTruthy();
+  expect(apiGet).toHaveBeenCalledWith("/start/client-1/bozze");
+  expect(screen.getByText("yoga per over 50")).toBeTruthy();
+  expect(screen.getAllByText("Bozza da approvare · il cliente non la vede").length).toBe(2);
+  expect(screen.getByText("Non ancora generato")).toBeTruthy();
+  expect(screen.getByText("In generazione…")).toBeTruthy();
+});
+
+test("Vedi bozze: la vetrina si vede in un riquadro isolato, senza script", async () => {
+  apiGet.mockImplementation((path) =>
+    Promise.resolve(path === "/start/client-1/bozze" ? BOZZE : REPORT)
+  );
+  render(<ConsegneStart />);
+  await screen.findByText("Posizionamento e brand");
+  fireEvent.click(screen.getByRole("button", { name: "Vedi bozze e risposte del cliente" }));
+
+  const frame = await screen.findByTitle("Anteprima Sito vetrina");
+  expect(frame.getAttribute("sandbox")).toBe("");
+  expect(frame.getAttribute("srcdoc")).toContain("vetrina");
+});
+
+test("Vedi bozze: se la sintesi automatica e' di ripiego lo dice prima di approvare", async () => {
+  apiGet.mockImplementation((path) =>
+    Promise.resolve(
+      path === "/start/client-1/bozze"
+        ? {
+            ...BOZZE,
+            items: [
+              { type: "positioning", generato: true, approval_status: "pending_review", contenuto: { frase: "x", fallback: true } },
+            ],
+          }
+        : REPORT
+    )
+  );
+  render(<ConsegneStart />);
+  await screen.findByText("Posizionamento e brand");
+  fireEvent.click(screen.getByRole("button", { name: "Vedi bozze e risposte del cliente" }));
+  expect(await screen.findByText(/di ripiego/)).toBeTruthy();
+});
+
+test("Prepara tutte le bozze: un solo clic al posto di cinque, e dice che nulla si approva da solo", async () => {
+  apiGet.mockResolvedValue(REPORT);
+  apiPost.mockResolvedValue({ success: true, generating: true });
+  render(<ConsegneStart />);
+  await screen.findByText("Posizionamento e brand");
+
+  fireEvent.click(screen.getByRole("button", { name: "Prepara tutte le bozze" }));
+
+  await waitFor(() => expect(apiPost).toHaveBeenCalledWith("/start/client-1/bozze/prepara", {}));
+  expect(await screen.findByText(/Nessuna viene approvata da sola/)).toBeTruthy();
+});
+
+test("Crea i PDF dei materiali approvati: dice quali sono nati e quali no", async () => {
+  apiGet.mockResolvedValue(REPORT);
+  apiPost.mockResolvedValue({ success: false, creati: ["brand_kit"], falliti: ["positioning"] });
+  render(<ConsegneStart />);
+  await screen.findByText("Posizionamento e brand");
+
+  fireEvent.click(screen.getByRole("button", { name: "Crea i PDF dei materiali approvati" }));
+
+  await waitFor(() => expect(apiPost).toHaveBeenCalledWith("/start/client-1/pdf/crea", {}));
+  expect(await screen.findByText(/creati marchio; non riusciti: posizionamento/)).toBeTruthy();
+});

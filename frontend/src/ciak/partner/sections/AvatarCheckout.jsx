@@ -9,6 +9,7 @@
  *  POST /api/avatar-checkout  → { checkout_url }
  */
 import { useState, useEffect } from "react";
+import { authHeaders } from "../api";
 import {
   CreditCard, Check, Package, Sparkles, Loader2,
   AlertCircle, ChevronRight, Shield, Clock, ArrowLeft,
@@ -65,7 +66,7 @@ export function AvatarCheckout({ partner, onBack }) {
     }
 
     try {
-      const response = await fetch(`/api/avatar-checkout/status/${sessionId}`);
+      const response = await fetch(`/api/avatar-checkout/status/${sessionId}`, { headers: authHeaders() });
       if (!response.ok) throw new Error("Errore verifica pagamento");
 
       const data = await response.json();
@@ -108,7 +109,7 @@ export function AvatarCheckout({ partner, onBack }) {
     try {
       const response = await fetch(`/api/avatar-checkout`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           package_id: selectedPackage,
           partner_id: partnerId,

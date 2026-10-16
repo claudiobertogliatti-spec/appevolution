@@ -2,9 +2,9 @@
  * Ciak Admin — CABINA DI REGIA (v5, 3/9/2026).
  *
  * Prima cio' che decide, poi cio' che informa:
- *  1. Cassa a breve  — obiettivo del mese, cosa scade oggi, leve ferme → Amministrazione
- *  2. Cosa aspetta il tuo OK — la coda dei task degli agenti, con Approva/Rifiuta
- *  3. Reparti — le 5 sezioni con gli STESSI KPI delle pagine-reparto (una fonte sola)
+ *  1. Decisioni che aspettano te — la coda dei task degli agenti, con Approva/Rifiuta
+ *  2. Cassa a breve  — obiettivo del mese, cosa scade oggi, leve ferme → Amministrazione
+ *  3. Reparti — le 4 aree con gli STESSI KPI delle pagine-reparto (una fonte sola)
  *  4. Plancia €1M — consuntivo del funnel, link al Simulatore
  * La chat con Luca non occupa piu' la prima schermata: si apre da un pulsante
  * fisso in basso a destra, in un pannello laterale.
@@ -15,11 +15,12 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  AlertTriangle, ArrowRight, BarChart3, CheckCircle2, ClipboardCheck, Clock, CreditCard,
+  AlertTriangle, ArrowRight, BarChart3, CheckCircle2, Clock, CreditCard,
   LineChart, Megaphone, MessageCircle, Users, X,
 } from "lucide-react";
 import { adminFetch, apiGet } from "../api";
 import { euro } from "../euro";
+import { PRICING } from "../../pricing";
 import { FunnelWaterfall } from "../components/FunnelWaterfall";
 import { ApprovalsQueue } from "../components/ApprovalsQueue";
 import { LucaChat } from "../pages/LucaChat";
@@ -29,15 +30,20 @@ import { DEPARTMENT_ROOMS } from "../departmentRooms";
 // Stesso id fisso di Amministrazione.jsx e del backend (OBIETTIVO_CORRENTE).
 const OBIETTIVO_ID = "10k-settembre";
 
-// Le 5 sezioni operative = le macro della sidebar (esclusa Dashboard).
+// Le 4 aree operative = le macro della sidebar (esclusa Direzione). I casi studio
+// non sono un reparto a se': vivono dentro Delivery (come nel NAV). Persone e agenti
+// sono gli STESSI del NAV (CiakAdminApp.jsx), stesso formato "nomi + Agenti: X, Y".
 // I KPI mostrati sono i primi 3 della strip del reparto (repartoMetrics.js):
 // stessa fonte della pagina-reparto, cosi' i numeri non si contraddicono.
 const REPARTI = [
-  { id: "acquisizione", nome: "Acquisizione", mandato: "Dal freddo al Blueprint", icon: Megaphone, to: "/admin/reparto/acquisizione" },
-  { id: "vendite", nome: "Vendite", mandato: "Dal Blueprint alla firma", icon: BarChart3, to: "/admin/reparto/vendite" },
-  { id: "delivery", nome: "Delivery", mandato: "Dalla firma al live", icon: Users, to: "/admin/reparto/delivery" },
-  { id: "casi-studio", nome: "Casi studio", mandato: "Prova sociale per vendere meglio", icon: ClipboardCheck, to: "/admin/reparto/casi-studio" },
-  { id: "back-office", nome: "Back office", mandato: "Soldi, contratti, ordine", icon: CreditCard, to: "/admin/reparto/back-office" },
+  { id: "acquisizione", nome: "Acquisizione", mandato: "Dal freddo al Blueprint", icon: Megaphone, to: "/admin/reparto/acquisizione",
+    agenti: ["Carlo", "Andrea"] },
+  { id: "vendite", nome: "Vendite", mandato: "Dal Blueprint alla firma", icon: BarChart3, to: "/admin/reparto/vendite",
+    agenti: ["Gaia", "Carlo"] },
+  { id: "delivery", nome: "Delivery", mandato: "Dalla firma al live", icon: Users, to: "/admin/reparto/delivery",
+    agenti: ["Simona", "Valentina", "Andrea", "Marco"] },
+  { id: "back-office", nome: "Back office", mandato: "Soldi, contratti, ordine", icon: CreditCard, to: "/admin/reparto/back-office",
+    agenti: ["Valentina"] },
 ];
 
 async function getJSON(path) {
@@ -63,19 +69,21 @@ function funnelData({ mc = {}, inv = {}, hub = {} }) {
   const items = Array.isArray(inv.items) ? inv.items : [];
   const optin = F.opt_in || 0;
   const domande = F.diagnostic_completed || 0;
-  const blueprint = F.purchased_67 || 0;
+  // Blueprint gratuito consegnato = call fatta (lo si consegna dopo la call).
+  const blueprint = F.call_done || 0;
   const start = items.filter((s) => s.fonte === "ciak_start").length;
   const partnership = items.filter((s) => ["partnership", "upgrade"].includes(s.fonte)).length;
-  const revBlue = blueprint * 27, revStart = start * 499, revPart = partnership * 2790;
+  // Prezzi dal SSOT pricing.js (Blueprint gratis = 0, fuori dal SSOT).
+  const revBlue = 0, revStart = start * (PRICING.start.cents / 100), revPart = partnership * (PRICING.partnership.cents / 100);
   const oneOff = revBlue + revStart + revPart;
   const mrr = (hub.summary || {}).mrr || 0;
   const arpu = optin > 0 ? oneOff / optin : 0;
   const stages = [
     { label: "Lead (opt-in)", count: fmt(optin) },
-    { label: "8 Domande completate", count: fmt(domande), conv: pct(domande, optin) },
-    { label: "Blueprint €27", count: fmt(blueprint), euro: euro(revBlue), conv: pct(blueprint, domande), hot: true },
-    { label: "Ciak Start €499", count: fmt(start), euro: euro(revStart), conv: pct(start, blueprint) },
-    { label: "Partnership €2.790", count: fmt(partnership), euro: euro(revPart), conv: pct(partnership, blueprint), hot: true },
+    { label: "Questionari completati", count: fmt(domande), conv: pct(domande, optin) },
+    { label: "Blueprint consegnato (gratis)", count: fmt(blueprint), euro: euro(revBlue), conv: pct(blueprint, domande) },
+    { label: `Ciak Start €${PRICING.start.cents / 100}`, count: fmt(start), euro: euro(revStart), conv: pct(start, blueprint) },
+    { label: `Partnership €${(PRICING.partnership.cents / 100).toLocaleString("it-IT")}`, count: fmt(partnership), euro: euro(revPart), conv: pct(partnership, blueprint), hot: true },
   ];
   const northStar = {
     oneOff: euro(oneOff),
@@ -197,17 +205,11 @@ function RepartoCard({ r, onOpen }) {
             <p className="text-xs text-slate-500 truncate">{r.mandato}</p>
           </div>
         </div>
-        {room?.agent && (
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {room.agent.avatar && (
-              <img src={room.agent.avatar} alt="" className="w-8 h-8 rounded-full object-cover border border-slate-200" />
-            )}
-            <div className="text-right leading-tight">
-              <div className="text-[10px] uppercase tracking-wide text-slate-500">Agente</div>
-              <div className="text-xs font-semibold text-slate-700">{room.agent.name}</div>
-            </div>
+        {r.agenti?.length > 0 ? (
+          <div className="text-right leading-tight flex-shrink-0 max-w-[48%]">
+            <div className="text-xs font-semibold text-slate-700 truncate">Agenti: {r.agenti.join(", ")}</div>
           </div>
-        )}
+        ) : null}
       </div>
       <div className="px-5 py-4 grid grid-cols-3 gap-3">
         {labels.map((label) => (
@@ -294,17 +296,26 @@ export function CabinaRegia({ onAuthExpired }) {
 
   return (
     <div className="max-w-6xl p-6 md:p-8">
-      <CassaBreve ob={cassa.ob} cred={cassa.cred} disponibile={Boolean(cassa.ob || cassa.cred)} />
-
+      {/* 1. Prima cio' che decide: la coda delle decisioni apre la pagina. */}
+      <div className="mb-3">
+        <h2 className="text-xl font-semibold text-slate-900">Decisioni che aspettano te</h2>
+        <p className="text-sm text-slate-500 mt-1">
+          Cosa ha deciso Luca in autonomia e cosa serve il tuo OK — prima di ogni altra cosa.
+        </p>
+      </div>
       <Semaforo verdi={gV} gialli={gG} rossi={gR} />
       <div className="mb-8">
         <ApprovalsQueue onAuthExpired={onAuthExpired} />
       </div>
 
-      <div className="mb-4">
+      {/* 2. Cassa a breve. */}
+      <CassaBreve ob={cassa.ob} cred={cassa.cred} disponibile={Boolean(cassa.ob || cassa.cred)} />
+
+      {/* 3. Le 4 aree operative. */}
+      <div className="mb-4 mt-2">
         <h2 className="text-xl font-semibold text-slate-900">Reparti</h2>
         <p className="text-sm text-slate-500 mt-1">
-          Le 5 aree operative coordinate da Luca. Salute complessiva: <span className="font-semibold text-slate-700">{salute}</span>
+          Le 4 aree operative coordinate da Luca. Salute complessiva: <span className="font-semibold text-slate-700">{salute}</span>
         </p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">

@@ -1,22 +1,21 @@
-import { useEffect, useState } from "react";
-import { ArrowRight, Check, LockKeyhole, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { MaterialiStart } from "../MaterialiStart";
+import { etichettaPasso } from "../startPassi";
+import {
+  ArrowRight, Check, LockKeyhole, Loader2, Gift, Wallet, Timer, ShieldCheck,
+  Zap, Camera, ClipboardList, Bot, Mic,
+} from "lucide-react";
 import { clientGet, clientPost, journeyGet } from "../api";
+import { SalesChat } from "../SalesChat";
+import { StartSalesVideo } from "../StartSalesVideo";
+import { PRICING } from "../../pricing";
 
 function euro(cents) {
   return `${new Intl.NumberFormat("it-IT", { useGrouping: true, maximumFractionDigits: 0 }).format((cents || 0) / 100)}€`;
 }
 
-// Etichette dei 7 servizi promessi in vendita. Servono SOLO quando il percorso
-// non e' ancora attivo: e' la vetrina della proposta, non uno stato.
-const SERVIZI_PROPOSTI = [
-  "Direzione di posizionamento",
-  "Basi del brand",
-  "Sistemazione profili social",
-  "Sito vetrina semplice",
-  "Strategia contenuti",
-  "Calendario contenuti",
-  "Revisione finale e readiness partnership",
-];
+const NAVY_GRADIENT = "linear-gradient(158deg,#0D2952 0%,#101326 74%)";
 
 const STATO_LABEL = {
   done: "completato",
@@ -49,6 +48,72 @@ function StatoBadge({ status }) {
   );
 }
 
+// Countdown ONESTO: guidato dalla scadenza reale (bonus_expires_at = call_done + 48h).
+function Countdown({ deadline }) {
+  const target = new Date(deadline).getTime();
+  const [left, setLeft] = useState(() => Math.max(0, target - Date.now()));
+  useEffect(() => {
+    const id = setInterval(() => setLeft(Math.max(0, target - Date.now())), 1000);
+    return () => clearInterval(id);
+  }, [target]);
+  const s = Math.floor(left / 1000);
+  const pad = (n) => String(n).padStart(2, "0");
+  const cells = [
+    { n: pad(Math.floor(s / 3600)), l: "ore" },
+    { n: pad(Math.floor((s % 3600) / 60)), l: "min" },
+    { n: pad(s % 60), l: "sec" },
+  ];
+  return (
+    <span className="inline-flex gap-2" aria-label="tempo rimanente">
+      {cells.map((c) => (
+        <span key={c.l} className="min-w-[52px] rounded-lg bg-slate-900 px-1.5 py-1.5 text-center tabular-nums">
+          <span className="block text-xl font-extrabold leading-none text-white">{c.n}</span>
+          <span className="mt-0.5 block text-[9px] font-semibold uppercase tracking-widest text-slate-400">{c.l}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function FeatItem({ children, dark }) {
+  return (
+    <li className="flex items-start gap-3 text-sm leading-snug">
+      <span
+        className={`mt-0.5 grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full text-[12px] font-extrabold ${
+          dark ? "bg-yellow-400/20 text-yellow-400" : "bg-emerald-500/12 text-emerald-600"
+        }`}
+      >
+        <Check className="h-3 w-3" strokeWidth={3} />
+      </span>
+      <span className={dark ? "text-slate-200" : "text-slate-700"}>{children}</span>
+    </li>
+  );
+}
+
+const BONUS_INCLUDE = [
+  "Scegliere la nicchia giusta",
+  "Definire lo studente ideale",
+  "Struttura a moduli e lezioni",
+  "Il funnel: attira, nutri, converti",
+  "Prezzo e offerte oneste",
+  "Il lancio e la checklist finale",
+];
+
+const PILLARS = [
+  { Icon: Zap, t: "Col metodo giusto, è veloce", d: "Sai già cosa dire e in che ordine: registrare diventa la parte breve. E Ciak è fatto per andare spediti, senza giri a vuoto." },
+  { Icon: Camera, t: "Zero attrezzatura costosa", d: "Niente studio né telecamere da migliaia di euro. Basta quello che hai già. La qualità che serve, non quella che si sfoggia." },
+  { Icon: ClipboardList, t: "Non parti da zero", d: "Template e script già pronti, e gli argomenti su cui costruire. Riempi una traccia con la tua esperienza, non un foglio bianco." },
+  { Icon: Bot, t: "Agenti AI attivi 24 ore su 24", d: "Ti danno una mano quando vuoi tu — la sera, all'alba, tra un cliente e l'altro. Ti organizzi come è meglio per te, senza aspettare nessuno." },
+  { Icon: Mic, t: "La voce resta la tua", d: "L'AI non fa tutto: gli script li personalizzi nel tuo stile. Il metodo fa risparmiare tempo, il tuo modo di dire le cose resta tuo." },
+];
+
+const REASSURANCE = [
+  { Icon: Wallet, t: "Credito garantito", d: "I 390€ di Ciak Start si scalano interi se poi passi alla Partnership. Non paghi due volte." },
+  { Icon: ArrowRight, t: "Rateizzi tu", d: "Con Klarna, già dentro il checkout, dividi l'importo senza chiedere niente a nessuno." },
+  { Icon: Timer, t: "48 ore vere", d: "Il bonus scade davvero allo scadere delle 48h dalla call. Nessun finto conto alla rovescia." },
+  { Icon: ShieldCheck, t: "Onestà", d: "Ti diamo il metodo, non promesse di guadagno. I risultati dipendono dal mercato e dal tuo impegno." },
+];
+
 export function StartPage({ dashboard }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -56,19 +121,25 @@ export function StartPage({ dashboard }) {
   const [journeyError, setJourneyError] = useState("");
   const [journeyLoading, setJourneyLoading] = useState(false);
   const [deliverables, setDeliverables] = useState([]);
+  // Cosa deve fare il cliente: finche' non invia domande e marchio il lavoro non parte.
+  const [compiti, setCompiti] = useState(null);
 
   const access = dashboard.client?.access_level;
   const active = access === "cliente_start" || access === "partner";
-  const decided = dashboard.diagnostic?.offer_decision === "ciak_start";
-  const showStartOffer = active || decided;
-  const startPrice = dashboard.pricing?.ciak_start?.amount_cents ?? 49900;
-  const creditAmount = dashboard.pricing?.partnership?.credit_amount_cents ?? 49900;
-  const startLocked = !showStartOffer;
+  // Modello Blueprint GRATUITO "tutto automatico": dopo la call di consegna
+  // (call_done) Ciak Start e' acquistabile dal cliente, senza `offer_decision`
+  // manuale del team. Allineato ai gate backend allentati.
+  const callDone = dashboard.diagnostic?.state === "call_done";
+  const showStartOffer = active || callDone;
+  const startPrice = dashboard.pricing?.ciak_start?.amount_cents ?? PRICING.start.cents;
   const clientId = dashboard.client?.id;
+  const primo = (dashboard.client?.name || "").trim().split(" ")[0] || "";
 
-  // Il percorso e' la journey vera, non `start_progress`: quel campo veniva
-  // scritto solo alla creazione con un default e nessun endpoint lo faceva
-  // avanzare, quindi mostrava sette etichette immobili. E' in dismissione.
+  // Finestra bonus 48h (guida videocorso in omaggio): countdown REALE dal backend.
+  const offer = dashboard.offer || {};
+  const bonusAttiva = !!offer.bonus_guida_attiva && !!offer.bonus_expires_at;
+
+  // Il percorso e' la journey vera, non `start_progress`.
   useEffect(() => {
     if (!active || !clientId) return undefined;
     let annullato = false;
@@ -93,6 +164,18 @@ export function StartPage({ dashboard }) {
 
   useEffect(() => {
     if (!active) return;
+    Promise.all([clientGet("/start/risposte"), clientGet("/start/marchio")])
+      .then(([r, m]) =>
+        setCompiti({
+          domande: { fatto: Boolean(r.completato_at), iniziato: Object.keys(r.answers || {}).length > 0 },
+          marchio: { fatto: Boolean(m.completato_at), iniziato: Object.keys(m.valori || {}).length > 0 },
+        })
+      )
+      .catch(() => setCompiti(null));
+  }, [active, clientId]);
+
+  useEffect(() => {
+    if (!active) return;
     clientGet("/start/deliverables")
       .then((data) => setDeliverables(data.items || []))
       .catch(() => setDeliverables([]));
@@ -101,6 +184,13 @@ export function StartPage({ dashboard }) {
   const steps = journey?.steps || [];
   const lockedSteps = journey?.locked_steps || [];
   const completati = steps.filter((s) => s.status === "done").length;
+  const elencoCompiti = compiti
+    ? [
+        { chiave: "domande", titolo: "Le tue otto domande", a: "/cliente/start/domande", testo: "Sono otto domande sul tuo lavoro, una alla volta. Con le tue risposte prepariamo le frasi che spiegano chi sei.", ...compiti.domande },
+        { chiave: "marchio", titolo: "Il tuo marchio: colori, lettere, voce", a: "/cliente/start/marchio", testo: "Scegli i colori, le lettere e il modo di parlare del tuo marchio. Sono poche scelte, tutte con un'anteprima.", ...compiti.marchio },
+      ]
+    : [];
+  const prossimo = elencoCompiti.find((c) => !c.fatto) || null;
 
   async function handleCheckout() {
     try {
@@ -119,162 +209,314 @@ export function StartPage({ dashboard }) {
     }
   }
 
+  // ─── STATO VENDITA (post-call, non ancora cliente) ─────────────────────────
+  if (showStartOffer && !active) {
+    return (
+      <div className="space-y-6">
+        {/* HERO */}
+        <section className="relative overflow-hidden rounded-2xl text-white" style={{ background: NAVY_GRADIENT }}>
+          <div className="relative z-10 p-7 sm:p-9">
+            {primo ? <p className="text-sm font-semibold text-slate-300">Ciao {primo},</p> : null}
+            <p className="mt-3 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-300">
+              <span className="h-0.5 w-6 bg-yellow-400" /> Ciak Start
+            </p>
+            <h1 className="mt-3 text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
+              Le fondamenta,<br />fatte <span className="text-yellow-400">bene.</span>
+            </h1>
+            <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-slate-200">
+              Prima si sceglie la direzione, poi si investe. Ciak Start mette in ordine posizionamento, brand, presenza online
+              e contenuti: il minimo perché tutto il resto poggi su basi solide, e non sul rumore.</p>
+          </div>
+        </section>
+
+        {/* BONUS 48h: solo se la finestra e' davvero aperta */}
+        {bonusAttiva ? (
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3 rounded-xl bg-yellow-400 px-5 py-4 text-center text-slate-900">
+            <span className="inline-flex items-center gap-2 text-sm font-bold">
+              <Gift className="h-4 w-4" /> Guida in omaggio attivando Ciak Start — l'offerta scade tra
+            </span>
+            <Countdown deadline={offer.bonus_expires_at} />
+          </div>
+        ) : null}
+
+        {/* VIDEO: perché partire da Start (compare solo se c'è un video vero) */}
+        <StartSalesVideo />
+
+        {/* OFFERTA: solo Ciak Start. La Partnership ha la sua pagina. */}
+        <section className="relative mx-auto flex w-full max-w-3xl flex-col rounded-2xl border-2 border-yellow-400 bg-white p-7 shadow-[0_18px_50px_rgba(16,19,38,0.10)]" data-offer="start">
+            <span className="absolute -top-3 left-6 rounded-full bg-yellow-400 px-4 py-1.5 text-xs font-extrabold uppercase tracking-wide text-slate-900 shadow">Il primo passo</span>
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Ciak Start</p>
+            <h2 className="mt-2 text-2xl font-extrabold text-slate-900">Le fondamenta, fatte bene</h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-500">
+              Il primo passo concreto: posizionamento, brand di base, presenza online e un piano di contenuti pronto da seguire.
+            </p>
+            <div className="mt-5 flex items-baseline gap-2">
+              <span className="text-4xl font-extrabold tracking-tight text-slate-900">{euro(startPrice)}</span>
+              <span className="text-sm font-semibold text-slate-500">una tantum</span>
+            </div>
+            <ul className="mt-6 flex flex-col gap-3">
+              <FeatItem>Direzione di posizionamento chiara</FeatItem>
+              <FeatItem>Basi del brand e sistemazione dei profili social</FeatItem>
+              <FeatItem>Sito vetrina semplice</FeatItem>
+              <FeatItem>Strategia + calendario dei contenuti</FeatItem>
+              <FeatItem>Revisione finale e prontezza alla Partnership</FeatItem>
+            </ul>
+            {bonusAttiva ? (
+              <div className="mt-5 flex items-center gap-3 rounded-xl border border-yellow-200 bg-yellow-50 p-3.5">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-yellow-400 text-slate-900">
+                  <Gift className="h-5 w-5" />
+                </span>
+                <p className="text-[13px] leading-snug text-slate-700">
+                  <b className="font-extrabold">In omaggio: la guida "Come creare un videocorso che vende"</b>{" "}
+                  (40 pagine). <span className="text-slate-500">Inclusa solo se attivi entro 48h.</span>
+                </p>
+              </div>
+            ) : null}
+            <div className="mt-6 border-t border-slate-100 pt-6">
+              <button
+                type="button"
+                onClick={handleCheckout}
+                disabled={loading}
+                className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 px-6 text-[15px] font-bold text-slate-900 shadow-[0_8px_22px_rgba(251,192,2,0.32)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(251,192,2,0.42)] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {loading ? "Apro il checkout..." : "Attiva Ciak Start"}
+                <ArrowRight className="h-4 w-4" />
+              </button>
+              <p className="mt-3 text-center text-xs leading-relaxed text-slate-500">
+                I {euro(startPrice)} restano un credito garantito verso la Partnership. Puoi rateizzare con Klarna.
+              </p>
+            </div>
+            {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
+          </section>
+
+        {/* BONUS SPOTLIGHT — copertina guida */}
+        {bonusAttiva ? (
+          <section className="grid items-center gap-8 rounded-2xl border border-slate-200 bg-white p-7 shadow-[0_12px_40px_rgba(16,19,38,0.06)] sm:p-9 lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="flex justify-center [perspective:1600px]">
+              <div className="relative rounded-[4px_8px_8px_4px] shadow-[-26px_30px_60px_rgba(16,19,38,0.34)] [transform:rotateY(-20deg)_rotateX(4deg)]">
+                <img
+                  src="/ciak/guida-videocorso-cover.png"
+                  alt='Copertina della guida "Come creare un videocorso che vende davvero"'
+                  className="block w-[240px] max-w-full rounded-[4px_8px_8px_4px]"
+                  loading="lazy"
+                />
+                <span className="pointer-events-none absolute inset-y-0 left-0 w-4 rounded-l-[4px] bg-gradient-to-r from-black/30 to-transparent" />
+              </div>
+            </div>
+            <div>
+              <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+                <span className="h-0.5 w-6 bg-yellow-400" /> Il tuo regalo di benvenuto
+              </p>
+              <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900">
+                "Come creare un videocorso <span className="text-yellow-500">che vende davvero"</span>
+              </h2>
+              <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
+                40 pagine, metodo passo-passo: dalla scelta della nicchia al lancio. La stessa logica di Evolution PRO,
+                messa nero su bianco. È tua in omaggio se attivi Ciak Start entro 48 ore.
+              </p>
+              <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+                {BONUS_INCLUDE.map((v) => (
+                  <li key={v} className="flex items-start gap-2.5 text-sm text-slate-700">
+                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md bg-slate-900 text-[11px] font-extrabold text-yellow-400">
+                      <Check className="h-3 w-3" strokeWidth={3} />
+                    </span>
+                    {v}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-6 inline-flex items-center gap-3 rounded-xl border border-dashed border-yellow-500 bg-slate-50 px-4 py-3">
+                <span className="text-xs font-bold uppercase tracking-wide text-emerald-600">Incluso gratis</span>
+                <span className="text-sm text-slate-500">
+                  Inclusa solo se attivi entro 48h dalla call
+                </span>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {/* REGISTRAZIONE — obiezione "porta via troppo tempo" */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-7">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+              <span className="h-0.5 w-6 bg-yellow-400" /> «Ce la faccio?» Sì.
+            </p>
+            <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+              La paura è la parte lunga.<br /><span className="text-yellow-500">La registrazione no.</span>
+            </h2>
+            <p className="mt-3 text-[15px] leading-relaxed text-slate-500">
+              Immagini mesi di lavoro, tecnica da imparare, serate perse. Non è così — ed ecco perché.
+            </p>
+          </div>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {PILLARS.map(({ Icon, t, d }) => (
+              <div key={t} className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+                <span className="grid h-11 w-11 place-items-center rounded-xl bg-slate-900 text-yellow-400">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <h3 className="mt-4 text-base font-extrabold leading-tight text-slate-900">{t}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-500">{d}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 flex items-center gap-4 rounded-2xl p-6 text-white" style={{ background: NAVY_GRADIENT }}>
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-yellow-400 text-slate-900">
+              <Check className="h-5 w-5" strokeWidth={3} />
+            </span>
+            <p className="text-[15px] leading-relaxed text-slate-200">
+              <b className="font-extrabold text-white">La tua parte è piccola, ed è quella che sai già fare:</b>{" "}
+              mettere la tua competenza davanti alla telecamera. Al peso — struttura, montaggio, funnel — pensiamo noi.
+            </p>
+          </div>
+        </section>
+
+        {/* REASSURANCE */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-7">
+          <h2 className="text-center text-xl font-extrabold tracking-tight text-slate-900">Come funziona, in chiaro</h2>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {REASSURANCE.map(({ Icon, t, d }) => (
+              <div key={t} className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-slate-900 text-yellow-400">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <h3 className="mt-3.5 text-sm font-bold text-slate-900">{t}</h3>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-slate-500">{d}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-6 text-center text-xs leading-relaxed text-slate-400">
+            Ciak Start {euro(startPrice)}, una tantum. Se poi passi alla <Link to="/cliente/partnership" className="font-semibold underline">Partnership</Link>,
+            i {euro(startPrice)} si scalano interi. Nessun risultato economico è garantito: il metodo è lo strumento,
+            i risultati dipendono dal mercato e dal tuo impegno.
+          </p>
+        </section>
+
+        {/* Assistente: scioglie i dubbi prima della decisione, senza uscire dalla pagina */}
+        <SalesChat bonusAttiva={bonusAttiva} recPartnership={false} />
+      </div>
+    );
+  }
+
+  // ─── STATO BLOCCATO (call non ancora fatta) ────────────────────────────────
+  if (!active) {
+    return (
+      <div className="space-y-5">
+        <section className="rounded-xl border border-slate-200 bg-white p-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Ciak Start</p>
+          <h1 className="mt-2 text-2xl font-semibold text-slate-900">Percorso ancora chiuso</h1>
+          <div className="mt-5 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+            <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+            <p>Ciak Start si sblocca dopo la call di consegna del Blueprint.</p>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  // ─── STATO CLIENTE ATTIVO (percorso + materiali) ───────────────────────────
   return (
     <div className="space-y-5">
       <section className="rounded-xl border border-yellow-200 bg-white p-6">
         <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Ciak Start</p>
-        <h1 className="mt-2 text-2xl font-semibold text-slate-900">
-          {active ? "Fondazioni in corso" : decided ? "Ciak Start proposto" : "Percorso ancora chiuso"}
-        </h1>
+        <h1 className="mt-2 text-2xl font-semibold text-slate-900">Fondazioni in corso</h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
-          {active
-            ? "Ciak Start sistema social, brand base, primo posizionamento, sito vetrina, calendario e strategia contenuti."
-            : decided
-              ? "Questa e' la proposta Start: i servizi sono visibili, ma non ancora attivi."
-              : "La sezione Start resta chiusa finché il Blueprint non definisce il percorso."}
+          Ciak Start sistema social, brand base, primo posizionamento, sito vetrina, calendario e strategia contenuti.
         </p>
-        {showStartOffer ? (
-          <div className="mt-5 rounded-xl bg-blue-50 p-4 text-sm text-slate-700">
-            {active
-              ? `Ciak Start vale ${euro(startPrice)} e il credito di ${euro(creditAmount)} resta sempre garantito se passi alla Partnership.`
-              : `Proposta Ciak Start da ${euro(startPrice)}. Se la attivi, il credito di ${euro(creditAmount)} resta garantito verso la Partnership.`}
-          </div>
-        ) : null}
-        {decided && !active ? (
-          <div className="mt-5 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={handleCheckout}
-              disabled={loading}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
-            >
-              {loading ? "Apro il checkout..." : "Attiva Ciak Start"}
-              <ArrowRight className="h-4 w-4" />
-            </button>
-            <p className="text-sm text-slate-500">Proposta non attiva, credito Start garantito verso la Partnership.</p>
-          </div>
-        ) : null}
-        {startLocked ? (
-          <div className="mt-5 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-            <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
-            <p>Dopo la consegna del Blueprint e la call, qui comparira' Ciak Start solo se il team conferma che non sei ancora pronto per la Partnership.</p>
-          </div>
-        ) : null}
-        {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
       </section>
 
-      {active ? (
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-lg font-semibold text-slate-900">Il tuo percorso</h2>
-            {steps.length ? (
-              <p className="text-sm text-slate-500">
-                {completati} di {steps.length} completati
-              </p>
-            ) : null}
-          </div>
-
-          {journeyLoading && !steps.length ? (
-            <p className="mt-4 flex items-center gap-2 text-sm text-slate-500">
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              Carico il percorso...
+      {compiti ? (
+        <section
+          className={`rounded-xl border p-6 ${prossimo ? "border-yellow-300 bg-yellow-50" : "border-emerald-200 bg-emerald-50"}`}
+          data-testid="prossimo-passo"
+        >
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-600">
+            {prossimo ? "Il tuo prossimo passo" : "Hai fatto la tua parte"}
+          </p>
+          <ul className="mt-3 space-y-2">
+            {elencoCompiti.map((c) => (
+              <li key={c.chiave} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span className="font-medium text-slate-800">{c.titolo}</span>
+                <span className={c.fatto ? "font-semibold text-emerald-700" : "text-slate-500"}>
+                  {c.fatto ? "Inviato" : c.iniziato ? "Da finire" : "Da fare"}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {prossimo ? (
+            <>
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">{prossimo.testo} Puoi fermarti quando vuoi: quello che scrivi si salva.</p>
+              <Link
+                to={prossimo.a}
+                className="mt-4 inline-flex min-h-[48px] items-center rounded-xl bg-yellow-400 px-6 text-base font-semibold text-slate-900 transition-colors duration-200 hover:bg-yellow-300"
+              >
+                {prossimo.iniziato ? "Continua" : "Iniziamo"}
+              </Link>
+            </>
+          ) : (
+            <p className="mt-3 text-sm leading-relaxed text-slate-600">
+              Ora ci lavoriamo noi e ti avvisiamo appena la prima tappa è pronta.{" "}
+              <Link to="/cliente/start/domande" className="font-semibold text-slate-800 underline">Rivedi le risposte</Link>
+              {" · "}
+              <Link to="/cliente/start/marchio" className="font-semibold text-slate-800 underline">Rivedi il marchio</Link>
             </p>
-          ) : null}
+          )}
+        </section>
+      ) : null}
 
-          {journeyError && !steps.length ? (
-            <p className="mt-4 text-sm text-slate-500">
-              Il percorso non è ancora disponibile. Riprova fra qualche minuto: se resta così, scrivici.
-            </p>
-          ) : null}
-
+      <section className="rounded-xl border border-slate-200 bg-white p-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-lg font-semibold text-slate-900">Il tuo percorso</h2>
           {steps.length ? (
-            <ol className="mt-4 space-y-2">
-              {steps.map((step) => (
-                <li
-                  key={step.step_id}
-                  className={`flex items-center justify-between gap-4 rounded-lg border px-4 py-3 ${
-                    step.status === "in_progress"
-                      ? "border-yellow-300 bg-yellow-50/60"
-                      : "border-slate-200"
-                  }`}
-                >
-                  <span className="font-medium text-slate-800">{step.label || step.step_id}</span>
-                  <StatoBadge status={step.status} />
-                </li>
-              ))}
-            </ol>
+            <p className="text-sm text-slate-500">
+              {completati} di {steps.length} completati
+            </p>
           ) : null}
-        </section>
-      ) : showStartOffer ? (
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-slate-900">Servizi proposti</h2>
-          <div className="mt-4 space-y-2">
-            {SERVIZI_PROPOSTI.map((label) => (
-              <div key={label} className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 px-4 py-3">
-                <span className="font-medium text-slate-800">{label}</span>
-                <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400">proposto</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
+        </div>
 
-      {active && deliverables.length ? (
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-slate-900">Materiali approvati</h2>
-          <p className="mt-1 text-sm text-slate-500">Qui compaiono soltanto gli output revisionati dal team.</p>
-          <div className="mt-4 space-y-3">
-            {deliverables.map((item) => (
-              <details key={item.type} className="rounded-lg border border-slate-200 p-4">
-                <summary className="cursor-pointer font-semibold text-slate-800">
-                  {item.type === "content_plan_90d" ? "Calendario contenuti — 90 giorni" : "Verifica finale Partnership"}
-                </summary>
-                {item.type === "content_plan_90d" ? (
-                  <div className="mt-4 space-y-5">
-                    {(item.calendar?.months || []).map((month) => (
-                      <div key={month.mese}>
-                        <h3 className="text-sm font-semibold text-slate-900">Mese {month.mese}</h3>
-                        {(month.blocchi || []).map((block) => (
-                          <div key={block.fase} className="mt-3">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{block.fase}</p>
-                            <ul className="mt-2 space-y-2">
-                              {(block.giorni || []).map((day) => (
-                                <li key={`${month.mese}-${day.giorno}`} className="rounded-md bg-slate-50 p-3 text-sm text-slate-700">
-                                  <span className="font-semibold">Giorno {day.giorno} · {day.formato}</span> — {day.tema}
-                                  <p className="mt-1 text-xs text-slate-500">{day.come_farlo} · CTA: {day.cta}</p>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="mt-3 text-sm leading-relaxed text-slate-600">{item.note}</p>
-                )}
-              </details>
-            ))}
-          </div>
-        </section>
-      ) : null}
+        {journeyLoading && !steps.length ? (
+          <p className="mt-4 flex items-center gap-2 text-sm text-slate-500">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            Carico il percorso...
+          </p>
+        ) : null}
 
-      {active && lockedSteps.length ? (
-        <section className="rounded-xl border border-slate-200 bg-slate-900 p-6">
+        {journeyError && !steps.length ? (
+          <p className="mt-4 text-sm text-slate-500">
+            Il percorso non è ancora disponibile. Riprova fra qualche minuto: se resta così, scrivici.
+          </p>
+        ) : null}
+
+        {steps.length ? (
+          <ol className="mt-4 space-y-2">
+            {steps.map((step) => (
+              <li
+                key={step.step_id}
+                className={`flex items-center justify-between gap-4 rounded-lg border px-4 py-3 ${
+                  step.status === "in_progress" ? "border-yellow-300 bg-yellow-50/60" : "border-slate-200"
+                }`}
+              >
+                <span className="font-medium text-slate-800">{etichettaPasso(step)}</span>
+                <StatoBadge status={step.status} />
+              </li>
+            ))}
+          </ol>
+        ) : null}
+      </section>
+
+      <MaterialiStart items={deliverables} />
+
+      {lockedSteps.length ? (
+        <section className="rounded-xl border border-slate-200 p-6 text-white" style={{ background: NAVY_GRADIENT }}>
           <p className="text-xs font-semibold uppercase tracking-widest text-yellow-400">Con la Partnership</p>
           <h2 className="mt-2 text-lg font-semibold text-white">
             Altri {lockedSteps.length} step, quando decidi di continuare
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">
             Masterclass, videocorso, sistema di vendita e lancio. Quello che compili adesso non si perde:
-            resta dentro e riparte da dove sei arrivato.
+            resta dentro e riparte da dove sei arrivato — <span className="font-semibold text-white">e i tuoi {euro(startPrice)} di Ciak Start sono già scalati sul prezzo della Partnership.</span>
           </p>
           <ul className="mt-4 grid gap-2 sm:grid-cols-2">
             {lockedSteps.map((step) => (
-              <li
-                key={step.step_id}
-                className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300"
-              >
+              <li key={step.step_id} className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300">
                 <LockKeyhole className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden="true" />
                 {step.label || step.step_id}
               </li>

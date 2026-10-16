@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { authFetch } from "../../api";
 
-const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
+const API = process.env.REACT_APP_BACKEND_URL || "";
 
 export function useJourneyState(partnerId) {
   const [state, setState] = useState(null);

@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, KeyRound, RefreshCw, Sparkles, Target } from "lucide-react";
+import { Link } from "react-router-dom";
+import { AlertTriangle, CheckCircle2, KeyRound, RefreshCw, Sparkles, Target, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { adminFetch, apiGet, apiPost } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import LinkAccessoCliente from "../components/LinkAccessoCliente";
 
 const ACCESS_LABELS = {
   cliente_blueprint: "Blueprint",
@@ -19,6 +23,25 @@ const START_STATUS_LABELS = {
   completato: "Completato",
   sospeso: "Sospeso",
 };
+
+// Chi ha COMPRATO: livello Start o Partner, oppure ha un credito/acquisto Start registrato o la
+// Partnership attiva. Chi ha solo il Blueprint (gratuito) e' un lead, non un cliente.
+export function haComprato(item) {
+  const livello = String(item?.access_level || "").toLowerCase();
+  return (
+    livello === "cliente_start" ||
+    livello === "partner" ||
+    Boolean(item?.start_purchased_at) ||
+    Number(item?.start_credit_amount) > 0 ||
+    Boolean(item?.partnership_attiva)
+  );
+}
+
+export const VISTE = [
+  { id: "comprato", label: "Hanno comprato", vuoto: "Nessun cliente ha ancora comprato." },
+  { id: "blueprint", label: "Solo Blueprint", vuoto: "Nessun account con solo il Blueprint gratuito." },
+  { id: "tutti", label: "Tutti", vuoto: "Nessun account Ciak disponibile." },
+];
 
 function formatOffer(value) {
   if (!value) return "Da definire";
@@ -40,7 +63,8 @@ function formatCurrency(cents) {
 
 function inferStartStatus(item) {
   if (item.start_status) return item.start_status;
-  if (Array.isArray(item.start_progress) && item.start_progress.length > 0) return "attivo";
+  // `start_progress` e' stato dismesso: lo stato Start si deduce dal livello di
+  // accesso. Il percorso vero vive su `partner_journey_steps`.
   if ((item.access_level || "").toLowerCase() === "cliente_start") return "attivo";
   return null;
 }
@@ -135,7 +159,7 @@ function AttivaStartCard({ onAuthExpired, onAttivato }) {
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Attiva Ciak Start</h2>
           <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-500">
-            Per chi ha pagato i 499€ da Payment Link e non passa dal checkout interno. Crea l'account se
+            Per chi ha pagato i 390€ da Payment Link e non passa dal checkout interno. Crea l'account se
             manca, registra l'incasso e manda subito il link di accesso.
           </p>
         </div>
@@ -220,6 +244,9 @@ export function ClientiCiak({ onAuthExpired }) {
   const [error, setError] = useState(null);
   const [decisionLoading, setDecisionLoading] = useState(null);
   const [notice, setNotice] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [vista, setVista] = useState("comprato");
 
   const loadItems = useCallback(async ({ silent = false } = {}) => {
     if (silent) setRefreshing(true);
@@ -269,6 +296,68 @@ export function ClientiCiak({ onAuthExpired }) {
     }
   }, [decisionLoading, onAuthExpired]);
 
+  // Toglie un Ciak Start attivato per errore dal form admin (mai uno pagato
+  // davvero: il backend rifiuta). Il cliente resta, col suo link d'accesso: al
+  // prossimo accesso vede la sales page con le due opzioni.
+  const [pendingAnnulla, setPendingAnnulla] = useState(null);
+  const [annullando, setAnnullando] = useState(false);
+  const confirmAnnulla = async () => {
+    const client = pendingAnnulla;
+    if (!client || annullando) return;
+    setAnnullando(true);
+    try {
+      const res = await adminFetch(
+        `/api/admin/ciak/clients/${client.id}/annulla-start-non-pagato`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: client.email }) }
+      );
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        let detail = text;
+        try { detail = JSON.parse(text).detail || text; } catch { /* testo semplice */ }
+        throw new Error(detail ? String(detail).slice(0, 200) : `Errore ${res.status}`);
+      }
+      const r = await res.json();
+      const chi = (r.start_attivato_da || []).join(", ");
+      setPendingAnnulla(null);
+      toast.success(`Ciak Start annullato per "${client.email}".${chi ? ` Era stato attivato da: ${chi}.` : ""}`);
+      loadItems({ silent: true });
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else toast.error(e.message || "Errore nell'annullamento dello Start.");
+    } finally {
+      setAnnullando(false);
+    }
+  };
+
+  // Elimina a cascata il cliente Ciak (account + ponte + journey + deliverable).
+  // Backend: DELETE /api/admin/ciak/clients/{id}?email= — l'email deve combaciare
+  // (salvaguardia anti-errore), i record finanziari non si toccano.
+  const confirmDelete = async () => {
+    const client = pendingDelete;
+    if (!client || deleting) return;
+    setDeleting(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await adminFetch(
+        `/api/admin/ciak/clients/${client.id}?email=${encodeURIComponent(client.email)}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`Errore ${res.status}${text ? `: ${text.slice(0, 160)}` : ""}`);
+      }
+      setPendingDelete(null);
+      toast.success(`Cliente "${client.email}" eliminato.`);
+      loadItems({ silent: true });
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else toast.error(e.message || "Errore nell'eliminazione del cliente.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const rows = useMemo(
     () =>
       items.map((item, index) => {
@@ -290,9 +379,22 @@ export function ClientiCiak({ onAuthExpired }) {
           startStatus: startStatus ? START_STATUS_LABELS[startStatus] || startStatus : null,
           analysisStatus: item.analysis_status || null,
           updatedAt,
+          comprato: haComprato(item),
         };
       }),
     [items]
+  );
+  const conteggi = useMemo(
+    () => ({
+      comprato: rows.filter((r) => r.comprato).length,
+      blueprint: rows.filter((r) => !r.comprato).length,
+      tutti: rows.length,
+    }),
+    [rows]
+  );
+  const visibili = useMemo(
+    () => rows.filter((r) => (vista === "comprato" ? r.comprato : vista === "blueprint" ? !r.comprato : true)),
+    [rows, vista]
   );
 
   return (
@@ -300,14 +402,15 @@ export function ClientiCiak({ onAuthExpired }) {
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Vendite</p>
-          <h1 className="mt-1 text-3xl font-semibold text-slate-900">Clienti Ciak</h1>
+          <h1 className="mt-1 text-3xl font-semibold text-slate-900">Account Ciak</h1>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-500">
-            Blueprint, Start e passaggi verso Partnership. Vista rapida per leggere stato, punteggio e prossima offerta.
+            Tutti gli account, divisi in chi ha comprato e chi ha solo il Blueprint gratuito (un lead, non ancora un cliente).
+            Per seguire i lead usa la pagina Lead.
           </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-right">
-            <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Clienti</div>
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Account</div>
             <div className="mt-1 text-2xl font-semibold text-slate-900">{count}</div>
           </div>
           <button
@@ -336,7 +439,21 @@ export function ClientiCiak({ onAuthExpired }) {
 
       <AttivaStartCard onAuthExpired={onAuthExpired} onAttivato={() => loadItems({ silent: true })} />
 
-      <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <div className="mt-6 flex flex-wrap gap-2" role="group" aria-label="Quali account vedere">
+        {VISTE.map((v) => (
+          <button
+            key={v.id}
+            type="button"
+            aria-pressed={vista === v.id}
+            onClick={() => setVista(v.id)}
+            className={`rounded-full border px-3.5 py-1.5 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400 ${vista === v.id ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-700 hover:border-slate-400"}`}
+          >
+            {v.label} <span className="opacity-70">{conteggi[v.id]}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
@@ -366,17 +483,26 @@ export function ClientiCiak({ onAuthExpired }) {
                     <td className="px-4 py-4"><div className="h-8 w-40 rounded bg-slate-100" /></td>
                   </tr>
                 ))
-              ) : rows.length === 0 ? (
+              ) : visibili.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-10 text-center text-sm text-slate-500">
-                    Nessun cliente Ciak disponibile.
+                    {VISTE.find((v) => v.id === vista)?.vuoto}
                   </td>
                 </tr>
               ) : (
-                rows.map((row) => (
+                visibili.map((row) => (
                   <tr key={row.key} className="align-top">
                     <td className="px-4 py-4">
-                      <div className="font-medium text-slate-900">{row.name}</div>
+                      {row.email && row.email !== "-" ? (
+                        <Link
+                          to={`/admin/leads/${encodeURIComponent(row.email)}`}
+                          className="font-medium text-slate-900 hover:text-slate-600 hover:underline"
+                        >
+                          {row.name}
+                        </Link>
+                      ) : (
+                        <div className="font-medium text-slate-900">{row.name}</div>
+                      )}
                       <div className="mt-1 text-sm text-slate-500">{row.email}</div>
                     </td>
                     <td className="px-4 py-4">
@@ -439,6 +565,32 @@ export function ClientiCiak({ onAuthExpired }) {
                       ) : (
                         <p className="mt-2 text-xs text-slate-400">Abilita il checkout corretto in area cliente.</p>
                       )}
+                      <LinkAccessoCliente
+                        client={{ id: row.id, email: row.email, name: row.name }}
+                        onAuthExpired={onAuthExpired}
+                        className="mt-2 mr-3 inline-flex items-center gap-1 text-xs font-medium text-slate-600 transition hover:text-slate-900 hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+                      />
+                      {row.accessLevel === "cliente_start" && (
+                        <button
+                          type="button"
+                          onClick={() => setPendingAnnulla({ id: row.id, email: row.email, name: row.name })}
+                          disabled={!row.id}
+                          title="Toglie uno Start attivato per errore (non pagato). Il cliente resta e vede la sales page."
+                          className="mt-2 mr-3 inline-flex items-center gap-1 text-xs font-medium text-slate-600 transition hover:text-slate-900 hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          Annulla Start non pagato
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setPendingDelete({ id: row.id, email: row.email, name: row.name })}
+                        disabled={!row.id}
+                        title="Elimina cliente a cascata (account + percorso, non i record contabili)"
+                        className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-red-600 transition hover:text-red-700 hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-40"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Elimina cliente
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -447,6 +599,30 @@ export function ClientiCiak({ onAuthExpired }) {
           </table>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={!!pendingAnnulla}
+        title={pendingAnnulla ? `Annulla Ciak Start di ${pendingAnnulla.name || pendingAnnulla.email}` : ""}
+        body="Da usare solo se lo Start NON è stato pagato. Toglie livello Start, credito, incasso registrato dal form admin e percorso Start. Il cliente resta con il suo link d'accesso e vede la sales page con Ciak Start e Partnership. Se risulta un pagamento vero l'operazione viene rifiutata."
+        confirmLabel="Annulla Start"
+        cancelLabel="Indietro"
+        destructive
+        busy={annullando}
+        onConfirm={confirmAnnulla}
+        onCancel={() => setPendingAnnulla(null)}
+      />
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title={pendingDelete ? `Elimina ${pendingDelete.name || pendingDelete.email}` : ""}
+        body="Rimuove a cascata account, percorso (journey) e deliverable del cliente. I record contabili (incassi, crediti) restano. Operazione irreversibile."
+        confirmLabel="Elimina"
+        cancelLabel="Annulla"
+        destructive
+        busy={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

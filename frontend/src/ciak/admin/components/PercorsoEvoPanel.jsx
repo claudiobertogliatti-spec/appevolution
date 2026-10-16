@@ -17,6 +17,7 @@ import {
   Upload, FileText, StickyNote, ChevronRight,
 } from "lucide-react";
 import { adminFetch, getToken, getAdminUser } from "../api";
+import { toast } from "sonner";
 
 const PJ = "/api/partner-journey";
 
@@ -74,7 +75,7 @@ function StepRow({ step, partner, onChanged }) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       await onChanged();
     } catch (e) {
-      window.alert("Errore nel cambio stato: " + e.message);
+      toast.error("Errore nel cambio stato: " + e.message);
     } finally {
       setBusy(false);
     }
@@ -104,7 +105,7 @@ function StepRow({ step, partner, onChanged }) {
       await saveDraft({ admin_documents: next });
       await onChanged();
     } catch (err) {
-      window.alert("Errore upload: " + err.message);
+      toast.error("Errore upload: " + err.message);
     } finally {
       setBusy(false);
     }
@@ -118,7 +119,7 @@ function StepRow({ step, partner, onChanged }) {
       setTimeout(() => setNoteSaved(false), 1800);
       await onChanged();
     } catch (err) {
-      window.alert("Errore salvataggio nota: " + err.message);
+      toast.error("Errore salvataggio nota: " + err.message);
     } finally {
       setBusy(false);
     }

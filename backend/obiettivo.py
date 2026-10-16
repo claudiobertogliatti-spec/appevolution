@@ -66,7 +66,12 @@ class Obiettivo(BaseModel):
     target: float
     scadenza: str          # ISO date
     inizio: str            # ISO date
-    incassato: float = 0.0
+    # Incassato "vecchio" non tracciato come credito: la cassa entrata prima che
+    # i rientri diventassero crediti, o incassi una tantum mai messi a rata. E'
+    # una base fissa: si somma ai crediti incassati, non li sostituisce. Serve
+    # perche' l'incassato dev'essere TUTTO (vecchio + nuovo) e i crediti coprono
+    # solo cio' che e' stato registrato li'.
+    incassato_pregresso: float = 0.0
     leve: List[Leva] = Field(default_factory=list)
     nota: Optional[str] = None
     aggiornato_at: Optional[str] = None
@@ -81,7 +86,54 @@ def _data(iso: Optional[str]) -> Optional[date]:
         return None
 
 
-def stato(ob: dict, oggi: Optional[date] = None) -> dict:
+def incassato_da_crediti(
+    crediti: list, ob: dict, oggi: Optional[date] = None
+) -> float:
+    """
+    Quanto e' gia' entrato verso QUESTO obiettivo, letto dai crediti.
+
+    Perche' esiste (B, 15/9/2026): fino a oggi `incassato` era un campo salvato a
+    mano sull'obiettivo, e aggiornare la situazione pagamenti (i crediti) non lo
+    muoveva -- due numeri di "incassato" nello stesso cruscotto, e quello in
+    Direzione restava fermo. Qui la cassa entrata diventa una sola cosa: la somma
+    delle rate DAVVERO incassate, dentro la finestra dell'obiettivo.
+
+    Cosa conta, e perche':
+    - solo lo stato confermato a mano `incassata` (crediti.RATA_INCASSATA): mai
+      dedotto dal solo trascorrere della data -- una rata scaduta non e' cassa.
+    - la data dell'incasso e' `incassata_at`; in mancanza si usa `scadenza`. Una
+      rata incassata senza alcuna data non e' collocabile nel tempo e resta fuori:
+      non si puo' affermare che sia in finestra.
+    - la finestra e' [inizio, scadenza] dell'obiettivo: soldi entrati prima o dopo
+      appartengono a un altro periodo, non a questo gate.
+    - i ricorrenti CONTANO: il residuo li esclude perche' non sono da rincorrere,
+      ma una mensilita' riscossa e' cassa in banca come ogni altra.
+    """
+    from crediti import RATA_INCASSATA  # vocabolario delle rate, in un posto solo
+
+    oggi = oggi or datetime.now(timezone.utc).date()
+    inizio = _data(ob.get("inizio"))
+    fine = _data(ob.get("scadenza"))
+
+    totale = 0.0
+    for c in crediti or []:
+        for r in c.get("rate") or []:
+            if (r.get("stato") or "") != RATA_INCASSATA:
+                continue
+            quando = _data(r.get("incassata_at")) or _data(r.get("scadenza"))
+            if quando is None:
+                continue
+            if inizio and quando < inizio:
+                continue
+            if fine and quando > fine:
+                continue
+            totale += float(r.get("importo") or 0)
+    return round(totale, 2)
+
+
+def stato(
+    ob: dict, oggi: Optional[date] = None, crediti: Optional[list] = None
+) -> dict:
     """
     Il quadro di un obiettivo: quanto manca, a che ritmo serve andare, dove si
     va a finire se non cambia nulla, e quali leve si stanno raffreddando.
@@ -89,12 +141,19 @@ def stato(ob: dict, oggi: Optional[date] = None) -> dict:
     La **proiezione** e' il numero che serve a cambiare strategia in tempo: dice
     dove chiudi al ritmo tenuto finora. Se e' molto sotto il target, il problema
     non e' spingere di piu' sulle stesse cose.
+
+    L'incassato e' TUTTO l'incassato = `incassato_pregresso` (il vecchio non a
+    crediti, base fissa) + le rate incassate nei crediti. Cosi' segnare un
+    pagamento aggiorna l'obiettivo, senza perdere l'incassato storico che nei
+    crediti non c'e'. Senza `crediti` conta solo il pregresso (i crediti valgono 0).
     """
     oggi = oggi or datetime.now(timezone.utc).date()
     inizio = _data(ob.get("inizio"))
     fine = _data(ob.get("scadenza"))
     target = float(ob.get("target") or 0)
-    incassato = float(ob.get("incassato") or 0)
+    pregresso = float(ob.get("incassato_pregresso") or 0)
+    da_crediti = incassato_da_crediti(crediti or [], ob, oggi)
+    incassato = round(pregresso + da_crediti, 2)
 
     gap = max(target - incassato, 0)
     giorni_rimasti = (fine - oggi).days if fine else None
@@ -109,7 +168,11 @@ def stato(ob: dict, oggi: Optional[date] = None) -> dict:
     # storia per dirlo: una proiezione su due giorni sarebbe un numero inventato.
     proiezione = None
     if giorni_passati and giorni_passati >= 3 and giorni_rimasti is not None:
-        al_giorno = incassato / giorni_passati
+        # Il ritmo lo fa SOLO la cassa che entra durante l'obiettivo (le rate
+        # incassate): l'`incassato_pregresso` e' una base una-tantum, gia' in
+        # cassa all'inizio, non un flusso che si ripete. Proiettarla come se
+        # maturasse ogni giorno gonfiava la proiezione proprio sul gate.
+        al_giorno = da_crediti / giorni_passati
         proiezione = round(incassato + al_giorno * max(giorni_rimasti, 0), 2)
 
     leve = ob.get("leve") or []
