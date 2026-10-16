@@ -52,6 +52,20 @@ class _FakeCollection:
     async def find_one(self, query, projection=None, sort=None):
         return next((d for d in self.docs if _match(d, query)), None)
 
+    def find(self, query, projection=None):
+        # Il filtro e' valutato davvero (come Mongo): una email in maiuscolo
+        # che non combacia non deve trovare nulla.
+        docs = [d for d in self.docs if _match(d, query)]
+
+        class _Cursor:
+            def sort(self, *_a, **_k):
+                return self
+
+            async def to_list(self, _n):
+                return list(docs)
+
+        return _Cursor()
+
     async def replace_one(self, query, doc):
         for i, d in enumerate(self.docs):
             if _match(d, query):

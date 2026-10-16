@@ -1229,9 +1229,15 @@ async def ciak_mark_call_booked(
     )
 
     email = payload.email.strip().lower()
-    diag = await db.diagnostic_sessions.find_one(
-        {"user_email": _email_ci(email)}, sort=[("created_at", -1)]
-    )
+    # Un lead può avere più sessioni (questionario rifatto, link riaperto): la
+    # più recente può essere un questionario appena iniziato mentre l'analisi
+    # sta in una sessione precedente. Si agisce su quella più avanzata nel
+    # funnel (a parità, la più recente): è la stessa che la scheda mostra con
+    # il bottone «Conferma call fissata».
+    sessions = await db.diagnostic_sessions.find(
+        {"user_email": _email_ci(email)}
+    ).sort("created_at", -1).to_list(100)
+    diag = max(sessions, key=_funnel_rank, default=None)  # max: primo = più recente
     if not diag:
         raise HTTPException(
             404,

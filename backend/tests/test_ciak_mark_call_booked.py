@@ -22,13 +22,25 @@ pytestmark = pytest.mark.unit
 _FAKE_ADMIN = SimpleNamespace(email="admin@evolution-pro.it", user_id="admin-1")
 
 
+class _FakeCursor:
+    def __init__(self, docs):
+        self._docs = docs
+
+    def sort(self, *_args, **_kwargs):
+        return self
+
+    async def to_list(self, _n):
+        return list(self._docs)
+
+
 class _FakeSessions:
     def __init__(self, doc):
-        self._doc = doc
+        # doc singolo, lista (dalla più recente) oppure None
+        self._docs = doc if isinstance(doc, list) else ([doc] if doc else [])
         self.saved = None
 
-    async def find_one(self, _query, sort=None):
-        return self._doc
+    def find(self, _query):
+        return _FakeCursor(self._docs)
 
     async def replace_one(self, _query, doc):
         self.saved = doc
@@ -121,3 +133,41 @@ async def test_conferma_call_404_se_lead_inesistente(monkeypatch):
             MarkCallBookedRequest(email="nessuno@example.com"), admin=_FAKE_ADMIN
         )
     assert exc_info.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_conferma_call_sceglie_la_sessione_piu_avanzata(monkeypatch):
+    """Questionario rifatto: la sessione più recente è solo iniziata, l'analisi
+    sta in una precedente. La conferma agisce su quella con l'analisi (prima: 409)."""
+    nuova = _diag("ciak_started")
+    nuova["_id"] = "oid-nuova"
+    vecchia = _diag("report_generated")
+    vecchia["_id"] = "oid-vecchia"
+    fake_db = _FakeDB([nuova, vecchia])
+    monkeypatch.setattr(admin_router, "db", fake_db)
+
+    async def _fake_emit(**kwargs):
+        pass
+
+    with patch("services.ciak_systeme.ciak_emit_event", _fake_emit):
+        res = await ciak_mark_call_booked(
+            MarkCallBookedRequest(email="lead@example.com"), admin=_FAKE_ADMIN
+        )
+        await asyncio.sleep(0)
+
+    assert res["current_state"] == "call_booked"
+    assert fake_db.diagnostic_sessions.saved["_id"] == "oid-vecchia"
+
+
+@pytest.mark.asyncio
+async def test_conferma_call_409_se_nessuna_sessione_ha_l_analisi(monkeypatch):
+    from fastapi import HTTPException
+
+    fake_db = _FakeDB([_diag("ciak_started"), _diag("ciak_started")])
+    monkeypatch.setattr(admin_router, "db", fake_db)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await ciak_mark_call_booked(
+            MarkCallBookedRequest(email="lead@example.com"), admin=_FAKE_ADMIN
+        )
+    assert exc_info.value.status_code == 409
