@@ -1,28 +1,43 @@
 from __future__ import annotations
 
+import logging
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Optional
+from uuid import uuid4
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+import re
+
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel, Field
 
 from auth import decode_token
+from report_key_auth import require_admin_or_report_key
+from services.ciak_state_machine import STATE_CALL_DONE, transition_to
+from services.paid_offer_gate import require_paid_offer_checkout
+from routers.insider_helpers import blueprint_public_view, recommended_path
+from services.paid_offer_gate import paid_offer_readiness
 from services.ciak_client_accounts import (
+    effective_session_token,
+    ha_risposte,
+    pick_diagnostic_session,
     ACCESS_BLUEPRINT,
     ACCESS_PARTNER,
     ACCESS_START,
     OFFER_PARTNERSHIP,
     OFFER_START,
     START_AMOUNT_CENTS,
-    default_start_progress,
+    START_PLUS_AMOUNT_CENTS,
+    START_PLUS_CREDIT_DAYS,
     has_start_entitlement,
     partnership_price_for_client,
     verify_magic_login_token,
 )
 
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/ciak/client", tags=["ciak-client"])
 security = HTTPBearer(auto_error=False)
@@ -31,8 +46,8 @@ db = None
 
 CLIENT_JWT_ALG = "HS256"
 CLIENT_JWT_DAYS = 30
-BLUEPRINT_PRICE_CENTS = 2700
-PARTNERSHIP_PRICE_CENTS = 279000
+BLUEPRINT_PRICE_CENTS = 2700  # €27 storico (funnel gratuito, checkout €27 ritirato)
+PARTNERSHIP_PRICE_CENTS = 299000
 PARTNER_AREA_ACTIVE_STATES = {"partner_attivo", "convertito_partner"}
 START_EXPLICIT_OFFER_FLAGS = (
     "start_offer_enabled",
@@ -63,6 +78,36 @@ class OfferDecisionRequest(BaseModel):
 
 class ClientIdRequest(BaseModel):
     client_id: str
+
+
+class ConsegnaBlueprintRequest(BaseModel):
+    """Identifica il lead da consegnare. Almeno uno tra i campi va valorizzato;
+    `session_token` ha la precedenza, poi `email`, poi `client_id`."""
+    session_token: str | None = None
+    email: str | None = None
+    client_id: str | None = None
+
+
+class GeneraBlueprintRequest(BaseModel):
+    """Lead di cui generare il Blueprint (`session_token` > `email`).
+    `force=True` = "Rigenera": nuova versione anche se ce n'è già una pronta."""
+    session_token: str | None = None
+    email: str | None = None
+    force: bool = False
+
+
+async def _find_diagnostic(session_token: str | None, email: str | None) -> dict[str, Any] | None:
+    """Diagnostic_session del lead: la piu' recente CON risposte (vedi pick_diagnostic_session). L'email si confronta senza
+    maiuscole/minuscole: user_email è salvata come l'ha digitata il lead."""
+    if session_token:
+        doc = await db.diagnostic_sessions.find_one({"session_token": session_token})
+        if doc:
+            return doc
+    if email:
+        pattern = {"$regex": f"^{re.escape(email.strip())}$", "$options": "i"}
+        docs = await db.diagnostic_sessions.find({"user_email": pattern}).sort("created_at", -1).limit(20).to_list(length=20)
+        return pick_diagnostic_session(docs)
+    return None
 
 
 def _now_iso() -> str:
@@ -110,6 +155,7 @@ async def _create_checkout_session(
     metadata: dict[str, Any],
 ):
     api_key = _ensure_stripe_configured()
+    require_paid_offer_checkout(api_key, metadata.get("tipo"))
     from emergentintegrations.payments.stripe.checkout import CheckoutSessionRequest, StripeCheckout
 
     checkout = StripeCheckout(api_key=api_key)
@@ -119,9 +165,14 @@ async def _create_checkout_session(
         success_url=success_url,
         cancel_url=cancel_url,
         metadata=metadata,
+        # Ciak Start: il cliente puo' rateizzare con Klarna, come promesso nella
+        # sales page ("Puoi rateizzare con Klarna, gia' dentro il checkout").
+        payment_method_types=["card", "klarna"],
     )
     try:
         return await checkout.create_checkout_session(session_request)
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Errore creazione checkout: {exc}") from exc
 
@@ -155,6 +206,7 @@ async def require_client(
 
 
 async def require_admin_or_internal(
+    request: Request,
     x_internal_key: str | None = Header(None, alias="X-Internal-Key"),
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
@@ -171,6 +223,13 @@ async def require_admin_or_internal(
             status_code=403,
             detail="Accesso riservato ad admin o sistema interno",
         )
+    # Dependency separata da require_ciak_admin (routers/ciak_admin.py), ma un
+    # account a scope commerciale (Mariangela) deve rispettare lo stesso
+    # confine anche qui: vedi il commento su COMMERCIAL_ADMIN_TYPES in quel
+    # file per il perché (blueprint-pdf sì, consegna-blueprint/consegna-manuale/
+    # offer-decision/start-activate no — sono territorio Vendite/Delivery).
+    from routers.ciak_admin import enforce_commercial_scope
+    await enforce_commercial_scope(request, token_data)
 
     return {
         "auth_type": "admin",
@@ -195,6 +254,36 @@ def _analysis_payload(analysis: dict[str, Any] | None, client: dict[str, Any]) -
     }
 
 
+BONUS_GUIDA_VALORE_CENTS = 4900
+BONUS_GUIDA_WINDOW_HOURS = 48
+BONUS_GUIDA_TITOLO = "Come creare un videocorso che vende davvero"
+
+
+def _offer_payload(client: dict[str, Any], already_active: bool) -> dict[str, Any]:
+    """Finestra bonus 48h post-call: la guida videocorso e' in omaggio con Ciak
+    Start solo entro 48h dalla consegna del Blueprint (`bonus_expires_at`, ancorato
+    alla PRIMA consegna). Il countdown in pagina e' guidato da questo timestamp
+    reale — non e' un conto alla rovescia finto (Cod. Consumo). Scaduto o gia'
+    cliente attivo: bonus non attivo.
+    """
+    expires = client.get("bonus_expires_at")
+    attiva = False
+    if expires and not already_active:
+        try:
+            exp_dt = datetime.fromisoformat(str(expires).replace("Z", "+00:00"))
+            if exp_dt.tzinfo is None:
+                exp_dt = exp_dt.replace(tzinfo=timezone.utc)
+            attiva = datetime.now(timezone.utc) < exp_dt
+        except (ValueError, TypeError):
+            attiva = False
+    return {
+        "bonus_expires_at": expires,
+        "bonus_guida_attiva": bool(attiva),
+        "guida_valore_cents": BONUS_GUIDA_VALORE_CENTS,
+        "guida_titolo": BONUS_GUIDA_TITOLO,
+    }
+
+
 def _partner_area_available(client: dict[str, Any]) -> bool:
     if client.get("partnership_attiva") is True:
         return True
@@ -209,7 +298,7 @@ def _has_explicit_offer_flag(client: dict[str, Any], flags: tuple[str, ...]) -> 
 
 
 async def _blueprint_context(client: dict[str, Any]) -> dict[str, Any]:
-    session_token = client.get("session_token") or client.get("diagnostic_session_token")
+    session_token = await effective_session_token(db, client) if db is not None else None
     if not session_token or db is None:
         return {"session": {}, "analysis": {}}
     session = await db.diagnostic_sessions.find_one({"session_token": session_token}, {"_id": 0}) or {}
@@ -218,16 +307,15 @@ async def _blueprint_context(client: dict[str, Any]) -> dict[str, Any]:
 
 
 def _ensure_completed_blueprint_path(context: dict[str, Any]) -> None:
+    """Blueprint GRATUITO: l'unico requisito e' che la call sia avvenuta.
+
+    Il Blueprint non si paga piu' (niente `stripe_payment_completed`) e le offerte
+    non dipendono dalla consegna dell'analisi Carlo (niente `bozza_inviata_at`): la
+    generazione puo' degradare o tardare senza bloccare l'acquisto. Il via lo da'
+    l'admin confermando di aver fatto la call di consegna (stato `call_done`), non
+    un pagamento.
+    """
     session = context.get("session") or {}
-    analysis = context.get("analysis") or {}
-    paid = any(event.get("event") == "stripe_payment_completed" for event in session.get("events", []))
-    if not paid:
-        raise HTTPException(status_code=403, detail="Il pagamento Blueprint da 27 EUR non risulta completato.")
-    if not analysis.get("bozza_inviata_at"):
-        raise HTTPException(
-            status_code=409,
-            detail="L'analisi Blueprint deve essere consegnata prima di proporre Ciak Start.",
-        )
     if session.get("current_state") != "call_done":
         raise HTTPException(
             status_code=409,
@@ -242,11 +330,26 @@ def _ensure_start_checkout_allowed(client: dict[str, Any], context: dict[str, An
         raise HTTPException(status_code=409, detail="Ciak Start risulta gia' attivo su questo account.")
     if client.get("access_level") not in (None, "", ACCESS_BLUEPRINT):
         raise HTTPException(status_code=403, detail="Ciak Start non e' disponibile per questo account.")
-    if client.get("offer_decision") != OFFER_START:
+    # Modello gratuito: nessuna `offer_decision` manuale per-lead. Dopo la call
+    # (call_done) il cliente vede l'offerta e puo' acquistare da solo Ciak Start.
+    _ensure_completed_blueprint_path(context)
+
+
+def _ensure_start_plus_checkout_allowed(client: dict[str, Any], context: dict[str, Any]) -> None:
+    """Start Plus si compra una volta, da chi non ha ancora Start ne' Partnership.
+    Il passaggio Start -> Start Plus non e' deciso (prezzo di differenza da definire): per ora
+    si risponde 409 con un messaggio chiaro, invece di far pagare 790 EUR a chi ha gia' Start."""
+    if _partner_area_available(client) or client.get("access_level") == ACCESS_PARTNER:
+        raise HTTPException(status_code=409, detail="La Partnership risulta gia' attiva su questo account.")
+    if client.get("start_plus_purchased_at"):
+        raise HTTPException(status_code=409, detail="Start Plus risulta gia' attivo su questo account.")
+    if client.get("access_level") == ACCESS_START or has_start_entitlement(client):
         raise HTTPException(
-            status_code=403,
-            detail="Ciak Start richiede la decisione esplicita del team dopo la call.",
+            status_code=409,
+            detail="Hai gia' Ciak Start: per passare a Start Plus scrivi al team, ti diciamo come fare.",
         )
+    if client.get("access_level") not in (None, "", ACCESS_BLUEPRINT):
+        raise HTTPException(status_code=403, detail="Start Plus non e' disponibile per questo account.")
     _ensure_completed_blueprint_path(context)
 
 
@@ -333,7 +436,6 @@ def _public_client(client: dict[str, Any], user: dict[str, Any] | None = None) -
         "recommended_offer",
         "offer_decision",
         "start_credit_amount",
-        "start_progress",
         "analysis_status",
         "analysis_title",
         "analysis_generated_at",
@@ -349,11 +451,79 @@ def _public_client(client: dict[str, Any], user: dict[str, Any] | None = None) -
     return payload
 
 
+def _start_consegne(client: dict[str, Any]) -> list[str]:
+    """['gg/mm/aaaa' x3] per chi ha Ciak Start attivo, altrimenti []."""
+    from services.ciak_start_milestones import format_delivery_dates
+
+    paid_at = client.get("start_purchased_at")
+    if not paid_at or not has_start_entitlement(client):
+        return []
+    try:
+        return format_delivery_dates(paid_at)
+    except (ValueError, TypeError):
+        return []
+
+
+async def _blueprint_summary(session_token: str | None) -> dict[str, Any] | None:
+    """Blueprint del cliente per la Home: la proiezione client-facing (la stessa della pagina
+    di chiusura) piu' il link al PDF GIA' consegnato. Niente punteggio e niente testi interni.
+
+    Se il Blueprint non e' pronto, o se la lettura fallisce, ritorna None: la pagina lo dice con
+    onesta' invece di inventare."""
+    if not session_token or db is None:
+        return None
+    from services import ciak_blueprint_store
+
+    try:
+        doc = await db.ciak_blueprints.find_one({"session_token": session_token}, {"_id": 0})
+    except Exception as exc:  # il Blueprint e' accessorio: non deve rompere la dashboard
+        logger.warning("[CLIENT_DASHBOARD] lettura Blueprint fallita: %s", exc)
+        return None
+    if not doc or doc.get("stato") != ciak_blueprint_store.STATO_PRONTO:
+        return None
+    view = blueprint_public_view(doc.get("payload"))
+    if not view:
+        return None
+    consegnato = bool(doc.get("consegna_inviata_at"))
+    return {**view, "pdf_url": doc.get("pdf_url") if consegnato else None}
+
+
+async def _proposta_summary(email: str | None) -> dict[str, Any] | None:
+    """La proposta Partnership del cliente, se esiste: serve alla pagina Partnership per
+    contratto e pagamento. `scaduta` e' vera se la scadenza e' passata senza firma ne' pagamento."""
+    normalized = (email or "").strip().lower()
+    if not normalized or db is None:
+        return None
+    try:
+        doc = await db.proposte.find_one({"prospect_email": normalized, "stato": {"$nin": ["scaduta"]}}, {"_id": 0})
+        if not doc:
+            scaduta = await db.proposte.find_one({"prospect_email": normalized}, {"_id": 0})
+            return {"scaduta": True} if scaduta else None
+    except Exception as exc:
+        logger.warning("[CLIENT_DASHBOARD] lettura proposta fallita: %s", exc)
+        return None
+    scaduta = False
+    if doc.get("stato") not in ("pagamento_completato", "contratto_firmato"):
+        try:
+            scaduta = datetime.now(timezone.utc) > datetime.fromisoformat(doc.get("scadenza") or "")
+        except (ValueError, TypeError):
+            scaduta = False
+    if scaduta:
+        return {"scaduta": True}
+    return {
+        "token": doc.get("token"),
+        "partner_id": doc.get("partner_id"),
+        "stato": doc.get("stato"),
+        "scadenza": doc.get("scadenza"),
+        "scaduta": False,
+    }
+
+
 async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
     if db is None:
         raise HTTPException(status_code=503, detail="Database non configurato")
 
-    session_token = client.get("session_token") or client.get("diagnostic_session_token")
+    session_token = await effective_session_token(db, client)
     analysis = None
     session = None
     if session_token:
@@ -375,9 +545,18 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
             "offer_decision": client.get("offer_decision"),
         },
         "analysis": _analysis_payload(analysis, client),
+        "blueprint": await _blueprint_summary(session_token),
+        "proposta": await _proposta_summary(effective_client.get("email") or client.get("email")),
+        "raccomandata": recommended_path(effective_client, None),
+        "checkout_readiness": paid_offer_readiness(),
         "start": {
+            # Stessa regola dell'admin (`has_start_entitlement`): anche un account attivato a
+            # mano (start_purchased_at / credito) ha Ciak Start, pur con access_level diverso.
+            "attivo": bool(has_start_entitlement(client) and not is_partner),
             "credit_amount_cents": partnership_price["credit_amount_cents"],
-            "progress": effective_client.get("start_progress") or [],
+            # Le tre date promesse nell'email di attivazione: stessa sorgente
+            # (`ciak_start_milestones`), cosi' il cliente legge ovunque le stesse.
+            "consegne": _start_consegne(client),
         },
         "pricing": {
             "blueprint": {
@@ -391,10 +570,19 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
                 "label": "Ciak Start",
                 "credit_guaranteed": True,
             },
+            "ciak_start_plus": {
+                "amount_cents": START_PLUS_AMOUNT_CENTS,
+                "currency": "eur",
+                "label": "Start Plus",
+                "credit_guaranteed": True,
+                "credit_valid_days": START_PLUS_CREDIT_DAYS,
+                "credit_after_expiry_cents": START_AMOUNT_CENTS,
+            },
             "partnership": {
                 **partnership_price,
                 "label": "Partnership",
                 "upgrade_from_start_cents": PARTNERSHIP_PRICE_CENTS - START_AMOUNT_CENTS,
+                "upgrade_from_start_plus_cents": PARTNERSHIP_PRICE_CENTS - START_PLUS_AMOUNT_CENTS,
             },
         },
         "partner_area": {
@@ -406,6 +594,13 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
                 else "La Partnership si attiva dopo la conferma del percorso dedicato."
             ),
         },
+        "offer": _offer_payload(
+            effective_client,
+            already_active=(
+                effective_client.get("access_level") in (ACCESS_START, ACCESS_PARTNER)
+                or is_partner
+            ),
+        ),
         "generated_at": _now_iso(),
     }
 
@@ -436,6 +631,23 @@ async def magic_login(body: MagicLoginRequest):
     return {"token": token, "client": _public_client(effective_client, canonical_user)}
 
 
+class RequestAccessRequest(BaseModel):
+    email: str
+
+
+@router.post("/auth/request-access")
+async def request_access(body: RequestAccessRequest):
+    """"Rimandami l'accesso": il cliente inserisce l'email e riceve un nuovo
+    magic-link (valido 30 giorni, riutilizzabile). Risponde SEMPRE ok, anche se
+    l'email non esiste, per non rivelare chi e' cliente (anti-enumeration). Non solleva."""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database non configurato")
+    from services.ciak_client_reengagement import invia_link_accesso
+
+    await invia_link_accesso(db, body.email)
+    return {"ok": True, "message": "Se l'email corrisponde a un account, ti abbiamo inviato l'accesso."}
+
+
 @router.get("/me")
 async def me(client: dict[str, Any] = Depends(require_client)):
     canonical_user = await _canonical_user_for_client(client)
@@ -454,9 +666,705 @@ async def start_deliverables(client: dict[str, Any] = Depends(require_client)):
         raise HTTPException(status_code=403, detail="Ciak Start non attivo")
     docs = await db.ciak_start_deliverables.find(
         {"partner_id": client["id"], "approval_status": "approved"},
-        {"_id": 0, "generated_by": 0, "approved_by": 0},
+        # html della vetrina e checklist DNS sono del team: il cliente vede il link.
+        {"_id": 0, "generated_by": 0, "approved_by": 0, "html": 0, "dns_checklist": 0},
     ).sort("approved_at", 1).to_list(20)
     return {"items": docs}
+
+
+async def _avvisa_team_start(client: dict[str, Any], cosa: str) -> None:
+    """Avvisa il team (alert in-app + Telegram) che il cliente Start ha inviato qualcosa.
+
+    Senza questo il team scopre le risposte solo aprendo il pannello. Accessorio:
+    non deve mai far fallire il salvataggio del cliente.
+    """
+    try:
+        from routers.partner_journey import _notify_admin_partner_activity
+
+        await _notify_admin_partner_activity(client["id"], f"ha inviato {cosa} (Ciak Start)")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[START] avviso al team non inviato per %s: %s", client.get("id"), exc)
+
+
+def _prepara_bozze_in_background(background_tasks: BackgroundTasks, client_id: str) -> None:
+    """Dopo il salvataggio Ciak prepara le bozze Start da solo (mai approvate)."""
+    from services.start_autogenerazione import prepara_bozze
+
+    background_tasks.add_task(prepara_bozze, client_id)
+
+
+class StartRisposteBody(BaseModel):
+    answers: dict = Field(default_factory=dict)
+    completato: bool = False
+
+
+async def _dati_risposte_start(client_id: str) -> dict:
+    step = await db.partner_journey_steps.find_one(
+        {"partner_id": client_id, "step_id": "04-posizionamento"}, {"_id": 0, "data": 1}
+    )
+    return (step or {}).get("data") or {}
+
+
+async def _risposte_start(client_id: str) -> tuple[dict, str | None]:
+    data = await _dati_risposte_start(client_id)
+    return data.get("answers") or {}, data.get("answers_completed_at")
+
+
+@router.get("/start/risposte")
+async def start_risposte(client: dict[str, Any] = Depends(require_client)):
+    """Le risposte che il cliente Start ha gia' dato alle sue domande."""
+    from services.ciak_start_domande import DOMANDE_START_IDS, MIN_CARATTERI
+
+    if not has_start_entitlement(client):
+        raise HTTPException(status_code=403, detail="Ciak Start non attivo")
+    data = await _dati_risposte_start(client["id"])
+    answers = data.get("answers") or {}
+    # Proposte del team per le domande a cui il cliente non ha ancora risposto: sono
+    # SUGGERIMENTI da confermare, non sue risposte (non finiscono in `answers`).
+    proposte = {
+        k: v
+        for k, v in (data.get("proposte") or {}).items()
+        if k in DOMANDE_START_IDS and v and len(str(answers.get(k) or "").strip()) < MIN_CARATTERI
+    }
+    return {
+        "answers": {k: answers[k] for k in DOMANDE_START_IDS if answers.get(k)},
+        "completato_at": data.get("answers_completed_at"),
+        "proposte": proposte,
+        # il team ha chiesto di completare anche le altre domande: la pagina si riapre
+        "integrazione": bool(data.get("integrazione_richiesta_at")),
+    }
+
+
+class AssistenteStartRequest(BaseModel):
+    message: str = Field(..., max_length=2000)
+    history: list = Field(default_factory=list)  # turni {role, content}: li ripulisce clean_history
+
+
+_assistente_limiter = None
+
+
+def _assistente_limiter_get():
+    global _assistente_limiter
+    if _assistente_limiter is None:
+        from services.proposta_chat import ChatRateLimiter
+
+        _assistente_limiter = ChatRateLimiter()
+    return _assistente_limiter
+
+
+async def _contesto_assistente(client: dict[str, Any]) -> str:
+    """I dati reali del cliente per l'assistente. Una fonte che non risponde non diventa un
+    dato inventato: la riga dice «non disponibile»."""
+    from services.ciak_start_domande import mancanti
+    from services.start_assistente import scheda_cliente
+    from services.start_pipeline import MATERIALI
+
+    materiali: list[dict] = []
+    try:
+        approvati = {
+            d.get("type")
+            async for d in db.ciak_start_deliverables.find(
+                {"partner_id": client["id"], "approval_status": "approved"}, {"_id": 0, "type": 1}
+            )
+        }
+        materiali = [
+            {"titolo": titolo, "stato": "approvato" if tipo in approvati else "da_fare"}
+            for tipo, _step, titolo in MATERIALI
+        ]
+    except Exception:  # noqa: BLE001 - l'assistente non deve rompersi per un dato accessorio
+        logger.exception("[ASSISTENTE START] materiali non letti")
+    n_mancanti = None
+    riaperte = False
+    try:
+        dati = await _dati_risposte_start(client["id"])
+        n_mancanti = len(mancanti(dati.get("answers") or {}))
+        riaperte = bool(dati.get("integrazione_richiesta_at"))
+    except Exception:  # noqa: BLE001
+        logger.exception("[ASSISTENTE START] domande non lette")
+    return scheda_cliente(
+        nome=client.get("name") or "",
+        consegne=_start_consegne(client),
+        materiali=materiali,
+        domande_mancanti=n_mancanti,
+        domande_riaperte=riaperte,
+    )
+
+
+@router.post("/start/assistente")
+async def start_assistente(
+    body: AssistenteStartRequest,
+    client: dict[str, Any] = Depends(require_client),
+):
+    """Chat dell'area Start (streaming SSE). Risponde solo con la scheda verificata e i dati del
+    cliente; sugli argomenti delicati o quando non sa, passa al team e lascia la domanda in coda
+    (`ciak_start_assistente`, letta in admin dalla scheda del cliente)."""
+    from fastapi.responses import StreamingResponse
+
+    from services import proposta_chat, start_assistente
+
+    if not has_start_entitlement(client):
+        raise HTTPException(status_code=403, detail="Ciak Start non attivo")
+    message = proposta_chat.clean_message(body.message)
+    if not message:
+        raise HTTPException(status_code=422, detail="Scrivi la tua domanda")
+    history = proposta_chat.clean_history(body.history)
+    allowed = _assistente_limiter_get().allow(f"start:{client['id']}")
+
+    async def salva(risposta: str, passato: bool, motivo: str) -> None:
+        try:
+            await db.ciak_start_assistente.insert_one(
+                start_assistente.riga_log(
+                    client_id=client["id"], domanda=message, risposta=risposta,
+                    passato=passato, motivo=motivo, at=_now_iso(),
+                )
+            )
+        except Exception:  # noqa: BLE001 - il log non deve rompere la risposta
+            logger.exception("[ASSISTENTE START] riga non salvata")
+
+    async def events():
+        if not allowed:
+            yield proposta_chat.sse({"t": proposta_chat.RATE_LIMIT_REPLY})
+            yield proposta_chat.sse({"done": True})
+            return
+        if start_assistente.argomento_delicato(message):
+            yield proposta_chat.sse({"t": start_assistente.RISPOSTA_DELICATA})
+            await salva(start_assistente.RISPOSTA_DELICATA, True, "argomento_delicato")
+            yield proposta_chat.sse({"done": True, "passato": True})
+            return
+        pezzi: list[str] = []
+        try:
+            contesto = await _contesto_assistente(client)
+            first = (client.get("name") or "").split(" ")[0]
+            system = start_assistente.build_system_blocks(first_name=first, contesto=contesto)
+            async for piece in proposta_chat.stream_reply(system, history, message):
+                pezzi.append(piece)
+                yield proposta_chat.sse({"t": piece})
+        except Exception:  # noqa: BLE001
+            logger.exception("[ASSISTENTE START] errore")
+            yield proposta_chat.sse({"error": proposta_chat.UNAVAILABLE_REPLY})
+            await salva("", True, "errore_servizio")
+            yield proposta_chat.sse({"done": True, "passato": True})
+            return
+        risposta = "".join(pezzi)
+        passato = start_assistente.passa_al_team(risposta)
+        await salva(risposta, passato, "non_sa" if passato else "")
+        yield proposta_chat.sse({"done": True, "passato": passato})
+
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.put("/start/risposte")
+async def salva_start_risposte(
+    body: StartRisposteBody,
+    background_tasks: BackgroundTasks,
+    client: dict[str, Any] = Depends(require_client),
+):
+    """Salva (anche a meta') le risposte e, con `completato`, le segna come inviate.
+
+    Scrive SOLO le risposte nello step 04 (merge), mai lo stato dello step: chi
+    ha risposto non ha ricevuto niente, la consegna resta approvata dal team.
+    """
+    from services.ciak_start_domande import STEP_ID, mancanti, pulisci_risposte
+    from services.start_partner_bridge import ensure_start_partner_bridge
+
+    if not has_start_entitlement(client):
+        raise HTTPException(status_code=403, detail="Ciak Start non attivo")
+
+    nuove = pulisci_risposte(body.answers)
+    # Il percorso nasce con l'attivazione; se per qualunque motivo manca lo si
+    # ricostruisce (idempotente) invece di far perdere le risposte al cliente.
+    dati_step = await _dati_risposte_start(client["id"])
+    giaci, gia_inviate_at = dati_step.get("answers") or {}, dati_step.get("answers_completed_at")
+    # Chi aveva inviato le 8 vecchie risposte non viene riaperto, SALVO richiesta del team
+    # (`integrazione_richiesta_at`): allora servono tutte e 20.
+    gia_inviate = bool(gia_inviate_at) and not dati_step.get("integrazione_richiesta_at")
+    step = await db.partner_journey_steps.find_one(
+        {"partner_id": client["id"], "step_id": STEP_ID}, {"_id": 0, "step_id": 1}
+    )
+    if not step:
+        await ensure_start_partner_bridge(db, client)
+        step = await db.partner_journey_steps.find_one(
+            {"partner_id": client["id"], "step_id": STEP_ID}, {"_id": 0, "step_id": 1}
+        )
+        if not step:
+            raise HTTPException(status_code=409, detail="Il percorso non e' ancora pronto: riprova fra poco.")
+
+    tutte = {**giaci, **nuove}
+    if body.completato:
+        assenti = mancanti(tutte, gia_inviate=gia_inviate)
+        if assenti:
+            raise HTTPException(
+                status_code=422,
+                detail={"message": "Manca ancora qualche risposta.", "mancanti": assenti},
+            )
+
+    now = _now_iso()
+    imposta: dict[str, Any] = {f"data.answers.{k}": v for k, v in nuove.items()}
+    imposta["updated_at"] = now
+    if body.completato:
+        imposta["data.answers_completed_at"] = now
+        imposta["data.integrazione_richiesta_at"] = None  # richiesta del team soddisfatta
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client["id"], "step_id": STEP_ID}, {"$set": imposta}
+    )
+    if body.completato:
+        events = [dict(e) for e in (client.get("events") or [])]
+        events.append({"event": "start_risposte_inviate", "timestamp": now})
+        await db.ciak_clients.update_one(
+            {"id": client["id"]}, {"$set": {"events": events, "updated_at": now}}
+        )
+        await _avvisa_team_start(client, "le sue risposte")
+        _prepara_bozze_in_background(background_tasks, client["id"])
+    answers, completato_at = await _risposte_start(client["id"])
+    return {"success": True, "answers": answers, "completato_at": completato_at}
+
+
+class StartMarchioBody(BaseModel):
+    valori: dict = Field(default_factory=dict)
+    completato: bool = False
+
+
+async def _marchio_start(client_id: str) -> dict:
+    step = await db.partner_journey_steps.find_one(
+        {"partner_id": client_id, "step_id": "03-brand-kit"}, {"_id": 0, "data": 1}
+    )
+    return (step or {}).get("data") or {}
+
+
+def _valori_marchio(data: dict) -> dict:
+    valori = {
+        k: data.get(k)
+        for k in (
+            "palette_id", "font_id", "tono_id", "parole_chiave", "logo_url", "foto_url",
+            # forma del brand kit EVO
+            "colors", "tone_of_voice", "tono_scale", "espressioni", "parole_evitare", "emozioni",
+        )
+        if data.get(k)
+    }
+    if data.get("palette_id") == "miei" and data.get("colors"):
+        valori["colori_miei"] = data["colors"]
+    return valori
+
+
+@router.get("/start/marchio")
+async def start_marchio(client: dict[str, Any] = Depends(require_client)):
+    """Opzioni e scelte gia' fatte per il marchio del cliente Start."""
+    from services.ciak_start_marchio import opzioni
+
+    if not has_start_entitlement(client):
+        raise HTTPException(status_code=403, detail="Ciak Start non attivo")
+    data = await _marchio_start(client["id"])
+    return {
+        "opzioni": opzioni(),
+        "valori": _valori_marchio(data),
+        "completato_at": data.get("brand_completed_at"),
+    }
+
+
+@router.put("/start/marchio")
+async def salva_start_marchio(
+    body: StartMarchioBody,
+    background_tasks: BackgroundTasks,
+    client: dict[str, Any] = Depends(require_client),
+):
+    """Salva (anche a meta') le scelte sul marchio; con `completato` le segna inviate.
+
+    Come per le domande: scrive solo i dati, mai lo stato dello step (done =
+    "consegnata" nel pannello). Un valore non valido viene ignorato.
+    """
+    from services.ciak_start_marchio import STEP_ID, mancanti, normalizza
+    from services.start_partner_bridge import ensure_start_partner_bridge
+
+    if not has_start_entitlement(client):
+        raise HTTPException(status_code=403, detail="Ciak Start non attivo")
+
+    nuovi = normalizza(body.valori)
+    step = await db.partner_journey_steps.find_one(
+        {"partner_id": client["id"], "step_id": STEP_ID}, {"_id": 0, "step_id": 1}
+    )
+    if not step:
+        await ensure_start_partner_bridge(db, client)
+        step = await db.partner_journey_steps.find_one(
+            {"partner_id": client["id"], "step_id": STEP_ID}, {"_id": 0, "step_id": 1}
+        )
+        if not step:
+            raise HTTPException(status_code=409, detail="Il percorso non e' ancora pronto: riprova fra poco.")
+
+    esistenti = await _marchio_start(client["id"])
+    if body.completato:
+        assenti = mancanti({**esistenti, **nuovi})
+        if assenti:
+            raise HTTPException(
+                status_code=422,
+                detail={"message": "Manca ancora qualche scelta.", "mancanti": assenti},
+            )
+
+    now = _now_iso()
+    imposta: dict[str, Any] = {f"data.{k}": v for k, v in nuovi.items()}
+    imposta["updated_at"] = now
+    if body.completato:
+        imposta["data.brand_completed_at"] = now
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client["id"], "step_id": STEP_ID}, {"$set": imposta}
+    )
+    if body.completato:
+        events = [dict(e) for e in (client.get("events") or [])]
+        events.append({"event": "start_marchio_inviato", "timestamp": now})
+        await db.ciak_clients.update_one(
+            {"id": client["id"]}, {"$set": {"events": events, "updated_at": now}}
+        )
+        await _avvisa_team_start(client, "le scelte sul marchio")
+        _prepara_bozze_in_background(background_tasks, client["id"])
+    data = await _marchio_start(client["id"])
+    return {"success": True, "valori": _valori_marchio(data), "completato_at": data.get("brand_completed_at")}
+
+
+async def _deliver_blueprint(diagnostic: dict[str, Any]) -> dict[str, Any]:
+    """Consegna del Blueprint GRATUITO, innescata dall'admin a fine call.
+
+    1. Account cliente + magic-link (idempotente: upsert per email).
+    2. Invio del Blueprint SALVATO — lo stesso PDF scaricato per la call — con il
+       magic-link nella mail. Tutto dentro la richiesta: se qualcosa fallisce
+       l'admin vede il motivo reale (niente lavori in background che muoiono
+       in silenzio, niente documento sostitutivo).
+    3. Solo a invio riuscito parte la finestra bonus 48h: il promemoria "la guida
+       scade" non deve arrivare a chi il Blueprint non l'ha ricevuto.
+    """
+    from services import ciak_analisi_delivery, ciak_blueprint_store
+    from services.ciak_client_accounts import (
+        create_magic_login_token,
+        ensure_client_for_blueprint,
+    )
+
+    session_token = diagnostic.get("session_token")
+    blueprint = await ciak_blueprint_store.leggi(db, session_token)
+    if not blueprint or blueprint.get("stato") != ciak_blueprint_store.STATO_PRONTO:
+        raise ciak_blueprint_store.BlueprintNonPronto(
+            ciak_blueprint_store._motivo_non_pronto(blueprint)
+        )
+
+    client = await ensure_client_for_blueprint(db, diagnostic)
+
+    magic_link = None
+    try:
+        login = await create_magic_login_token(db, client["id"], client["email"])
+        base = os.environ.get("CIAK_BASE_URL") or os.environ.get(
+            "FRONTEND_URL_PROD", "https://ciak.io"
+        )
+        magic_link = f"{base}/cliente/accesso?token={login['token']}"
+        await db.ciak_clients.update_one(
+            {"id": client["id"]},
+            {"$set": {
+                "last_magic_link_created_at": _now_iso(),
+                "last_magic_login_url": magic_link,
+            }},
+        )
+    except Exception as exc:
+        logger.error("[CONSEGNA_BLUEPRINT] magic-link fallito: %s", exc)
+
+    ciak_analisi_delivery.set_db(db)
+    esito = await ciak_analisi_delivery.consegna_blueprint(
+        session_token=session_token,
+        email=client.get("email") or (diagnostic.get("user_email") or "").strip().lower(),
+        nome=diagnostic.get("user_name") or client.get("name"),
+        access_link=magic_link,
+    )
+
+    # Finestra bonus 48h (guida videocorso in omaggio con Ciak Start): ancorata
+    # alla PRIMA consegna riuscita e mai resettata (il filtro esclude i doc dove
+    # e' gia' valorizzata). Onesta': la scadenza e' reale, il countdown la usa.
+    if not client.get("bonus_expires_at"):
+        _bonus_expires = (
+            datetime.now(timezone.utc) + timedelta(hours=BONUS_GUIDA_WINDOW_HOURS)
+        ).isoformat()
+        await db.ciak_clients.update_one(
+            {"id": client["id"], "bonus_expires_at": {"$in": [None, ""]}},
+            {"$set": {"bonus_expires_at": _bonus_expires, "blueprint_delivered_at": _now_iso()}},
+        )
+        client["bonus_expires_at"] = _bonus_expires
+
+    return {
+        "client_id": client.get("id"),
+        "email": client.get("email"),
+        "magic_link": magic_link,
+        "blueprint_inviato": bool(esito.get("sent")),
+        "gia_inviato": esito.get("skipped") == "gia_inviata",
+    }
+
+
+@router.post("/admin/consegna-blueprint")
+async def consegna_blueprint(
+    body: ConsegnaBlueprintRequest,
+    auth=Depends(require_admin_or_internal),
+):
+    """L'admin conferma di aver fatto la call di consegna.
+
+    Invia il Blueprint salvato (lo stesso mostrato in call) via email col
+    magic-link, crea l'account cliente, sblocca le offerte (Ciak Start /
+    Partnership) e solo allora porta il lead a `call_done`. Il via lo da'
+    l'admin, non l'evento MEETING_ENDED di Cal.com.
+
+    409 se il Blueprint non è ancora stato generato, 502 se l'invio fallisce:
+    in entrambi i casi lo stato del lead non cambia.
+    """
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database non configurato")
+
+    # 1. Trova la diagnostic session del lead (session_token > email > client_id).
+    diagnostic = await _find_diagnostic(body.session_token, body.email)
+    if diagnostic is None and body.client_id:
+        client_doc = await db.ciak_clients.find_one({"id": body.client_id})
+        token = (client_doc or {}).get("session_token") or (client_doc or {}).get("diagnostic_session_token")
+        if token:
+            diagnostic = await db.diagnostic_sessions.find_one({"session_token": token})
+    if diagnostic is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Lead non trovato: fornisci session_token, email o client_id validi.",
+        )
+
+    if not ha_risposte(diagnostic):
+        raise HTTPException(
+            status_code=409,
+            detail="Il questionario di questo lead non risulta compilato: nessun Blueprint da consegnare.",
+        )
+
+    # 2. Consegna Blueprint + sblocco offerte — PRIMA di toccare lo stato: se
+    # l'invio fallisce il lead resta esattamente dove sta ora, mai "call fatta"
+    # con un Blueprint che il cliente non ha ricevuto.
+    from services import ciak_analisi_delivery, ciak_blueprint_store
+
+    try:
+        summary = await _deliver_blueprint(diagnostic)
+    except ciak_blueprint_store.BlueprintNonPronto as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except ciak_analisi_delivery.ConsegnaFallita as exc:
+        raise HTTPException(status_code=502, detail=f"Blueprint non consegnato: {exc}")
+
+    # 3. Solo a consegna riuscita: attesta la call completata (idempotente).
+    if diagnostic.get("current_state") != STATE_CALL_DONE:
+        transition_to(
+            diagnostic,
+            STATE_CALL_DONE,
+            event_metadata={"confirmed_by": auth.get("actor"), "source": "admin_consegna"},
+        )
+        await db.diagnostic_sessions.replace_one({"_id": diagnostic["_id"]}, diagnostic)
+        # Stesso segnale a Systeme del percorso Cal.com (MEETING_ENDED).
+        user_email = diagnostic.get("user_email")
+        if user_email:
+            from services.ciak_systeme import ciak_emit_event, fire_and_forget
+            fire_and_forget(ciak_emit_event(
+                email=user_email,
+                event_name="ciak_call_done",
+                first_name=diagnostic.get("user_name"),
+                metadata={"source": "admin_consegna", "session_token": diagnostic.get("session_token")},
+            ))
+
+    # 4. Analisi a 6 capitoli per area cliente / pagina Insider (best-effort,
+    # dopo l'invio: se fallisce il cliente ha comunque il suo Blueprint).
+    await ciak_analisi_delivery.completa_analisi_cliente(diagnostic.get("session_token"))
+
+    return {"success": True, **summary}
+
+
+@router.post("/admin/blueprint/genera")
+async def blueprint_genera(
+    body: GeneraBlueprintRequest,
+    auth=Depends(require_admin_or_internal),
+):
+    """Genera (con Claude) e SALVA il Blueprint del lead. Nessun effetto sul
+    cliente: non invia email, non cambia lo stato del lead.
+
+    Dura 1-2 minuti e gira dentro questa richiesta (async: il server resta
+    libero). Se il proxy chiude prima la connessione, la generazione finisce
+    comunque e lo stato si ritrova con GET /admin/blueprint/stato.
+    Idempotente; `force=true` rigenera una nuova versione.
+    """
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database non configurato")
+    diagnostic = await _find_diagnostic(body.session_token, body.email)
+    if diagnostic is None:
+        raise HTTPException(status_code=404, detail="Lead non trovato: fornisci session_token o email validi.")
+    if not ha_risposte(diagnostic):
+        raise HTTPException(
+            status_code=409,
+            detail="Il questionario di questo lead non risulta compilato: il Blueprint non si puo' generare.",
+        )
+    from services import ciak_blueprint_store
+
+    return await ciak_blueprint_store.genera(
+        db, diagnostic["session_token"], email=diagnostic.get("user_email"), force=body.force
+    )
+
+
+@router.get("/admin/blueprint/stato")
+async def blueprint_stato(
+    email: str | None = None,
+    session_token: str | None = None,
+    auth=Depends(require_admin_or_internal),
+):
+    """Stato del Blueprint del lead: mancante / in_generazione / pronto / errore
+    (con il motivo), più l'esito della consegna."""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database non configurato")
+    diagnostic = await _find_diagnostic(session_token, email)
+    if diagnostic is None:
+        raise HTTPException(status_code=404, detail="Lead non trovato: fornisci session_token o email validi.")
+    from services import ciak_blueprint_store
+
+    return ciak_blueprint_store.stato_pubblico(
+        await ciak_blueprint_store.leggi(db, diagnostic["session_token"])
+    )
+
+
+@router.get("/admin/blueprint-pdf")
+async def blueprint_pdf_preview(
+    email: str | None = None,
+    session_token: str | None = None,
+    auth=Depends(require_admin_or_internal),
+):
+    """PDF del Blueprint SALVATO (template lockato: 2 copertine + 14 pagine).
+
+    Nessuna chiamata AI e nessun effetto collaterale: impagina il contenuto
+    generato con POST /admin/blueprint/genera. È lo stesso documento che il
+    cliente riceve alla consegna. 409 se il Blueprint non è ancora pronto.
+    """
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database non configurato")
+    diagnostic = await _find_diagnostic(session_token, email)
+    if diagnostic is None:
+        raise HTTPException(status_code=404, detail="Lead non trovato: fornisci session_token o email validi.")
+
+    from services import ciak_blueprint_store
+
+    try:
+        pdf = await ciak_blueprint_store.pdf(db, diagnostic["session_token"])
+    except ciak_blueprint_store.BlueprintNonPronto as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except Exception as exc:
+        logger.error("[BLUEPRINT_PDF] impaginazione fallita per %s: %s", diagnostic.get("session_token"), exc)
+        raise HTTPException(status_code=502, detail=f"Impaginazione Blueprint fallita: {exc}")
+    return Response(content=pdf, media_type="application/pdf")
+
+
+def _consegna_manuale_email_body(nome: str, sales_link: str, pdf_url: str | None) -> str:
+    primo = (nome or "").split()[0] if nome else "ciao"
+    scarica = f"\n\nSe preferisci, puoi scaricarlo anche qui:\n{pdf_url}\n" if pdf_url else "\n"
+    return (
+        f"Ciao {primo},\n\n"
+        "come promesso, in allegato trovi il tuo Blueprint Evolution: l'analisi strategica "
+        "che abbiamo visto insieme nella call."
+        f"{scarica}\n"
+        "Da qui accedi alla tua area riservata e scegli come proseguire — Ciak Start "
+        f"oppure la Partnership completa:\n{sales_link}\n\n"
+        "Nella pagina trovi anche il Simulatore Corsi per fare i tuoi conti.\n\n"
+        "A presto,\nClaudio\nEvolution PRO"
+    )
+
+
+@router.post("/admin/consegna-manuale")
+async def consegna_manuale(
+    request: Request,
+    auth=Depends(require_admin_or_internal),
+):
+    """Consegna manuale di un Blueprint per un cliente FUORI-FUNNEL (PDF gia' pronto).
+
+    Per i lead che non passano dalle 10 domande (es. ProVideo outbound): l'admin
+    fornisce email + nome + il PDF, e questo endpoint crea l'account cliente + una
+    diagnostic session gia' a `call_done` (sblocca Ciak Start / Partnership e soddisfa
+    i gate di checkout), genera il magic-link e invia l'email col PDF allegato + il
+    link alla sales page. NON genera l'analisi Carlo: usa il PDF caricato.
+
+    Multipart/form-data: `email`, `nome`, `file` (application/pdf).
+    """
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database non configurato")
+
+    form = await request.form()
+    email = (form.get("email") or "").strip().lower()
+    nome = (form.get("nome") or "").strip()
+    upload = form.get("file")
+    if not email or "@" not in email:
+        raise HTTPException(status_code=422, detail="Email cliente non valida")
+    if upload is None or not hasattr(upload, "read"):
+        raise HTTPException(status_code=400, detail="PDF mancante (campo 'file')")
+    pdf_bytes = await upload.read()
+    if not pdf_bytes or not pdf_bytes.startswith(b"%PDF"):
+        raise HTTPException(status_code=422, detail="Il file caricato non e' un PDF valido")
+
+    now = _now_iso()
+    session_token = str(uuid4())
+
+    # 1. Diagnostic session minima a call_done: sblocca le offerte lato cliente e
+    #    soddisfa i gate di checkout (che leggono lo stato dalla sessione).
+    session = {
+        "session_token": session_token,
+        "user_email": email,
+        "user_name": nome or None,
+        "current_state": STATE_CALL_DONE,
+        "source": "manual_delivery",
+        "created_at": now,
+        "state_history": [{"state": STATE_CALL_DONE, "timestamp": now}],
+        "events": [{
+            "event": "manual_delivery",
+            "timestamp": now,
+            "metadata": {"by": auth.get("actor")},
+        }],
+    }
+    await db.diagnostic_sessions.insert_one(dict(session))
+
+    # 2. Account cliente collegato alla sessione.
+    from services.ciak_client_accounts import (
+        create_magic_login_token,
+        ensure_client_for_blueprint,
+    )
+
+    client = await ensure_client_for_blueprint(db, session)
+
+    # 3. Magic-link d'accesso.
+    login = await create_magic_login_token(db, client["id"], client["email"])
+    base = os.environ.get("CIAK_BASE_URL") or os.environ.get(
+        "FRONTEND_URL_PROD", "https://ciak.io"
+    )
+    magic_link = f"{base}/cliente/accesso?token={login['token']}"
+    await db.ciak_clients.update_one(
+        {"id": client["id"]},
+        {"$set": {
+            "last_magic_link_created_at": now,
+            "last_magic_login_url": magic_link,
+            "manual_delivery": True,
+        }},
+    )
+
+    # 4. Upload PDF (best-effort) + email col PDF allegato e il link alla sales page.
+    from services import ciak_analisi_delivery
+
+    ciak_analisi_delivery.set_db(db)
+    pdf_url = await ciak_analisi_delivery._upload_pdf(pdf_bytes, session_token)
+    primo = (nome or "cliente").split()[0].lower() if nome else "cliente"
+    ok, err = ciak_analisi_delivery._send_email_attachment(
+        to=email,
+        subject="Il tuo Blueprint Evolution — analisi + prossimo passo",
+        body_text=_consegna_manuale_email_body(nome, magic_link, pdf_url),
+        pdf_bytes=pdf_bytes,
+        pdf_filename=f"blueprint_{primo}.pdf",
+    )
+    if not ok:
+        logger.error("[CONSEGNA_MANUALE] email ko per %s: %s", email, err)
+
+    return {
+        "success": bool(ok),
+        "email_sent": bool(ok),
+        "email_error": err,
+        "client_id": client["id"],
+        "email": client["email"],
+        "magic_link": magic_link,
+        "pdf_url": pdf_url,
+    }
 
 
 @router.post("/admin/offer-decision")
@@ -515,7 +1423,6 @@ async def activate_start(
                 "access_level": ACCESS_START,
                 "start_purchased_at": _now_iso(),
                 "start_credit_amount": START_AMOUNT_CENTS,
-                "start_progress": default_start_progress(),
             }
         },
     )
@@ -550,30 +1457,175 @@ async def start_checkout(client: dict[str, Any] = Depends(require_client)):
     }
 
 
+@router.post("/start-plus/checkout")
+async def start_plus_checkout(client: dict[str, Any] = Depends(require_client)):
+    canonical_user = await _canonical_user_for_client(client)
+    effective_client = _effective_client_snapshot(client, canonical_user)
+    effective_client["access_level"] = _effective_access_level(client, canonical_user)
+    context = await _blueprint_context(client)
+    _ensure_start_plus_checkout_allowed(effective_client, context)
+    frontend = _frontend_url()
+    session = await _create_checkout_session(
+        amount_cents=START_PLUS_AMOUNT_CENTS,
+        success_url=f"{frontend}/cliente?checkout=start&payment=success",
+        cancel_url=f"{frontend}/cliente?checkout=start-plus&payment=cancel",
+        metadata={
+            "tipo": "ciak_start_plus",
+            "client_id": client["id"],
+            "email": client["email"],
+        },
+    )
+    return {
+        "success": True,
+        "checkout_url": session.url,
+        "amount_cents": START_PLUS_AMOUNT_CENTS,
+        "credit_amount_cents": START_PLUS_AMOUNT_CENTS,
+        "credit_valid_days": START_PLUS_CREDIT_DAYS,
+    }
+
+
 @router.post("/partnership/checkout")
 async def partnership_checkout(client: dict[str, Any] = Depends(require_client)):
     canonical_user = await _canonical_user_for_client(client)
     effective_client = _effective_client_snapshot(client, canonical_user)
     effective_client["access_level"] = _effective_access_level(client, canonical_user)
     _ensure_partnership_checkout_allowed(effective_client)
-    frontend = _frontend_url()
-    pricing = partnership_price_for_client(effective_client)
-    session = await _create_checkout_session(
-        amount_cents=pricing["due_amount_cents"],
-        success_url=f"{frontend}/cliente?checkout=partnership&payment=success",
-        cancel_url=f"{frontend}/cliente?checkout=partnership&payment=cancel",
-        metadata={
-            "tipo": "partnership",
-            "client_id": client["id"],
-            "email": client["email"],
-            "full_amount_cents": pricing["full_amount_cents"],
-            "credit_amount_cents": pricing["credit_amount_cents"],
-            "due_amount_cents": pricing["due_amount_cents"],
-        },
+    # A client entitlement is not consent to a particular contract. The only
+    # Partnership checkout must go through its proposal and saved declaration.
+    raise HTTPException(409, detail={
+        "code": "PARTNERSHIP_PROPOSAL_REQUIRED",
+        "message": "Per la Partnership apri il link alla proposta ricevuto dal team e completa l'accettazione del contratto.",
+    })
+
+
+@router.post("/partnership/proposta")
+async def partnership_proposta(client: dict[str, Any] = Depends(require_client)):
+    """Il cliente apre contratto e pagamento della Partnership dalla sua area.
+
+    Ritorna la sua proposta attiva; se non ce n'e' mai stata una la crea (serve la call fatta).
+    Se ne esisteva una scaduta NON ne crea un'altra: la scadenza e' reale (410)."""
+    from routers import proposta as proposta_router
+
+    risultato = await proposta_router.proposta_per_cliente(
+        client.get("email"), {"id": client.get("id"), "email": client.get("email")}
     )
-    return {
-        "success": True,
-        "checkout_url": session.url,
-        "amount_cents": pricing["due_amount_cents"],
-        "credit_amount_cents": pricing["credit_amount_cents"],
-    }
+    return risultato
+
+
+class SalesChatRequest(BaseModel):
+    message: str
+    conversation_history: list[dict[str, str]] = Field(default_factory=list)
+    bonus_attiva: bool = False
+
+
+@router.post("/sales-chat")
+async def sales_chat(
+    body: SalesChatRequest,
+    client: dict[str, Any] = Depends(require_client),
+):
+    """Assistente di supporto della sales page (post-call): risponde ai dubbi sul
+    passo successivo — Ciak Start vs Partnership, prezzi, credito, Klarna, bonus.
+    Claude Haiku, risposte brevi. Legge il `recommended_offer` reale del cliente
+    lato server (niente numeri inventati, niente promesse di guadagno)."""
+    try:
+        import anthropic
+
+        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            return {"reply": "Il supporto non è al momento disponibile. Per qualsiasi domanda scrivi a assistenza@evolution-pro.it"}
+
+        start_eur = START_AMOUNT_CENTS // 100
+        partnership_eur = PARTNERSHIP_PRICE_CENTS // 100
+        upgrade_eur = (PARTNERSHIP_PRICE_CENTS - START_AMOUNT_CENTS) // 100
+        rec_partnership = client.get("recommended_offer") == OFFER_PARTNERSHIP
+        primo = (client.get("name") or "").strip().split(" ")[0]
+
+        consiglio = (
+            f"Dall'analisi (Blueprint) di questa persona, il percorso consigliato è la PARTNERSHIP: "
+            f"se chiede \"cosa mi conviene\", spiega perché il team ha consigliato la Partnership "
+            f"(sistema completo costruito insieme), senza sminuire Ciak Start come primo passo valido."
+            if rec_partnership else
+            f"Dall'analisi (Blueprint) di questa persona, il primo passo consigliato è CIAK START: "
+            f"se chiede \"cosa mi conviene\", spiega perché partire dalle fondamenta ha senso per lei, "
+            f"lasciando la Partnership come evoluzione naturale quando è pronta."
+        )
+        bonus_txt = (
+            "La finestra BONUS è ATTIVA: attivando Ciak Start entro 48h dalla call riceve in omaggio "
+            "la guida \"Come creare un videocorso che vende\" (40 pagine). È una scadenza reale, non un finto conto alla rovescia."
+            if body.bonus_attiva else
+            "Nessun bonus 48h attivo al momento: non inventare urgenze o scadenze."
+        )
+
+        system_prompt = f"""Sei l'assistente di Evolution PRO che accompagna {primo or 'la persona'} sulla pagina dove sceglie il passo successivo dopo la call di consegna del suo Blueprint.
+
+TONO: caldo, diretto, concreto. Niente gergo. Massimo 120 parole. Dai del tu. Chiudi sempre con una frase che aiuta a decidere il passo successivo.
+
+⛔ ONESTÀ (regola assoluta, ha la precedenza su tutto):
+- MAI promettere guadagni, fatturato, numero di clienti o percentuali di successo. Il metodo è lo strumento; i risultati dipendono dal mercato e dall'impegno della persona.
+- Il Simulatore Corsi (voce "Simulatore" dell'area cliente) è uno strumento di ipotesi che la persona modifica da sola. NON commentare, interpretare o validare i suoi numeri e non stimare mai vendite, incassi o tempi di rientro: di' che sono ipotesi, che nessun risultato è garantito, e che per ragionarci sul suo caso risponde il team.
+- MAI inventare recensioni, testimonianze o dati.
+- Usa SOLO i prezzi e i fatti qui sotto. Se non sai qualcosa: "Per questo ti risponde il team — scrivi a assistenza@evolution-pro.it".
+- Rispondi solo a domande su offerta, prezzi, modalità, cosa è incluso, come si procede. Per il resto rimanda ad assistenza.
+
+━━━ I DUE PERCORSI (prezzi reali, non modificarli) ━━━
+▸ CIAK START — {start_eur}€ una tantum. Le fondamenta fatte bene: posizionamento, basi del brand e sistemazione dei profili social, sito vetrina semplice, strategia + calendario dei contenuti, revisione finale. È il primo passo concreto.
+▸ PARTNERSHIP EVOLUTION PRO — {partnership_eur}€, tutto incluso. Il sistema completo costruito insieme fino al lancio: tutto ciò che c'è in Start + masterclass/videocorso costruiti con te, funnel + email di vendita, lancio guidato, revisione continua.
+
+━━━ FATTI CHIAVE ━━━
+- CREDITO GARANTITO: i {start_eur}€ di Ciak Start si scalano INTERI se poi passi alla Partnership. Non paghi due volte. L'upgrade da Start costa {upgrade_eur}€ (i {start_eur}€ sono già scalati).
+- RATEIZZAZIONE: puoi rateizzare con Klarna, direttamente nel checkout (Stripe). Nessuna richiesta a nessuno.
+- COME SI ATTIVA CIAK START: dal pulsante "Attiva Ciak Start" in questa pagina, checkout sicuro.
+- COME SI ATTIVA LA PARTNERSHIP: NON si compra da questa pagina. Si passa dalla proposta con contratto che il team ti fa avere ("Ne parliamo insieme"). Se la vuoi, dillo e il team ti manda la proposta.
+- {bonus_txt}
+
+━━━ CONSIGLIO PERSONALIZZATO PER QUESTA PERSONA ━━━
+{consiglio}"""
+
+        full_message = body.message
+        if body.conversation_history:
+            history_text = "\n".join(
+                f"{'Utente' if m.get('role') == 'user' else 'Assistente'}: {m.get('content', '')}"
+                for m in body.conversation_history[-6:]
+            )
+            full_message = f"[Contesto conversazione precedente]\n{history_text}\n\n[Nuova domanda]\n{body.message}"
+
+        ai = anthropic.Anthropic(api_key=api_key)
+        response = ai.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=400,
+            system=system_prompt,
+            messages=[{"role": "user", "content": full_message}],
+        )
+        reply = "".join(
+            b.text for b in response.content if getattr(b, "type", None) == "text"
+        ).strip()
+        return {"reply": reply or "Non ho una risposta pronta. Scrivi a assistenza@evolution-pro.it e ti aiutiamo subito."}
+
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"[SALES CHAT] Error: {e}")
+        return {"reply": "Si è verificato un errore. Riprova tra poco o scrivi a assistenza@evolution-pro.it"}
+
+
+@router.post("/bonus-reminder/run")
+async def bonus_reminder_run(_auth=Depends(require_admin_or_report_key)):
+    """Innescato ogni ora dallo scheduler (X-Report-Key): manda il promemoria a
+    chi ha la finestra bonus 48h in chiusura entro ~24h e non ha ancora comprato
+    Ciak Start. Idempotente lato servizio. Vedi services/ciak_bonus_reminder."""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database non configurato")
+    from services.ciak_bonus_reminder import invia_promemoria_bonus
+
+    return await invia_promemoria_bonus(db)
+
+
+@router.post("/insider-invites/run")
+async def insider_invites_run(dry_run: Optional[bool] = None, _auth=Depends(require_admin_or_report_key)):
+    """Innescato ogni giorno dallo scheduler (X-Report-Key): invita a Evolution Insider chi ha
+    gia' interagito e non ha acquistato. Spento finche' INSIDER_INVITES_ENABLED != "1": spento,
+    conta soltanto. `?dry_run=true` conta senza inviare, anche a flag acceso. Vedi
+    services/ciak_insider_invites e docs/superpowers/specs/2026-10-01-evolution-insider-community-design.md."""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database non configurato")
+    from services.ciak_insider_invites import invita_insider
+
+    return await invita_insider(db, dry_run=dry_run)

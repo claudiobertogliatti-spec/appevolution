@@ -1,7 +1,7 @@
 /**
  * Ciak Admin — Consegne mancate: stati della pagina.
  *
- * La pagina esiste perche' un cliente poteva pagare 2.790 EUR e restare senza
+ * La pagina esiste perche' un cliente poteva pagare 2.990 EUR e restare senza
  * account senza che nessuno se ne accorgesse. Quindi i due stati che contano
  * sono: "c'e' qualcosa da sistemare, e si vede subito" e "non c'e' niente, ed
  * e' detto esplicitamente" — un elenco vuoto ambiguo sarebbe lo stesso

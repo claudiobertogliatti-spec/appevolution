@@ -69,8 +69,8 @@ class ContractParamsUpdate(BaseModel):
 
 
 DEFAULT_CONTRACT_PARAMS = {
-    "corrispettivo": 2790.00,
-    "corrispettivo_testo": "duemilasettecentonovanta/00",
+    "corrispettivo": 2990.00,
+    "corrispettivo_testo": "duemilanovecentonovanta/00",
     "royalty_perc": 10,
     "durata_mesi": 12,
     "num_rate": 3,
@@ -103,7 +103,7 @@ def render_contract_text(params: dict) -> str:
 
     text = CONTRACT_TEXT
     text = text.replace(
-        "€ 2.790,00 (duemilasettecentonovanta/00)",
+        "€ 2.990,00 (duemilanovecentonovanta/00)",
         f"€ {corr_str} ({corr_testo})"
     )
     text = text.replace(
@@ -159,6 +159,28 @@ def render_contract_text(params: dict) -> str:
             f"{riga_partner}, di seguito \"Partner\"."
         )
     return text
+
+
+def clausole_approvazione_specifica(text: Optional[str] = None) -> List[str]:
+    """Elenco delle clausole dell'Art. 15.5 (approvazione specifica, artt. 1341-1342 c.c.).
+
+    Si legge dal testo del contratto, non da una lista duplicata: cio' che il cliente vede e
+    approva, cio' che il PDF stampa e lo snapshot salvato sono sempre la stessa cosa.
+    """
+    righe = (text if text is not None else CONTRACT_TEXT).splitlines()
+    out: List[str] = []
+    dentro = False
+    for riga in righe:
+        s = riga.strip()
+        if not dentro:
+            if s.startswith("15.5") and "Approvazione specifica" in s:
+                dentro = True
+            continue
+        if s.startswith("15.6") or s.startswith("ARTICOLO"):
+            break
+        if s.startswith("•"):
+            out.append(s.lstrip("• ").rstrip(";.").strip())
+    return out
 
 
 @router.get("/partner-data/{partner_id}")
@@ -225,19 +247,19 @@ Revolut Bank UAB è una banca europea con licenza bancaria completa rilasciata d
 Se hai partita IVA italiana, il reverse charge è una procedura standard per servizi da fornitori extra-UE: ricevi la fattura senza IVA e la integri tu nel registro IVA con la tua aliquota. Il tuo commercialista lo fa in 2 minuti, è una procedura routinaria. Se sei persona fisica senza P.IVA, l'operazione è ancora più semplice: nessun adempimento aggiuntivo per te.
 
 ▸ "Posso avere un rimborso se le cose non funzionano?"
-Il corrispettivo remunera l'avvio del progetto, le risorse operative allocate e il lavoro già avviato (Art. 5.7). Detto questo, è prevista una garanzia di rimborso entro 30 giorni se il funnel non è online per cause imputabili a Evolution PRO — come indicato nella proposta che hai accettato. Inoltre, in caso di grave inadempimento di Evolution PRO, il contratto prevede rimborso proporzionale alle attività non eseguite (Art. 7.2).
+Una volta avviata l'esecuzione della Partnership, il corrispettivo è maturato e non è rimborsabile (Art. 5.7): non esiste una garanzia "soddisfatti o rimborsati" e non devi dirlo mai. "Avviata" significa anche una sola attività, per esempio l'attivazione dell'account su Ciak.io. Unica eccezione: se Evolution PRO commette un grave inadempimento, dopo diffida e almeno 15 giorni per rimediare, hai diritto al rimborso proporzionale alla parte non eseguita, mai integrale se il lavoro era già partito (Art. 7.2). Per questo è importante leggere tutto prima di firmare.
 
 ▸ "L'esclusiva mi impedisce di vendere il mio corso?"
-No. L'esclusiva (Art. 1.4) riguarda solo il corso sviluppato insieme in questa partnership, e solo sui canali che Evolution PRO gestisce. Puoi continuare consulenze 1:1, workshop, webinar, speech e qualsiasi altro percorso formativo diverso. Puoi anche vendere il corso altrove con una semplice autorizzazione scritta, che non può essere negata se non c'è conflitto diretto.
+No. L'esclusiva (Art. 1.4) riguarda lo stesso corso sviluppato insieme, o contenuti sostanzialmente equivalenti, per tutta la durata e per 90 giorni dopo la fine. Puoi continuare consulenze 1:1, workshop, webinar, speech e qualsiasi altro percorso formativo diverso. Puoi anche vendere il corso altrove con una semplice autorizzazione scritta, che non può essere negata se non c'è conflitto diretto.
 
-▸ "Pago €2.790 E cedo anche il 10% — non è troppo?"
-I €2.790 coprono tutto il lavoro di costruzione: posizionamento, funnel, area corsi, editing, copywriting, automazioni — servizi che singolarmente costerebbero 2-3x. Il 10% di royalty (Art. 5.5) dura solo 12 mesi e serve ad allineare gli incentivi: guadagniamo entrambi quando il corso vende. Dopo 12 mesi, nessuna royalty dovuta.
+▸ "Pago €2.990 E cedo anche il 10% — non è troppo?"
+I €2.990 coprono tutto il lavoro di costruzione: posizionamento, funnel, area corsi, editing, copywriting, automazioni. Il 10% di royalty (Art. 5.5) si applica per 12 mesi sul netto incassato dalle vendite e serve ad allineare gli incentivi. Se una vendita fatta nei 12 mesi è pagata a rate dal cliente, la royalty vale su tutte le sue rate (Art. 5.6). Le vendite fatte dopo i 12 mesi non pagano royalty.
 
 ▸ "Posso uscire dal contratto prima dei 12 mesi?"
 Il contratto ha durata determinata (12 mesi) senza recesso ordinario (Art. 7.1). È pensato così perché il progetto richiede investimento continuativo. Se Evolution PRO dovesse risultare inadempiente — e gli esempi sono chiari nell'Art. 2.7 — puoi risolvere il contratto con rimborso proporzionale.
 
 ━━━ TESTO CONTRATTO ━━━
-{contract_text[:10000]}"""
+{contract_text}"""
 
         # Costruisce il messaggio con la storia recente nel testo
         full_message = body.message
@@ -292,22 +314,22 @@ e
 
 Il Partner sottoscrittore del presente contratto digitale.
 
-Evolution PRO e il Partner sono di seguito congiuntamente denominate le "Parti" e singolarmente la "Parte". Il Partner dichiara di operare nell'esercizio della propria attività professionale, imprenditoriale o autonoma e di essere titolare di Partita IVA valida alla data di sottoscrizione del presente Contratto.
+Evolution PRO e il Partner sono di seguito congiuntamente denominate le "Parti" e singolarmente la "Parte". Il Partner dichiara di aderire alla presente Partnership a fini imprenditoriali, professionali o per l'avvio della propria attività economica, e non in qualità di consumatore ai sensi del Codice del Consumo. Il Partner può essere già titolare di Partita IVA ovvero, qualora ne sia sprovvisto alla data di sottoscrizione, si impegna ad attivarla nei termini e nei modi di legge non appena l'attività lo richieda, secondo quanto previsto all'Articolo 9.
 
 ARTICOLO 1 – OGGETTO DEL CONTRATTO
 1.1 Finalità della collaborazione
 Il presente Contratto disciplina la collaborazione in partnership tra Evolution PRO e il Partner per la progettazione, creazione, pubblicazione, promozione, vendita e ottimizzazione di un'Accademia Digitale, di videocorsi, masterclass, contenuti formativi e relativi asset digitali basati sulle competenze, sui contenuti e sul posizionamento professionale del Partner.
-La proposta di Partnership viene formulata da Evolution PRO esclusivamente a seguito del completamento, da parte del Partner, di una preventiva Analisi Strategica a pagamento finalizzata alla valutazione preliminare della sostenibilità, della coerenza e della fattibilità commerciale del progetto.
+La proposta di Partnership viene formulata da Evolution PRO esclusivamente a seguito del completamento, da parte del Partner, di una preventiva Analisi Strategica gratuita (Ciak Blueprint) finalizzata alla valutazione preliminare della sostenibilità, della coerenza e della fattibilità commerciale del progetto.
 Le Parti riconoscono che, alla data di sottoscrizione del presente Contratto, il progetto è già stato oggetto di valutazione preliminare positiva da parte di Evolution PRO nella suddetta fase precontrattuale.
 Tale valutazione positiva non costituisce garanzia di risultati economici futuri, né promessa di fatturato, vendite, clienti o profitti, ma rappresenta esclusivamente il presupposto necessario per l'accesso al Programma Operativo e all'avvio della Partnership.
 La Partnership viene erogata attraverso il Metodo E.V.O. (Esamina – Valida – Ottimizza), framework proprietario sviluppato da Evolution PRO per la creazione, il lancio e la crescita di Accademie Digitali e prodotti formativi online.
 Le attività previste dal Metodo E.V.O. vengono coordinate e rese disponibili attraverso la piattaforma proprietaria Ciak.io e attraverso gli ulteriori strumenti tecnologici utilizzati da Evolution PRO per l'erogazione dei servizi previsti dal presente Contratto.
 Il Programma Operativo, il Metodo E.V.O., la piattaforma Ciak.io e gli eventuali allegati richiamati nel presente Contratto costituiscono parte integrante e sostanziale della Partnership.
 1.1-bis Fase precontrattuale di Analisi Strategica
-Prima della sottoscrizione del presente Contratto, il Partner ha richiesto a Evolution PRO una prestazione autonoma di Analisi Strategica, avente natura precontrattuale e corrispettivo separato, finalizzata alla valutazione del progetto, del posizionamento professionale del Partner e della sua idoneità a essere sviluppato attraverso il Metodo E.V.O. e la piattaforma Ciak.io.
+Prima della sottoscrizione del presente Contratto, il Partner ha ricevuto da Evolution PRO una prestazione autonoma di Analisi Strategica (Ciak Blueprint), avente natura precontrattuale e gratuita, finalizzata alla valutazione del progetto, del posizionamento professionale del Partner e della sua idoneità a essere sviluppato attraverso il Metodo E.V.O. e la piattaforma Ciak.io.
 L’Analisi Strategica costituisce attività autonoma, distinta e già integralmente eseguita rispetto alle prestazioni oggetto del presente Contratto.
 Le Parti riconoscono che l’Analisi Strategica rappresenta esclusivamente una fase preliminare di valutazione e non costituisce promessa, garanzia o impegno all’avvio della Partnership.
-Il relativo corrispettivo resta autonomo, definitivamente maturato e non imputabile, compensabile o detraibile rispetto al prezzo della Partnership, salvo diverso accordo scritto sottoscritto dalle Parti.
+Essendo gratuita, nulla è dovuto dal Partner a titolo di Analisi Strategica, né alcunché è imputabile, compensabile o detraibile rispetto al prezzo della Partnership.
 Le risultanze dell’Analisi Strategica costituiscono parte della documentazione preparatoria del progetto e potranno essere utilizzate da Evolution PRO come base operativa per l’avvio delle attività previste dal presente Contratto.
 1.1-ter Avvio operativo del progetto
 L’avvio operativo del progetto è subordinato:
@@ -603,7 +625,7 @@ Restano impregiudicati tutti gli ulteriori diritti e rimedi previsti dalla norma
 ARTICOLO 5 – CORRISPETTIVI, PIANI DI PAGAMENTO E REVENUE SHARE
 
 5.1 Corrispettivo della Partnership
-Il corrispettivo previsto per l'accesso alla Partnership Evolution PRO è pari a € 2.790,00 (duemilasettecentonovanta/00), secondo le modalità di pagamento concordate tra le Parti e riportate nel presente Contratto o nei relativi allegati.
+Il corrispettivo previsto per l'accesso alla Partnership Evolution PRO è pari a € 2.990,00 (duemilanovecentonovanta/00), secondo le modalità di pagamento concordate tra le Parti e riportate nel presente Contratto o nei relativi allegati.
 Il corrispettivo remunera:
 • l'accesso al Metodo E.V.O.;
 • l'accesso alla piattaforma Ciak.io;
@@ -951,14 +973,17 @@ Evolution PRO LLC emette la propria documentazione fiscale secondo la normativa 
 Qualora previsto dalla normativa vigente, anche in funzione del Paese di stabilimento del Partner, troverà applicazione il meccanismo dell’inversione contabile, reverse charge, o ogni altro regime fiscale applicabile al momento dell’operazione.
 Il Partner prende atto che il trattamento fiscale dell’operazione potrà dipendere dalla propria qualifica soggettiva, dal Paese di stabilimento, dalla normativa applicabile e dalle informazioni fiscali fornite a Evolution PRO.
 9.3 Obblighi fiscali del Partner
-Il presente Contratto è riservato esclusivamente a soggetti che operano nell'esercizio della propria attività professionale, imprenditoriale o autonoma e titolari di Partita IVA valida.
+Il presente Contratto è riservato a soggetti che aderiscono a fini imprenditoriali, professionali o per l’avvio della propria attività economica, e non a consumatori.
 Il Partner dichiara e garantisce la correttezza, completezza e veridicità dei dati fiscali, anagrafici e amministrativi forniti a Evolution PRO.
-Il Partner, in qualità di soggetto passivo d’imposta, si impegna a:
+(a) Partner titolare di Partita IVA (soggetto passivo d’imposta). Il Partner si impegna a:
 • comunicare dati fiscali corretti, aggiornati e completi;
-• integrare la documentazione fiscale ricevuta con l’aliquota IVA prevista, se e in quanto dovuta;
-• registrare la documentazione fiscale ricevuta nei registri contabili e fiscali applicabili;
+• assolvere gli adempimenti connessi all’operazione secondo il proprio regime fiscale, ivi inclusa — ove applicabile — l’integrazione o autofatturazione in regime di inversione contabile (reverse charge) per i servizi ricevuti da soggetto non residente, e registrare la documentazione nei registri contabili e fiscali applicabili;
 • rispettare la normativa fiscale, contabile e previdenziale vigente nel proprio Paese di stabilimento;
 • fornire, se richiesto per esigenze di compliance documentale, le sole informazioni strettamente necessarie a comprovare il corretto inquadramento fiscale dell’operazione.
+(b) Partner non ancora titolare di Partita IVA. Qualora il Partner non sia titolare di Partita IVA alla data di sottoscrizione, prende atto e accetta che:
+• il meccanismo dell’inversione contabile (reverse charge) non trova applicazione nei suoi confronti, non essendo egli soggetto passivo d’imposta, e nessun adempimento IVA è a suo carico in relazione al pagamento del corrispettivo;
+• è l’unico responsabile della dichiarazione e del corretto assoggettamento a imposta degli eventuali compensi percepiti nell’ambito della Partnership, secondo la normativa applicabile, ivi inclusi — ove ne ricorrano i presupposti — gli obblighi contributivi;
+• si impegna ad attivare la Partita IVA nei termini e nei modi di legge non appena l’attività assuma carattere abituale ovvero al superamento delle soglie previste dalla normativa vigente, dandone tempestiva comunicazione a Evolution PRO.
 Eventuali errori, omissioni, inesattezze o variazioni dei dati fiscali forniti dal Partner dovranno essere comunicati tempestivamente a Evolution PRO.
 9.4 Autonomia fiscale delle Parti
 Il Partner è l’unico responsabile della corretta gestione fiscale, contabile e previdenziale dei compensi percepiti, nonché del versamento di imposte, contributi e adempimenti connessi alla propria attività professionale, imprenditoriale o autonoma.
@@ -1236,13 +1261,13 @@ Ai sensi e per gli effetti degli articoli 1341 e 1342 del Codice Civile italiano
 • Articolo 1.4 (Esclusiva);
 • Articolo 2.6 (Recesso di Evolution PRO);
 • Articolo 2.7 (Risoluzione per inadempimento);
-• Articolo 3.3 (Sospensione e risoluzione per inattività);
+• Articolo 3.3 (Ritardi o mancata collaborazione del Partner);
 • Articolo 5.3 (Decadenza del beneficio della dilazione);
 • Articolo 5.5 e 5.6 (Royalty e Revenue Share);
 • Articolo 5.7 (Natura non rimborsabile del corrispettivo);
 • Articolo 6.5 (Penale per violazione della riservatezza);
 • Articolo 7.6 (Limitazioni di responsabilità);
-• Articolo 10.6 (Limitazione di responsabilità in materia di trattamento dati);
+• Articolo 10.6 (Responsabilità delle Parti);
 • Articolo 12 (Tutela del brand, know-how e asset proprietari);
 • Articolo 12.5 (Penale);
 • Articolo 14.3 (Mediazione preventiva);
@@ -1706,6 +1731,12 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
     try:
         params = await _get_partner_params(partner.get("id", ""))
         rendered_text = render_contract_text(params)
+        # Chi firma: se il Partner ha inserito i suoi dati, nome e cognome veri; altrimenti il nome dell'account.
+        _pd = params.get("personal_data") or {}
+        firmatario = (f"{_pd['nome']} {_pd['cognome']}" if _pd.get("nome") and _pd.get("cognome")
+                      else partner.get('name', 'N/A'))
+        # Il metodo e' dichiarato com'e': un flag NON e' una firma disegnata ne' digitale.
+        _con_flag = contract_data.get('metodo') != 'signature'
         from reportlab.lib.pagesizes import A4
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.units import cm
@@ -1810,8 +1841,8 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
             ['Versione contratto:', contract_data.get('version', 'v1.0')],
             ['Data firma:', data_firma_fmt],
             ['Luogo:', 'Torino'],
-            ['Partner:', partner.get('name', 'N/A')],
-            ['Email:', partner.get('email', 'N/A')],
+            ['Partner:', firmatario],
+            ['Email:', _pd.get('email') or partner.get('email', 'N/A')],
             ['IP Address:', contract_data.get('ip_address', 'N/D')],
         ]
         t = Table(info_data, colWidths=[4*cm, 12*cm])
@@ -1858,13 +1889,16 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
                 return Paragraph("[Firma digitale applicata]", style_testo)
 
         # --- 1) Firma per accettazione integrale del contratto ---
-        story.append(Paragraph("1) Firma del Partner per accettazione integrale del contratto", style_articolo))
+        story.append(Paragraph(
+            "1) Accettazione integrale del contratto" if _con_flag
+            else "1) Firma del Partner per accettazione integrale del contratto", style_articolo))
         firma_info = [
-            ["Firmato da:", partner.get('name', 'N/A')],
+            ["Firmato da:" if not _con_flag else "Accettato da:", firmatario],
             ["Data e ora firma:", data_firma_fmt],
-            ["Luogo:", "Torino"],
+            ["Luogo:", contract_data.get('luogo_accettazione') or "Torino"],
             ["Indirizzo IP:", contract_data.get('ip_address', 'N/D')],
-            ["Metodo:", "Firma digitale tramite piattaforma Evolution PRO"],
+            ["Metodo:", "Accettazione elettronica (flag) tramite piattaforma Evolution PRO" if _con_flag
+             else "Firma digitale tramite piattaforma Evolution PRO"],
         ]
         t_firma = Table(firma_info, colWidths=[4*cm, 12*cm])
         t_firma.setStyle(TableStyle([
@@ -1876,44 +1910,45 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
         ]))
         story.append(t_firma)
         story.append(Spacer(1, 0.2*cm))
-        story.append(_sig_image())
-        story.append(Spacer(1, 0.2*cm))
-        story.append(Paragraph("_______________________________  (Il Partner)", style_testo))
+        if _con_flag:
+            story.append(Paragraph(
+                f"Il Partner ha dichiarato di aver letto e accettato il contratto spuntando l'apposito flag il {data_firma_fmt}.",
+                style_testo))
+        else:
+            story.append(_sig_image())
+            story.append(Spacer(1, 0.2*cm))
+            story.append(Paragraph("_______________________________  (Il Partner)", style_testo))
         story.append(Spacer(1, 0.5*cm))
 
         # --- 2) Approvazione specifica delle clausole vessatorie ---
         story.append(Paragraph("2) Approvazione specifica delle clausole ai sensi degli artt. 1341 e 1342 c.c.", style_articolo))
         story.append(Paragraph("Il Partner dichiara di aver letto, compreso e approvato specificamente le seguenti clausole:", style_testo))
         style_bullet = ParagraphStyle('BulletVex', parent=style_testo, leftIndent=16, spaceAfter=2)
-        _clausole_vex = [
-            "Art. 1.4 (Esclusiva)",
-            "Art. 2.6 (Recesso Evolution PRO)",
-            "Art. 2.7 (Risoluzione per inadempimento)",
-            "Art. 3.3 (Sospensione per inattività)",
-            "Art. 5.3 (Decadenza beneficio della dilazione)",
-            "Art. 5.5 e 5.6 (Royalty e Revenue Share)",
-            "Art. 5.7 (Corrispettivo non rimborsabile)",
-            "Art. 6.5 (Penale riservatezza)",
-            "Art. 7.6 (Limitazione di responsabilità)",
-            "Art. 10.6 (Limitazione responsabilità dati)",
-            "Art. 12 e 12.5 (Tutela asset e penali)",
-            "Art. 14.3 (Mediazione)",
-            "Art. 14.4 (Foro esclusivo Torino)",
-        ]
-        for _c in _clausole_vex:
+        # Snapshot di cio' che il Partner ha visto e approvato. Per i contratti firmati prima che lo
+        # snapshot venisse registrato si legge l'Art. 15.5 del testo: una sola fonte, mai una copia
+        # della lista con titoli diversi da quelli del contratto.
+        for _c in (contract_data.get('clausole_approvate') or clausole_approvazione_specifica()):
             story.append(Paragraph("•  " + _c, style_bullet))
         story.append(Spacer(1, 0.2*cm))
-        story.append(Paragraph("Luogo e data: Torino, " + data_firma_fmt, style_testo))
+        story.append(Paragraph(
+            f"Luogo e data: {contract_data.get('luogo_accettazione') or 'Torino'}, " + data_firma_fmt, style_testo))
         story.append(Spacer(1, 0.2*cm))
-        story.append(_sig_image())
-        story.append(Spacer(1, 0.2*cm))
-        story.append(Paragraph("_______________________________  (Il Partner - per specifica approvazione)", style_testo))
+        if _con_flag:
+            story.append(Paragraph(
+                "Il Partner ha approvato specificamente le clausole sopra elencate con un secondo flag, "
+                "distinto da quello di accettazione del contratto.", style_testo))
+        else:
+            story.append(_sig_image())
+            story.append(Spacer(1, 0.2*cm))
+            story.append(Paragraph("_______________________________  (Il Partner - per specifica approvazione)", style_testo))
 
         # FOOTER legale
         story.append(Spacer(1, 0.4*cm))
         story.append(Paragraph(
             "Documento generato automaticamente dalla piattaforma Evolution PRO. "
-            "La firma digitale apposta ha valore legale ai sensi del D.Lgs. 82/2005 (CAD).",
+            + ("L'accettazione elettronica è registrata dalla piattaforma con data, ora e indirizzo IP."
+               if _con_flag else
+               "La firma digitale apposta ha valore legale ai sensi del D.Lgs. 82/2005 (CAD)."),
             style_footer))
 
         doc.build(story, onFirstPage=_header_footer, onLaterPages=_header_footer,

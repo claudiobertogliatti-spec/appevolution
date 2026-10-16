@@ -1,6 +1,7 @@
 import pytest
 import services.partner_step_materials as materials
 from services.partner_step_materials import (
+    allowed_funnel_preview_url,
     allowed_public_url,
     categories_for_step,
     content_type_for_material,
@@ -31,6 +32,36 @@ def test_file_urls_are_always_internal_and_video_has_no_download():
     assert "drive" not in str(pdf)
     video = normalize_file_material({"file_id": "v1", "original_name": "lezione.mp4"})
     assert video["download_url"] is None
+
+
+@pytest.mark.parametrize("name", [
+    "Script_Masterclass.docx", "Calendario_Lancio.xlsx", "Articolo.odt", "Slide.pptx", "dati.csv",
+])
+def test_office_files_are_download_only_never_offered_as_preview(name):
+    # Il browser NON mostra Word/Excel/ODT: li scarica. "Visualizza"/"Apri" per questi
+    # file era il bug "clicco e si scarica": niente preview_url, resta solo il download.
+    item = normalize_file_material({"file_id": "d1", "original_name": name})
+    assert item["can_preview"] is False
+    assert item["preview_url"] is None
+    assert item["download_url"] == "/api/partner-step-materials/d1/download"
+
+
+@pytest.mark.parametrize("name", ["Brand.pdf", "logo.png", "foto.JPG", "nota.txt"])
+def test_pdf_images_and_text_keep_the_preview(name):
+    item = normalize_file_material({"file_id": "p1", "original_name": name})
+    assert item["can_preview"] is True
+    assert item["preview_url"] == "/api/partner-step-materials/p1/preview"
+
+
+def test_preview_is_decided_by_mime_when_the_name_has_no_extension():
+    # I record storici hanno titoli senza estensione ("Contratto firmato"): conta il MIME.
+    pdf = normalize_file_material({"file_id": "p2", "original_name": "Contratto firmato", "content_type": "application/pdf"})
+    docx = normalize_file_material({
+        "file_id": "w2", "original_name": "Documento posizionamento",
+        "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    })
+    assert pdf["can_preview"] is True
+    assert docx["can_preview"] is False and docx["preview_url"] is None
 
 
 def test_pdf_proxy_uses_pdf_mime_when_storage_returns_octet_stream():
@@ -168,3 +199,66 @@ async def test_register_drive_file_once_is_idempotent_and_never_overwrites_revie
     assert files.calls[0][1] == {"$setOnInsert": first_record}
     assert files.calls[1][1] == {"$setOnInsert": second_record}
     assert all(call[2] is True for call in files.calls)
+
+
+def test_launch_calendar_text_is_shown_in_its_step_archive():
+    data = {
+        "calendario": "Giorno 1 - Storia personale\nGiorno 2 - Contenuto educativo",
+        "calendario_fallback": False,
+        "calendario_generated_at": "2026-08-06T10:40:15",
+    }
+
+    assert materials.safe_step_data("11-calendario-30gg", data) == {"calendario": data["calendario"]}
+
+
+def test_generic_fallback_calendar_is_never_shown_as_partner_material():
+    data = {"calendario": "Giorno 1 - post generico", "calendario_fallback": True}
+
+    assert materials.safe_step_data("11-calendario-30gg", data) == {}
+
+
+def test_step_archive_hides_files_the_partner_cannot_open():
+    drive_only = {"file_id": "d", "internal_url": "https://drive.google.com/file/d/x/view"}
+    cloudinary = {"file_id": "c", "internal_url": "https://res.cloudinary.com/demo/raw/upload/a.xlsx"}
+    youtube = {"file_id": "y", "public_url": "https://www.youtube.com/watch?v=abc"}
+
+    assert materials.file_is_openable(drive_only) is False
+    assert materials.file_is_openable(cloudinary) is True
+    assert materials.file_is_openable(youtube) is True
+    assert [f["file_id"] for f in materials.step_archive_files([drive_only, cloudinary, youtube])] == ["c", "y"]
+    assert len(materials.step_archive_files([drive_only, cloudinary], include_hidden=True)) == 2
+
+
+def test_step_assignment_only_accepts_known_steps_and_marks_the_file_approved():
+    assert materials.step_assignment_fields("11-calendario-30gg") == {
+        "step_id": "11-calendario-30gg",
+        "step_ref": "11-calendario-30gg",
+        "status": "approved",
+        "approval_status": "approved",
+    }
+    with pytest.raises(ValueError, match="step"):
+        materials.step_assignment_fields("15-calendario-30gg")
+
+
+def test_funnel_preview_accepts_only_https_vercel_app_hosts():
+    # L'anteprima del funnel (F-13) è su Vercel gratuito: solo https e solo *.vercel.app.
+    assert allowed_funnel_preview_url("https://sabai-daniele-andolfi.vercel.app") == "https://sabai-daniele-andolfi.vercel.app"
+    assert allowed_funnel_preview_url("  https://x-y.vercel.app/guarda.html  ") == "https://x-y.vercel.app/guarda.html"
+    for bad in (
+        None, "", "http://x.vercel.app", "https://vercel.app", "https://evil.example/x.vercel.app",
+        "https://x.vercel.app.evil.example", "https://user:pw@x.vercel.app", "https://drive.google.com/x",
+        "javascript:alert(1)",
+    ):
+        assert allowed_funnel_preview_url(bad) is None, bad
+
+
+def test_funnel_preview_does_not_widen_the_generic_public_hosts():
+    # `allowed_public_url` (YouTube/ciak.io) NON deve ammettere vercel.app: l'eccezione è solo per F-13.
+    assert allowed_public_url("https://x.vercel.app") is None
+
+
+def test_removed_is_a_valid_migration_visibility_hidden_from_the_partner_and_restorable():
+    assert "removed" in materials.MIGRATION_VISIBILITIES            # l'endpoint di visibilita' lo accetta
+    assert materials.file_visible_to_partner({"approval_status": "approved", "visibility": "removed"}) is False
+    assert "partner_visible" in materials.MIGRATION_VISIBILITIES    # e si ripristina con partner_visible
+    assert current_files([{"file_id": "x", "approval_status": "approved", "visibility": "removed"}]) == []

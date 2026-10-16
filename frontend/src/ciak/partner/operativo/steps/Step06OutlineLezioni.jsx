@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import StepBase from "./StepBase";
+import StepGiaCompletato, { isDoneWithoutContent } from "./StepGiaCompletato";
 import { API } from "../../../../utils/api-config";
 import axios from "axios";
 import { authHeaders } from "../../api";
@@ -15,6 +16,7 @@ export default function Step06OutlineLezioni({ step, partnerId, onComplete, onSa
   const [outline, setOutline] = useState(step?.data?.outline || null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
+  const [redo, setRedo] = useState(false);
 
   // Tracciamento "validato dall'utente" per la rigenerazione selettiva
   const [editedModules, setEditedModules] = useState(() => new Set());
@@ -144,6 +146,11 @@ export default function Step06OutlineLezioni({ step, partnerId, onComplete, onSa
     const ospiti = (outline.ospiti || []).map((o, idx) => (idx === i ? v : o));
     save({ ...outline, ospiti });
   };
+
+  // Passo già "fatto" senza scaletta generata: non invitare a rigenerare da zero.
+  if (isDoneWithoutContent(step, outline) && !redo) {
+    return <StepGiaCompletato step={step} title="La scaletta delle lezioni" onRedo={() => setRedo(true)} />;
+  }
 
   // ─── Stato vuoto: genera la prima bozza ───────────────────────────────
   if (!outline) {

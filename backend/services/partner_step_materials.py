@@ -8,6 +8,10 @@ from urllib.parse import urlparse
 WORKBOOK_NOTICE = ("Puoi consultare e scaricare questo materiale ora. Al termine del percorso "
                    "riceverai anche il Workbook completo, con tutti gli output ordinati fase per fase.")
 
+# Cliente Ciak Start: niente Workbook ne' "fasi" (sono della Partnership).
+START_NOTICE = ("Questo è il documento che il team ha controllato e approvato per te. "
+                "Puoi consultarlo e scaricarlo quando vuoi: resta sempre qui, in Ciak.")
+
 STEP_CATEGORIES = {
     "01-contratto": {
         "contratto", "contratto_firmato", "contract",
@@ -33,13 +37,17 @@ DATA_WHITELISTS = {
     "burocrazia": {"ragione_sociale", "partita_iva", "codice_fiscale", "paese", "citta"},
     "06-outline-lezioni": {"titolo", "descrizione", "moduli"},
     "09-registra-lezioni": {"lessons_count", "approved_count", "modules_count"},
+    "11-calendario-30gg": {"calendario"},
     "13-lancio": {"launched_at", "funnel_url", "status"},
 }
 
 PUBLIC_HOSTS = {"youtube.com", "www.youtube.com", "youtu.be", "ciak.io", "www.ciak.io"}
 STORAGE_HOSTS = {"res.cloudinary.com", "storage.googleapis.com"}
 BLOCKED_HOST_MARKERS = ("drive.google", "googleusercontent", "storage.googleapis", "googleapis.com")
-PARTNER_HIDDEN_VISIBILITIES = {"admin_only", "legal_dispute", "needs_review", "foreign_owner"}
+# "removed" = tolto dall'archivio dall'admin: nascosto a TUTTI (admin compreso), senza cancellare il record;
+# si ripristina con visibility="partner_visible" (PATCH /api/partner-step-materials/{file_id}/visibility).
+REMOVED_VISIBILITY = "removed"
+PARTNER_HIDDEN_VISIBILITIES = {"admin_only", "legal_dispute", "needs_review", "foreign_owner", REMOVED_VISIBILITY}
 MIGRATION_VISIBILITIES = PARTNER_HIDDEN_VISIBILITIES | {"partner_visible"}
 
 
@@ -59,6 +67,23 @@ def allowed_public_url(url: Optional[str]) -> Optional[str]:
     return None
 
 
+def allowed_funnel_preview_url(url: Optional[str]) -> Optional[str]:
+    """Link all'anteprima del funnel del partner (Vercel gratuito) mostrato nello step F-13.
+
+    Più stretto di `allowed_public_url`: solo https e solo host `*.vercel.app`, senza
+    credenziali nell'URL. Lo imposta l'admin su `partner_funnel.preview_url`.
+    """
+    if not url:
+        return None
+    parsed = urlparse(str(url).strip())
+    host = (parsed.hostname or "").lower()
+    if parsed.scheme != "https" or parsed.username or parsed.password:
+        return None
+    if not host.endswith(".vercel.app") or host == ".vercel.app":
+        return None
+    return str(url).strip()
+
+
 def trusted_storage_url(url: Optional[str]) -> Optional[str]:
     if not url:
         return None
@@ -75,6 +100,20 @@ def material_type(doc: Dict[str, Any]) -> str:
     if mime.startswith("image/") or suffix in {".png", ".jpg", ".jpeg", ".webp", ".svg"}: return "image"
     if mime.startswith("video/") or suffix in {".mp4", ".mov", ".webm"}: return "video"
     return "document"
+
+
+def can_preview(doc: Dict[str, Any]) -> bool:
+    """True solo per i formati che il browser sa MOSTRARE (PDF, immagini, testo).
+
+    Word, Excel, ODT, ecc. non si renderizzano in un iframe o in una nuova
+    scheda: il browser li scarica. Offrire "Visualizza"/"Apri" per quei file
+    era il bug "clicco e si scarica": per loro resta solo "Scarica".
+    """
+    if material_type(doc) in {"pdf", "image"}:
+        return True
+    name = str(doc.get("original_name") or doc.get("filename") or "").lower()
+    mime = str(doc.get("content_type") or doc.get("mime_type") or "").split(";", 1)[0].strip().lower()
+    return PurePosixPath(name).suffix == ".txt" or mime == "text/plain"
 
 
 def content_type_for_material(doc: Dict[str, Any], upstream_content_type: Optional[str] = None) -> str:
@@ -108,11 +147,18 @@ def normalize_file_material(doc: Dict[str, Any]) -> Dict[str, Any]:
     file_id = str(doc.get("file_id") or doc.get("id") or "")
     kind = material_type(doc)
     base = f"/api/partner-step-materials/{file_id}"
+    # Un video e' servibile (preview/download) solo se sta su storage fidato
+    # (Cloudinary): i reel migrati si aprono/scaricano; i video "solo YouTube"
+    # restano su `public_url`. I non-video hanno sempre le url (la lista esclude
+    # comunque i non apribili).
+    served = kind != "video" or bool(trusted_storage_url(doc.get("internal_url")))
+    previewable = can_preview(doc) or kind == "video"
     return {
         "id": file_id, "type": kind,
         "title": doc.get("original_name") or doc.get("filename") or doc.get("category") or "Materiale",
-        "preview_url": f"{base}/preview" if kind != "video" else None,
-        "download_url": f"{base}/download" if kind != "video" else None,
+        "can_preview": previewable,
+        "preview_url": f"{base}/preview" if served and previewable else None,
+        "download_url": f"{base}/download" if served else None,
         "public_url": allowed_public_url(doc.get("public_url")),
         "version": int(doc.get("version") or 1),
         "created_at": doc.get("uploaded_at") or doc.get("created_at"),
@@ -122,7 +168,11 @@ def normalize_file_material(doc: Dict[str, Any]) -> Dict[str, Any]:
 
 def safe_step_data(step_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
     allowed = DATA_WHITELISTS.get(step_id, set())
-    return {key: data[key] for key in allowed if key in data and data[key] not in (None, "", [], {})}
+    result = {key: data[key] for key in allowed if key in data and data[key] not in (None, "", [], {})}
+    # Il calendario di ripiego e' generico, non del partner: niente sintesi inventate.
+    if step_id == "11-calendario-30gg" and data.get("calendario_fallback"):
+        result.pop("calendario", None)
+    return result
 
 
 def current_files(files: Iterable[Dict[str, Any]]) -> list[Dict[str, Any]]:
@@ -135,6 +185,58 @@ def current_files(files: Iterable[Dict[str, Any]]) -> list[Dict[str, Any]]:
 def file_visible_to_partner(file_doc: Dict[str, Any]) -> bool:
     """I record legacy restano visibili; le nuove classi fail-closed no."""
     return file_doc.get("visibility") not in PARTNER_HIDDEN_VISIBILITIES
+
+
+def file_is_openable(file_doc: Dict[str, Any]) -> bool:
+    """Apribile dal partner = storage fidato (servito da `_serve`) oppure un
+    `public_url` consentito. I file solo-Drive darebbero 404 al click."""
+    return bool(trusted_storage_url(file_doc.get("internal_url")) or allowed_public_url(file_doc.get("public_url")))
+
+
+def step_archive_files(files: Iterable[Dict[str, Any]], include_hidden: bool = False) -> list[Dict[str, Any]]:
+    """File dell'Archivio di uno step: approvati/visibili (`current_files`) e, per
+    il partner, solo quelli che sa davvero aprire. L'admin li vede tutti."""
+    return [f for f in current_files(files) if include_hidden or file_is_openable(f)]
+
+
+def step_assignment_fields(step_id: str) -> Dict[str, Any]:
+    """Campi che collegano un file gia' registrato a uno step del Percorso.
+    `status`/`approval_status` = approved: senza, `current_files` lo scarta e
+    l'Archivio dello step resta vuoto (gli upload nascono con status 'uploaded')."""
+    if step_id not in STEP_CATEGORIES:
+        raise ValueError(f"step non valido: {step_id}")
+    return {"step_id": step_id, "step_ref": step_id, "status": "approved", "approval_status": "approved"}
+
+
+def partner_materiali_listing(files: Iterable[Dict[str, Any]], include_hidden: bool = False) -> list[Dict[str, Any]]:
+    """File da mostrare nella pagina 'Materiali' del partner: non superseded e
+    visibili al partner (nasconde solo gli `admin_only`/interni). Al partner
+    mostra ciò che Ciak ha prodotto/consegnato E ciò che ha caricato lui o
+    l'admin — decisione di Claudio: 'sono comunque documenti suoi'.
+
+    A differenza di `current_files` NON richiede status/approval_status
+    'approved': quello serve al flusso di review per-step (bozza -> approvato),
+    mentre qui contano anche gli upload e le consegne (status 'uploaded').
+    `include_hidden=True` (solo per l'admin in vista) mostra tutto, anche gli
+    `admin_only`, ma NON i file `removed` (rimossi dall'admin: spariscono per tutti).
+    """
+    out = []
+    for f in files:
+        if f.get("superseded") or f.get("visibility") == REMOVED_VISIBILITY:
+            continue
+        if not include_hidden:
+            if not file_visible_to_partner(f):
+                continue
+            # Non mostrare al partner i file che non sa aprire. Apribile = storage
+            # fidato (Cloudinary/GCS via `internal_url`, servito da `_serve`) OPPURE
+            # un `public_url` consentito (YouTube/*.ciak.io). I file ancora solo su
+            # Drive darebbero un 404 al click (era il bug "i materiali non si
+            # aprono"). Vale anche per i video: i reel su Cloudinary sono apribili.
+            # L'admin li vede con include_hidden per migrarli.
+            if not file_is_openable(f):
+                continue
+        out.append(f)
+    return out
 
 
 def build_drive_registration_record(

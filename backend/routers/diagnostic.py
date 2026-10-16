@@ -1,14 +1,13 @@
 """
 Ciak — Router diagnostic.
 
-Endpoint pubblici per il flow utente Ciak (8 domande → scoring → Matteo → report).
+Endpoint pubblici per il flow utente Ciak (10 domande → scoring → report interno
+di Carlo). Il report NON si mostra al lead: lo legge solo l'admin prima della call.
 
 Endpoint:
   POST   /api/diagnostic/start          → crea lead + sessione, ritorna session_token
   POST   /api/diagnostic/answer         → salva risposta a singola domanda
   POST   /api/diagnostic/complete       → calcola score+override, invoca Matteo
-  GET    /api/diagnostic/report/{token} → legge report, emette report_viewed
-  POST   /api/diagnostic/cta-clicked    → tracciamento click CTA 67€
 
 Pattern coerente con repo (vedi routers/clienti.py):
   - db = None globale, inizializzato via set_db() chiamato da server.py
@@ -18,10 +17,8 @@ Pattern coerente con repo (vedi routers/clienti.py):
 Riferimento:
   - memory/ciak_technical_spec.md (schema, scoring, state machine)
   - memory/matteo_prompt_engine.md (prompt v1.4)
-  - memory/funnel_67_analisi.md (CTA differenziate per stato)
 """
 import logging
-import os
 from datetime import datetime, timezone
 from typing import Any, Literal, Optional
 from uuid import uuid4
@@ -32,13 +29,13 @@ from pydantic import BaseModel, EmailStr, Field
 import asyncio
 
 from services.ciak_matteo import MatteoServiceError, generate_report
-from services.ciak_scoring import calculate_scoring
+from services.ciak_scoring_ai import calculate_scoring_ai
 from services.ciak_state_machine import (
-    STATE_CIAK_COMPLETED, STATE_CIAK_STARTED, STATE_CLICKED_67,
+    STATE_CIAK_COMPLETED, STATE_CIAK_STARTED,
     STATE_LEAD_CREATED, STATE_REPORT_GENERATED,
     add_event, has_event, transition_to,
 )
-from services.ciak_systeme import ciak_emit_event
+from services.ciak_systeme import ciak_emit_event, fire_and_forget
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +87,7 @@ class StartResponse(BaseModel):
 QuestionId = Literal[
     "q1_competenza", "q2_esperienza", "q3_clienti", "q4_idea",
     "q5_target", "q6_problema", "q7_digitale", "q8_obiettivo",
+    "q9_materiale", "q10_agenzie",
 ]
 
 
@@ -104,19 +102,9 @@ class CompleteRequest(BaseModel):
 
 
 class CompleteResponse(BaseModel):
-    report_url: str
     stato: int
     session_token: str
-
-
-class ReportResponse(BaseModel):
-    report_markdown: str
-    stato: int
-    cta_variant: Literal["nurturing", "validate", "build", "extended"]
-
-
-class CtaClickedRequest(BaseModel):
-    session_token: str
+    instradamento: Literal["partnership", "start", "nurture"]
 
 
 # ─── Validation helpers ─────────────────────────────────────────────
@@ -133,12 +121,6 @@ def _validate_open_text(value: str, max_len: int, field_name: str) -> str:
     return cleaned
 
 
-_CTA_VARIANT_BY_STATE: dict[int, Literal["nurturing", "validate", "build", "extended"]] = {
-    1: "nurturing",
-    2: "validate",
-    3: "build",
-    4: "extended",
-}
 
 
 def _build_session_doc(req: StartRequest) -> dict:
@@ -160,6 +142,8 @@ def _build_session_doc(req: StartRequest) -> dict:
             "q6_problema": None,
             "q7_digitale": None,
             "q8_obiettivo": None,
+            "q9_materiale": None,
+            "q10_agenzie": None,
         },
         "scoring": None,
         "report": None,
@@ -185,6 +169,8 @@ def _build_user_payload_for_matteo(session: dict, scoring: Any) -> dict:
         "problema": responses["q6_problema"],
         "digitale": responses["q7_digitale"],
         "obiettivo": responses["q8_obiettivo"],
+        "materiale": responses.get("q9_materiale"),
+        "agenzie": responses.get("q10_agenzie"),
         "score_numerico": scoring.score_numerico,
         "stato": scoring.stato_finale,
         "override_applicato": scoring.override_applicati,
@@ -214,7 +200,7 @@ async def start_diagnostic(payload: StartRequest):
 
     # Fire-and-forget: emit tag Systeme.io (find_or_create contact + tag ciak_started).
     # No await: la response utente non aspetta Systeme. Errori loggati ma non bloccano.
-    asyncio.create_task(ciak_emit_event(
+    fire_and_forget(ciak_emit_event(
         email=payload.email,
         event_name="ciak_started",
         first_name=payload.name,
@@ -254,7 +240,7 @@ async def answer_question(payload: AnswerRequest):
     elif qid == "q6_problema":
         value = _validate_open_text(payload.value, Q6_MAX, "Problema")
     else:
-        # Validation enum implicit in scoring.calculate_scoring at /complete
+        # Risposta APERTA (testo libero): salvata così com'è; valutata da Carlo al /complete.
         value = payload.value.strip()
 
     await db.diagnostic_sessions.update_one(
@@ -276,10 +262,17 @@ async def complete_diagnostic(payload: CompleteRequest):
       1. Carica sessione + verifica completezza risposte
       2. Calcola scoring (score 0-13 + override)
       3. Transizione a ciak_completed
-      4. Invoca Matteo (può fallire → 503 con sessione salvata)
-      5. Aggiunge tag segment + digital_level + obiettivo
-      6. Transizione a report_generated
-      7. Persist + ritorna URL del report
+      4. Invoca Matteo (analisi INTERNA) — se fallisce NON blocca: degrado grazioso.
+      5. Se il report c'è: aggiunge tag segment + digital_level + obiettivo + report_generated
+      6. Persist + emette ciak_completed su Systeme + ritorna 200
+
+    ⚠️ Matteo genera l'analisi INTERNA (la commenta Claudio in call): un suo guasto
+    (credito API, JSON malformato, timeout) NON deve impedire al cliente di arrivare
+    al passo coerente con l'instradamento. Perciò il fallimento di Matteo è degradato
+    con grazia: la sessione è salvata, il tag ciak_completed è emesso (mail di recupero),
+    la risposta è 200 e il frontend mostra il calendario per partnership/start oppure
+    il passo formativo per nurture. L'analisi si rigenera dopo (admin/retry) leggendo
+    le sessioni con `report_error`.
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
@@ -305,18 +298,9 @@ async def complete_diagnostic(payload: CompleteRequest):
     if len(responses["q6_problema"]) < OPEN_TEXT_MIN:
         raise HTTPException(400, "q6_problema troppo breve")
 
-    # 1. Scoring + override
-    try:
-        scoring = calculate_scoring(
-            q2=responses["q2_esperienza"],
-            q3=responses["q3_clienti"],
-            q4=responses["q4_idea"],
-            q5=responses["q5_target"],
-            q7=responses["q7_digitale"],
-            q8=responses["q8_obiettivo"],
-        )
-    except ValueError as e:
-        raise HTTPException(400, f"Risposta non valida: {e}")
+    # 1. Scoring AI sulle risposte APERTE (Carlo interno) → pronto/non-pronto + stato 1-4.
+    #    Non solleva: in caso di errore ritorna un fallback dichiarato, il flusso non si blocca.
+    scoring = await calculate_scoring_ai(responses)
 
     # 2. Transizione ciak_completed + tag stato_X
     transition_to(
@@ -333,133 +317,103 @@ async def complete_diagnostic(payload: CompleteRequest):
         session,
     )
 
-    # 3. Invoca Matteo
+    # 3. Invoca Matteo (analisi INTERNA). Il suo fallimento NON blocca l'acquisizione:
+    #    degrado grazioso → il cliente arriva comunque al passo del suo instradamento.
     user_payload = _build_user_payload_for_matteo(session, scoring)
+    report = None
     try:
         report = await generate_report(
             user_payload=user_payload,
             user_name=session.get("user_name"),
         )
     except MatteoServiceError as e:
-        logger.exception("[CIAK] Matteo failed for token=%s", payload.session_token)
-        raise HTTPException(503, f"Matteo service unavailable: {e}")
+        # Non rilanciare: logga, marca la sessione per la rigenerazione admin, prosegui.
+        logger.exception(
+            "[CIAK] Matteo failed for token=%s — degrado grazioso (report differito)",
+            payload.session_token,
+        )
+        session["report_error"] = {
+            "message": str(e),
+            "at": datetime.now(timezone.utc).isoformat(),
+        }
 
-    # 4. Tag aggiuntivi da Matteo
-    matteo_tags = [
-        report["tags"]["tag_segment"],
-        report["tags"]["tag_digital_level"],
-        report["tags"]["tag_obiettivo"],
-    ]
-    transition_to(session, STATE_REPORT_GENERATED, extra_tags=matteo_tags)
-    session["report"] = report
+    # 4. Tag aggiuntivi da Matteo + transizione report_generated — solo se il report c'è.
+    if report is not None:
+        matteo_tags = [
+            report["tags"]["tag_segment"],
+            report["tags"]["tag_digital_level"],
+            report["tags"]["tag_obiettivo"],
+        ]
+        transition_to(session, STATE_REPORT_GENERATED, extra_tags=matteo_tags)
+        session["report"] = report
 
-    # 5. Persist finale
+    # La notifica a Systeme parte UNA volta sola per sessione: la rigenerazione
+    # dei report (admin regenerate-reports) rilancia questa stessa funzione e
+    # senza questo segno il lead si ritroverebbe iscritto di nuovo al recupero.
+    systeme_already_notified = has_event(session, "systeme_completed_emitted")
+    if not systeme_already_notified:
+        add_event(session, "systeme_completed_emitted")
+
+    # 5. Persist finale (con o senza report)
     await db.diagnostic_sessions.replace_one(
         {"session_token": payload.session_token},
         session,
     )
 
     # Fire-and-forget Systeme.io tag emission per ciak_completed.
-    # Emette: ciak_completed + stato_<n> + segment_<x> + digital_level_<x> + obiettivo_<x>.
-    # Triggera automaticamente l'email automation configurata su Systeme per quei tag.
+    # Emette sempre: ciak_completed + stato_<n> (→ mail di recupero + segmentazione base).
+    # I tag Matteo (segment/digital/obiettivo) si aggiungono solo se il report è stato generato.
+    #
+    # ECCEZIONE — canale Mariangela (outbound umano, ?utm_source=mariangela sul link
+    # del questionario): la call la fissa lei a voce nel gruppo WhatsApp, non il
+    # self-service Cal.com. Il tag "ciak_completed" testuale è quello che la regola
+    # Systeme "tag_added ciak_completed → iscrivi a campagna Recupero Analisi Gratuita"
+    # ascolta — mandarlo anche per questi lead genera l'email automatica "prenota la
+    # tua call" a chi la sta già prenotando a voce con Mariangela. Qui si evita SOLO
+    # quel tag/quella iscrizione automatica: lo stato interno (STATE_CIAK_COMPLETED,
+    # sopra) resta identico per tutti, dashboard e booking non cambiano.
+    #
+    # Stessa logica per chi lo scoring manda in nurturing: a fine questionario vede
+    # il link alla masterclass, non il calendario, quindi l'email "prenota la tua
+    # call" non gli va mandata.
+    utm_source = (session.get("tracking") or {}).get("utm_source") or ""
+    is_mariangela = utm_source.strip().lower() == "mariangela"
+    if is_mariangela:
+        completed_event_name = "ciak_completed_mariangela"
+    elif scoring.instradamento == "nurture":
+        completed_event_name = "ciak_completed_nurture"
+    else:
+        completed_event_name = "ciak_completed"
+
     user_email = session.get("user_email")
-    if user_email:
-        asyncio.create_task(ciak_emit_event(
-            email=user_email,
-            event_name="ciak_completed",
-            extra_tags=[
-                f"stato_{scoring.stato_finale}",
+    if user_email and not systeme_already_notified:
+        completed_tags = [
+            f"stato_{scoring.stato_finale}",
+            f"instradamento_{scoring.instradamento}",
+        ]
+        if is_mariangela:
+            completed_tags.append("source_mariangela")
+        if report is not None:
+            completed_tags += [
                 report["tags"]["tag_segment"],
                 report["tags"]["tag_digital_level"],
                 report["tags"]["tag_obiettivo"],
-            ],
+            ]
+        fire_and_forget(ciak_emit_event(
+            email=user_email,
+            event_name=completed_event_name,
+            extra_tags=completed_tags,
             first_name=session.get("user_name"),
             metadata={
                 "score_numerico": scoring.score_numerico,
                 "stato_finale": scoring.stato_finale,
                 "session_token": payload.session_token,
+                "report_generated": report is not None,
             },
         ))
 
-    frontend_base = os.environ.get("FRONTEND_URL_PROD", "https://ciak.io")
     return CompleteResponse(
-        report_url=f"{frontend_base}/report/{payload.session_token}",
         stato=scoring.stato_finale,
         session_token=payload.session_token,
+        instradamento=scoring.instradamento,
     )
-
-
-# ═══════════════════════════════════════════════════════════════════
-#  ENDPOINT 4 — REPORT (lettura + emit report_viewed)
-# ═══════════════════════════════════════════════════════════════════
-
-@router.get("/report/{session_token}", response_model=ReportResponse)
-async def get_report(session_token: str):
-    """
-    Recupera il report per visualizzazione frontend.
-    Emette report_viewed (idempotente: solo prima vista).
-    """
-    if db is None:
-        raise HTTPException(503, "Database non configurato")
-
-    session = await db.diagnostic_sessions.find_one({"session_token": session_token})
-    if not session:
-        raise HTTPException(404, "session_token non trovato")
-
-    report = session.get("report")
-    if not report:
-        raise HTTPException(409, "Report non ancora generato")
-
-    if not has_event(session, "report_viewed"):
-        add_event(session, "report_viewed")
-        await db.diagnostic_sessions.update_one(
-            {"session_token": session_token},
-            {"$set": {"events": session["events"]}},
-        )
-
-    stato = session["scoring"]["stato_finale"]
-    return ReportResponse(
-        report_markdown=report["report_markdown"],
-        stato=stato,
-        cta_variant=_CTA_VARIANT_BY_STATE[stato],
-    )
-
-
-# ═══════════════════════════════════════════════════════════════════
-#  ENDPOINT 5 — CTA CLICKED
-# ═══════════════════════════════════════════════════════════════════
-
-@router.post("/cta-clicked", status_code=status.HTTP_204_NO_CONTENT)
-async def cta_clicked(payload: CtaClickedRequest):
-    """
-    Traccia il click su CTA 67€ dal report.
-    Transizione: → clicked_67 + tag ciak_clicked_67.
-    """
-    if db is None:
-        raise HTTPException(503, "Database non configurato")
-
-    session = await db.diagnostic_sessions.find_one(
-        {"session_token": payload.session_token}
-    )
-    if not session:
-        raise HTTPException(404, "session_token non trovato")
-
-    transition_to(session, STATE_CLICKED_67)
-
-    await db.diagnostic_sessions.replace_one(
-        {"session_token": payload.session_token},
-        session,
-    )
-
-    # Fire-and-forget Systeme.io tag emission per ciak_clicked_67.
-    # Segnala alta intent di acquisto: utile per retargeting + email "non ha completato l'acquisto".
-    user_email = session.get("user_email")
-    if user_email:
-        asyncio.create_task(ciak_emit_event(
-            email=user_email,
-            event_name="ciak_clicked_67",
-            first_name=session.get("user_name"),
-            metadata={"session_token": payload.session_token},
-        ))
-
-    return None

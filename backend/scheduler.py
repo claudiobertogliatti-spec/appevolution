@@ -33,6 +33,12 @@ BASE_URL = os.environ.get("INTERNAL_API_BASE") or (
 )
 
 
+def _chiave_di_sistema() -> dict:
+    """Header per le rotte che accettano admin OPPURE una chiamata di sistema (`require_admin_or_system`
+    in server.py): la stessa chiave `LUCA_REPORT_KEY` gia' usata dagli altri job di questo file."""
+    return {"X-Report-Key": os.environ.get("LUCA_REPORT_KEY", "")}
+
+
 def trigger_luca_briefing():
     """
     Ogni giorno alle 7:45 — briefing AD di Luca.
@@ -74,19 +80,29 @@ def trigger_luca_briefing():
 
 def trigger_social_publisher():
     """
-    Lun/mer/ven alle 9:00 — pubblica la coda social approvata su Instagram.
+    Lun/mer/ven — innesca la pubblicazione della coda social approvata.
 
-    Vive qui (APScheduler) e non su Celery Beat perche' Celery e' spento in prod
-    (`CELERY_ENABLED=false`). Sostituisce i task dell'app desktop che pubblicavano
-    solo a portatile aperto e che a giugno si sono fermati quando la coda non e'
-    stata piu' ricaricata. Chiama l'endpoint interno con la chiave di report.
+    ⛔ Il publisher deve girare sul servizio che ha i token Meta (IG_BUSINESS_ID /
+    META_PAGE_ACCESS_TOKEN) = il backend. Lo scheduler invece vive sul worker, che
+    quei token NON li ha (verificato 8/9/2026 nei log: ogni giro usciva 'coda non
+    toccata'). Percio' il trigger chiama l'endpoint sul servizio indicato da
+    `SOCIAL_PUBLISH_BASE_URL` (l'origin del backend), non piu' `localhost`.
+
+    Guardia anti-doppione: se `SOCIAL_PUBLISH_BASE_URL` non e' configurata su questo
+    servizio, il trigger e' INERTE. Cosi' pubblica un solo servizio (quello dove la
+    env e' impostata) anche se lo scheduler girasse su entrambi.
     """
     try:
+        base = os.environ.get("SOCIAL_PUBLISH_BASE_URL", "").strip()
+        if not base:
+            logger.info("[SCHEDULER] Social publisher: SOCIAL_PUBLISH_BASE_URL non configurata "
+                        "su questo servizio, salto (il publisher gira dove stanno i token Meta)")
+            return
         chiave = os.environ.get("LUCA_REPORT_KEY", "")
         if not chiave:
             logger.error("[SCHEDULER] Social publisher saltato: LUCA_REPORT_KEY non configurata")
             return
-        r = httpx.post(f"{BASE_URL}/ciak/social/publish-due",
+        r = httpx.post(f"{base.rstrip('/')}/api/ciak/social/publish-due",
                        headers={"X-Report-Key": chiave}, json={}, timeout=180)
         res = r.json()
         if not res.get("configurato"):
@@ -94,9 +110,60 @@ def trigger_social_publisher():
                            f"({res.get('in_coda_scaduti', 0)} in coda)")
         else:
             logger.info(f"[SCHEDULER] Social publisher — pubblicati {res.get('pubblicati', 0)}, "
-                        f"falliti {res.get('falliti', 0)}")
+                        f"parziali {res.get('parziali', 0)}, falliti {res.get('falliti', 0)}")
     except Exception as e:
         logger.error(f"[SCHEDULER] Errore trigger_social_publisher: {e}")
+
+
+def trigger_bonus_guida_reminder():
+    """Ogni ora — promemoria della finestra bonus 48h (guida in omaggio con Ciak
+    Start) per chi si avvicina alla scadenza (~24h) e non ha ancora comprato.
+    Idempotente lato servizio: un solo invio per cliente."""
+    try:
+        chiave = os.environ.get("LUCA_REPORT_KEY", "")
+        if not chiave:
+            logger.error("[SCHEDULER] Bonus reminder saltato: LUCA_REPORT_KEY non configurata")
+            return
+        r = httpx.post(
+            f"{BASE_URL}/ciak/client/bonus-reminder/run",
+            headers={"X-Report-Key": chiave},
+            timeout=90,
+        )
+        if r.status_code >= 400:
+            logger.error(f"[SCHEDULER] Bonus reminder: HTTP {r.status_code} {r.text[:200]}")
+            return
+        res = r.json()
+        logger.info(f"[SCHEDULER] Bonus reminder — inviati {res.get('inviati', 0)}, "
+                    f"errori {res.get('errori', 0)}")
+    except Exception as e:
+        logger.error(f"[SCHEDULER] Errore trigger_bonus_guida_reminder: {e}")
+
+
+def trigger_insider_invites():
+    """Ogni giorno — invita a Evolution Insider chi ha gia' interagito e non ha acquistato.
+    Il servizio e' spento finche' INSIDER_INVITES_ENABLED != "1" (spento, conta soltanto)
+    e invita al massimo 25 persone per giro. Idempotente: una sola volta per persona."""
+    try:
+        chiave = os.environ.get("LUCA_REPORT_KEY", "")
+        if not chiave:
+            logger.error("[SCHEDULER] Insider invites saltato: LUCA_REPORT_KEY non configurata")
+            return
+        r = httpx.post(
+            f"{BASE_URL}/ciak/client/insider-invites/run",
+            headers={"X-Report-Key": chiave},
+            timeout=120,
+        )
+        if r.status_code >= 400:
+            logger.error(f"[SCHEDULER] Insider invites: HTTP {r.status_code} {r.text[:200]}")
+            return
+        res = r.json()
+        if res.get("error"):
+            logger.error(f"[SCHEDULER] Insider invites: errore del servizio: {res['error']}")
+        logger.info(f"[SCHEDULER] Insider invites — candidati {res.get('candidati', 0)}, "
+                    f"inviati {res.get('inviati', 0)}, errori {res.get('errori', 0)}, "
+                    f"a secco {res.get('dry_run')}")
+    except Exception as e:
+        logger.error(f"[SCHEDULER] Errore trigger_insider_invites: {e}")
 
 
 def trigger_marco_run():
@@ -141,7 +208,12 @@ def trigger_stefania_daily():
         
         # NEW: Task review orchestration
         try:
-            task_response = httpx.post(f"{BASE_URL}/agent-tasks/stefania-review", timeout=60)
+            # la rotta richiede admin oppure la chiave di report (come gli altri job di sistema)
+            task_response = httpx.post(
+                f"{BASE_URL}/agent-tasks/stefania-review",
+                headers={"X-Report-Key": os.environ.get("LUCA_REPORT_KEY", "")},
+                timeout=60,
+            )
             task_result = task_response.json()
             logger.info(f"[SCHEDULER] STEFANIA task review — Reviewed: {task_result.get('reviewed', 0)} | Escalated: {task_result.get('escalated', 0)}")
         except Exception as task_err:
@@ -151,23 +223,50 @@ def trigger_stefania_daily():
         logger.error(f"[SCHEDULER] Errore trigger_stefania_daily: {e}")
 
 
-def trigger_discovery_cleanup():
-    """Ogni giorno alle 3:00 — pulizia duplicati Discovery Engine."""
+def trigger_lead_autosearch():
+    """Ogni giorno alle 6:00 — ricerca automatica ~20 lead nuovi (Google Places).
+
+    Alimenta la pipeline di acquisizione senza lavoro manuale (deciso con Claudio
+    19/9/2026). ⛔ INERTE finché `LEAD_AUTOSEARCH_ENABLED` non è "1": il codice può
+    stare su main senza far partire spesa API Places prima che Claudio lo attivi.
+    L'endpoint importa lead pronti da lavorare a mano in Prospect/Pipeline — nessun
+    invio automatico.
+    """
     try:
-        logger.info("[SCHEDULER] Discovery cleanup — avvio pulizia duplicati")
-        response = httpx.post(f"{BASE_URL}/discovery/worker/cleanup-duplicates", json={}, timeout=120)
-        result = response.json()
-        total_removed = result.get("total_removed", 0)
-        logger.info(f"[SCHEDULER] Discovery cleanup completato — {total_removed} duplicati rimossi")
+        if os.environ.get("LEAD_AUTOSEARCH_ENABLED", "").strip() != "1":
+            logger.info("[SCHEDULER] Lead autosearch: LEAD_AUTOSEARCH_ENABLED non attivo, salto")
+            return
+        chiave = os.environ.get("LUCA_REPORT_KEY", "")
+        if not chiave:
+            logger.error("[SCHEDULER] Lead autosearch saltato: LUCA_REPORT_KEY non configurata")
+            return
+        target = int(os.environ.get("LEAD_AUTOSEARCH_TARGET", "20") or "20")
+        r = httpx.post(
+            f"{BASE_URL}/discovery/worker/autosearch",
+            params={"target_new": target},
+            headers={"X-Report-Key": chiave},
+            timeout=280,
+        )
+        if r.status_code >= 400:
+            logger.error(f"[SCHEDULER] Lead autosearch: HTTP {r.status_code} {r.text[:200]}")
+            return
+        res = r.json()
+        if res.get("configured") is False:
+            logger.warning("[SCHEDULER] Lead autosearch: GOOGLE_PLACES_API_KEY non configurata")
+            return
+        logger.info(
+            f"[SCHEDULER] Lead autosearch — +{res.get('new_leads', 0)} nuovi "
+            f"({res.get('hot_leads', 0)} caldi, {res.get('combos_tried', 0)} combo)"
+        )
     except Exception as e:
-        logger.error(f"[SCHEDULER] Errore trigger_discovery_cleanup: {e}")
+        logger.error(f"[SCHEDULER] Errore trigger_lead_autosearch: {e}")
 
 
 def trigger_systeme_sync():
     """Ogni 6 ore — sync completo con Systeme.io per non perdere lead."""
     try:
         logger.info("[SCHEDULER] Systeme.io sync — avvio sincronizzazione")
-        response = httpx.post(f"{BASE_URL}/systeme/sync-all", json={}, timeout=180)
+        response = httpx.post(f"{BASE_URL}/systeme/sync-all", json={}, headers=_chiave_di_sistema(), timeout=180)
         result = response.json()
         
         new_contacts = result.get("new_contacts", 0)
@@ -194,7 +293,7 @@ def trigger_partnership_expiry_reminder():
     try:
         logger.info("[SCHEDULER] Partnership expiry check — controllo scadenze")
         
-        response = httpx.get(f"{BASE_URL}/partners", timeout=30)
+        response = httpx.get(f"{BASE_URL}/partners", headers=_chiave_di_sistema(), timeout=30)
         partners_data = response.json()
         partners = partners_data.get("partners", [])
         
@@ -283,7 +382,7 @@ def trigger_weekly_kpi_report():
         
         # Partner stats
         try:
-            response = httpx.get(f"{BASE_URL}/partners", timeout=30)
+            response = httpx.get(f"{BASE_URL}/partners", headers=_chiave_di_sistema(), timeout=30)
             partners = response.json().get("partners", [])
             
             now = datetime.now()
@@ -403,11 +502,18 @@ def start_scheduler():
         replace_existing=True
     )
 
-    # DISCOVERY CLEANUP — ogni giorno alle 3:00
+    # DISCOVERY CLEANUP — SPENTO dal 29/9/2026 (decisione Claudio). Raggruppava
+    # per username vuoto e cancellava i lead inseriti a mano senza username,
+    # tenendone uno solo. La deduplica si fa già all'inserimento
+    # (discovery_engine.check_duplicate). L'endpoint resta solo per un lancio
+    # manuale di Claudio (require_ciak_admin, vietato all'account commerciale).
+
+    # LEAD AUTOSEARCH — ogni giorno alle 6:00.
+    # Inerte finché LEAD_AUTOSEARCH_ENABLED != "1" (guardia costo API Places).
     scheduler.add_job(
-        trigger_discovery_cleanup,
-        CronTrigger(hour=3, minute=0),
-        id="discovery_cleanup",
+        trigger_lead_autosearch,
+        CronTrigger(hour=6, minute=0),
+        id="lead_autosearch",
         replace_existing=True
     )
     
@@ -444,13 +550,31 @@ def start_scheduler():
         replace_existing=True
     )
 
+    # BONUS GUIDA REMINDER — ogni ora al minuto 20: promemoria finestra 48h in
+    # chiusura (~24h). Orario perche' la finestra e' di 48h e scade a qualsiasi ora.
+    scheduler.add_job(
+        trigger_bonus_guida_reminder,
+        CronTrigger(minute=20),
+        id="bonus_guida_reminder",
+        replace_existing=True
+    )
+
+    # EVOLUTION INSIDER — ogni giorno alle 10:30: inviti alla community per chi non ha
+    # acquistato. Spento finche' INSIDER_INVITES_ENABLED != "1".
+    scheduler.add_job(
+        trigger_insider_invites,
+        CronTrigger(hour=10, minute=30),
+        id="insider_invites",
+        replace_existing=True
+    )
+
     scheduler.start()
     logger.info(
         "[SCHEDULER] Avviato:\n"
         "  • MARCO: lunedì ore 9\n"
         "  • ANDREA: giovedì ore 10\n"
         "  • STEFANIA: giornaliero ore 7\n"
-        "  • DISCOVERY CLEANUP: giornaliero ore 3\n"
+        "  • LEAD AUTOSEARCH: giornaliero ore 6 (se LEAD_AUTOSEARCH_ENABLED=1)\n"
         "  • SYSTEME.IO SYNC: ogni 6 ore\n"
         "  • PARTNERSHIP EXPIRY: giornaliero ore 8\n"
         "  • WEEKLY KPI: lunedì ore 8:30"

@@ -8,6 +8,8 @@
 import { useState, useEffect } from "react";
 import { FileText, Save, RotateCcw, Loader2, Euro, Percent, Clock, CreditCard } from "lucide-react";
 import { adminFetch } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { PRICING } from "../../pricing";
 
 export function ContractParamsModal({ partnerId, partnerName, onClose, onAuthExpired }) {
   const [params, setParams] = useState(null);
@@ -16,6 +18,7 @@ export function ContractParamsModal({ partnerId, partnerName, onClose, onAuthExp
   const [isCustomized, setIsCustomized] = useState(false);
   const [isSigned, setIsSigned] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [askReset, setAskReset] = useState(false);
 
   useEffect(() => {
     if (!partnerId) return;
@@ -56,16 +59,17 @@ export function ContractParamsModal({ partnerId, partnerName, onClose, onAuthExp
     }
   };
 
-  const handleReset = async () => {
-    if (!window.confirm("Vuoi ripristinare i parametri standard?")) return;
+  // Conferma in pagina (ConfirmDialog), non un window.confirm().
+  const doReset = async () => {
+    setAskReset(false);
     setSaving(true);
     try {
       const res = await adminFetch(`/api/admin/partners/${partnerId}/contract-params`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          corrispettivo: 2790.00,
-          corrispettivo_testo: "duemilasettecentonovanta/00",
+          corrispettivo: PRICING.partnership.cents / 100,
+          corrispettivo_testo: "duemilanovecentonovanta/00",
           royalty_perc: 10,
           durata_mesi: 12,
           num_rate: 3,
@@ -147,7 +151,7 @@ export function ContractParamsModal({ partnerId, partnerName, onClose, onAuthExp
                 value={params.corrispettivo_testo}
                 onChange={e => setParams({ ...params, corrispettivo_testo: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                placeholder="es. duemilasettecentonovanta/00"
+                placeholder="es. duemilanovecentonovanta/00"
               />
             </div>
           </div>
@@ -227,7 +231,7 @@ export function ContractParamsModal({ partnerId, partnerName, onClose, onAuthExp
         <div className="p-5 border-t bg-gray-50 rounded-b-2xl flex items-center justify-between">
           <button
             data-testid="contract-params-reset"
-            onClick={handleReset}
+            onClick={() => setAskReset(true)}
             disabled={saving || !isCustomized}
             className="flex items-center gap-1.5 px-3 py-2 text-xs text-gray-600 hover:text-gray-900 disabled:opacity-40"
           >
@@ -252,6 +256,18 @@ export function ContractParamsModal({ partnerId, partnerName, onClose, onAuthExp
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={askReset}
+        title="Ripristina i parametri standard"
+        body={`I valori personalizzati del contratto tornano allo standard (€${(PRICING.partnership.cents / 100).toLocaleString("it-IT")}, 10%, 12 mesi, 3 rate).`}
+        confirmLabel="Ripristina"
+        cancelLabel="Annulla"
+        destructive
+        busy={saving}
+        onConfirm={doReset}
+        onCancel={() => setAskReset(false)}
+      />
     </div>
   );
 }

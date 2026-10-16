@@ -14,10 +14,10 @@ import {
  * futuri bloccati col lucchetto). In fondo "Prossimo passo": l'unico passo che
  * conta ora, in evidenza, con foto agente e CTA.
  */
-const STEP_COPY = {
+export const STEP_COPY = {
   "01-contratto": { title: "Il tuo contratto", desc: "Hai firmato. Si parte da qui." },
   "02-discovery-video": { title: "Benvenuto/a", desc: "Come funziona il percorso e chi ti accompagna." },
-  "burocrazia": { title: "I tuoi dati", desc: "Dati personali, contratto firmato e distinta. Una volta sola." },
+  "burocrazia": { title: "I tuoi dati", desc: "I tuoi dati personali e fiscali. Una volta sola." },
   "03-brand-kit": { title: "Il tuo Brand", desc: "Logo, foto, colori e la tua voce." },
   "la-tua-storia": { title: "La tua storia", desc: "I momenti veri che rendono il tuo racconto credibile." },
   "obiettivo": { title: "Il tuo obiettivo", desc: "Il risultato concreto che guiderà il progetto." },
@@ -27,7 +27,7 @@ const STEP_COPY = {
   "07-script-videolezioni": { title: "Script videolezioni", desc: "Prepariamo una traccia per ogni lezione, come per la masterclass." },
   "08-registra-masterclass": { title: "Registra la masterclass", desc: "La tua lezione gratuita: il primo assaggio." },
   "09-registra-lezioni": { title: "Registra le lezioni", desc: "Il cuore del corso che venderai." },
-  "10-sistema-vendita": { title: "Sistema di vendita", desc: "Subaccount Systeme, dominio, legal pages, funnel e checkout." },
+  "10-sistema-vendita": { title: "Sistema di vendita", desc: "Il tuo funnel in anteprima, le pagine legali, il tuo indirizzo web e il via libera." },
   "11-calendario-30gg": { title: "Il piano 30 giorni", desc: "Calendario incluso; contenuti pronti come servizio extra." },
   "12-prezzo-webinar": { title: "Prezzo e diretta", desc: "Quanto vendi e come lo presenti." },
   "13-lancio": { title: "Il lancio", desc: "Online e pronto a vendere. Ce l'hai fatta." },

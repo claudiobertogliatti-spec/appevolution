@@ -1,12 +1,15 @@
 """Archivio autenticato dei materiali prodotti in ciascuno step partner."""
 
+from datetime import datetime
+
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from services.partner_step_materials import (
-    WORKBOOK_NOTICE, allowed_public_url, categories_for_step, content_type_for_material, current_files,
-    file_visible_to_partner, normalize_file_material, safe_step_data, trusted_storage_url,
+    MIGRATION_VISIBILITIES, START_NOTICE, WORKBOOK_NOTICE, allowed_funnel_preview_url, allowed_public_url, categories_for_step, content_type_for_material,
+    file_visible_to_partner, normalize_file_material, partner_materiali_listing, safe_step_data,
+    step_archive_files, step_assignment_fields, trusted_storage_url,
 )
 
 router = APIRouter(tags=["partner-step-materials"])
@@ -37,7 +40,8 @@ async def _file_or_404(file_id: str, credentials):
 @router.get("/api/partner-journey/operativo/step-materials/{partner_id}/{step_id}")
 async def get_step_materials(partner_id: str, step_id: str,
                              credentials: HTTPAuthorizationCredentials = Depends(security)):
-    await _authorize(partner_id, credentials)
+    token_data = await _authorize(partner_id, credentials)
+    is_admin = getattr(token_data, "role", None) in ("admin", "superadmin")
     step = await db.partner_journey_steps.find_one(
         {"partner_id": partner_id, "step_id": step_id}, {"_id": 0}
     )
@@ -49,7 +53,7 @@ async def get_step_materials(partner_id: str, step_id: str,
     if categories:
         query["$or"].append({"category": {"$in": categories}})
     docs = await db.files.find(query, {"_id": 0}).sort("uploaded_at", -1).to_list(length=100)
-    materials = [normalize_file_material(doc) for doc in current_files(docs)]
+    materials = [normalize_file_material(doc) for doc in step_archive_files(docs, include_hidden=is_admin)]
 
     data = safe_step_data(step_id, step.get("data") or {})
     if data:
@@ -60,7 +64,7 @@ async def get_step_materials(partner_id: str, step_id: str,
             "metadata": data,
         })
 
-    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0, "youtube_playlist_url": 1}) or {}
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0, "youtube_playlist_url": 1, "tier": 1}) or {}
     if step_id in ("08-registra-masterclass", "09-registra-lezioni"):
         playlist = allowed_public_url(partner.get("youtube_playlist_url"))
         if playlist:
@@ -76,17 +80,189 @@ async def get_step_materials(partner_id: str, step_id: str,
                 "version": 1, "created_at": None, "is_current": True, "metadata": {"pending": True},
             })
 
+    if step_id == "10-sistema-vendita":
+        funnel = await db.partner_funnel.find_one(
+            {"partner_id": str(partner_id)}, {"_id": 0, "preview_url": 1, "preview_version": 1}
+        ) or {}
+        preview = allowed_funnel_preview_url(funnel.get("preview_url"))
+        if preview:
+            materials.append({
+                "id": "funnel-preview", "type": "link", "title": "Anteprima del tuo funnel",
+                "link_label": "Apri l'anteprima",
+                "preview_url": None, "download_url": None, "public_url": preview,
+                "version": int(funnel.get("preview_version") or 1), "created_at": None,
+                "is_current": True, "metadata": {},
+            })
+
+    # Il Workbook finale con "tutti gli output fase per fase" e' della Partnership:
+    # a un cliente Start non e' promesso, quindi non gli si scrive.
+    notice = START_NOTICE if partner.get("tier") == "start" else WORKBOOK_NOTICE
     return {
         "step_id": step_id, "title": step.get("label") or step_id,
         "status": step.get("status"), "materials": materials,
-        "workbook_notice": WORKBOOK_NOTICE,
+        "workbook_notice": notice,
     }
+
+
+@router.get("/api/partner-journey/operativo/materiali/{partner_id}")
+async def get_all_partner_materiali(partner_id: str,
+                                    credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Tutti i materiali del partner (fonte reale: collezione `files`), per la
+    pagina Materiali. Un solo elenco di file veri — prodotti da Ciak, caricati
+    dal partner o dall'admin — con preview/download autenticati. In vista admin
+    (role admin) si vedono anche gli `admin_only`; al partner solo i suoi visibili.
+    """
+    token_data = await _authorize(partner_id, credentials)
+    is_admin = getattr(token_data, "role", None) in ("admin", "superadmin")
+
+    docs = await db.files.find(
+        {"partner_id": str(partner_id)}, {"_id": 0}
+    ).sort("uploaded_at", -1).to_list(length=500)
+
+    materials = []
+    for doc in partner_materiali_listing(docs, include_hidden=is_admin):
+        item = normalize_file_material(doc)
+        item["category"] = doc.get("category") or "documento"
+        item["source"] = doc.get("source")
+        item["visibility"] = doc.get("visibility")
+        materials.append(item)
+
+    # `tier` serve alla pagina per non mostrare a un cliente Start i due documenti
+    # della Partnership (Libretto di Progetto e Piano Operativo EVO a 14 fasi).
+    partner = await db.partners.find_one({"id": str(partner_id)}, {"_id": 0, "tier": 1}) or {}
+    return {"partner_id": partner_id, "materials": materials, "total": len(materials), "tier": partner.get("tier")}
+
+
+@router.patch("/api/partner-step-materials/{file_id}/step")
+async def assign_material_to_step(file_id: str, body: dict,
+                                  credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Solo admin: collega un file gia' registrato a uno step del Percorso, cosi'
+    compare nell'Archivio di quello step. Non tocca la `visibility`.
+
+    `original_name` (opzionale) distingue i record che condividono lo stesso
+    `file_id` (collisione di hash sul contenuto, storica): senza, si aggiorna il
+    primo trovato, che puo' essere quello sbagliato."""
+    key = {"file_id": file_id}
+    original_name = (body or {}).get("original_name")
+    if original_name:
+        key["original_name"] = str(original_name)
+    doc = await db.files.find_one({**key, "superseded": {"$ne": True}}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Materiale non trovato")
+    token_data = await _authorize(str(doc.get("partner_id")), credentials)
+    if getattr(token_data, "role", None) not in ("admin", "superadmin"):
+        raise HTTPException(403, "Accesso riservato agli admin")
+    try:
+        fields = step_assignment_fields(str((body or {}).get("step_id") or ""))
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    await db.files.update_one({**key, "partner_id": doc.get("partner_id")}, {"$set": fields})
+    return {"success": True, "file_id": file_id, **fields}
+
+
+@router.patch("/api/partner-step-materials/{file_id}/visibility")
+async def set_material_visibility(file_id: str, body: dict,
+                                  credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Solo admin: cambia la visibilita' di un file per il partner SENZA cancellarlo.
+
+    Serve, per esempio, quando un file di un altro cliente e' finito nell'area di
+    un partner: `foreign_owner` lo toglie dalla sua lista e dal suo download
+    (l'admin lo vede ancora). Reversibile: `partner_visible` lo rimostra.
+
+    `partner_id` e' obbligatorio: lo stesso `file_id` puo' esistere su piu' record
+    (collisione di hash sul contenuto, storica) e senza il partner si rischierebbe
+    di nascondere il file di un altro. Se restano piu' record con la stessa chiave
+    serve anche `original_name` (409 altrimenti, mai una scelta a caso).
+    """
+    body = body or {}
+    partner_id = str(body.get("partner_id") or "").strip()
+    if not partner_id:
+        raise HTTPException(400, "partner_id obbligatorio")
+    visibility = str(body.get("visibility") or "")
+    if visibility not in MIGRATION_VISIBILITIES:
+        raise HTTPException(400, f"visibility non valida: usa una tra {sorted(MIGRATION_VISIBILITIES)}")
+    token_data = await _authorize(partner_id, credentials)
+    if getattr(token_data, "role", None) not in ("admin", "superadmin"):
+        raise HTTPException(403, "Accesso riservato agli admin")
+
+    key = {"file_id": file_id, "partner_id": partner_id}
+    original_name = body.get("original_name")
+    if original_name:
+        key["original_name"] = str(original_name)
+    matches = await db.files.count_documents(key)
+    if matches == 0:
+        raise HTTPException(404, "Materiale non trovato")
+    if matches > 1:
+        raise HTTPException(409, "Piu' record con questo file_id: indica anche original_name")
+
+    fields = {"visibility": visibility, "visibility_updated_at": datetime.utcnow().isoformat()}
+    reason = str(body.get("reason") or "").strip()[:200]
+    if reason:
+        fields["visibility_reason"] = reason
+    await db.files.update_one(key, {"$set": fields})
+    return {"success": True, "file_id": file_id, "partner_id": partner_id, "visibility": visibility}
+
+
+@router.patch("/api/partner-step-materials/{file_id}/owner")
+async def reassign_material_owner(file_id: str, body: dict,
+                                  credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Solo admin: assegna un file a un altro partner (es. un file finito per errore
+    nell'area sbagliata). Non cancella e non copia: cambia `partner_id` del record e
+    ricorda il precedente in `previous_partner_id`, quindi e' reversibile
+    richiamando l'endpoint con i due id scambiati.
+
+    Tutele: `partner_id` (proprietario attuale) e `new_partner_id` obbligatori; il
+    destinatario deve esistere; se piu' record hanno lo stesso `file_id` serve
+    `original_name` (409 altrimenti); 409 anche se il destinatario ha gia' un
+    record con lo stesso file_id e nome (niente nuove collisioni). Non tocca
+    `visibility`, `step_id` ne' `category`.
+    """
+    body = body or {}
+    partner_id = str(body.get("partner_id") or "").strip()
+    new_partner_id = str(body.get("new_partner_id") or "").strip()
+    if not partner_id or not new_partner_id:
+        raise HTTPException(400, "partner_id e new_partner_id obbligatori")
+    if partner_id == new_partner_id:
+        raise HTTPException(400, "Il file e' gia' di questo partner")
+    token_data = await _authorize(partner_id, credentials)
+    if getattr(token_data, "role", None) not in ("admin", "superadmin"):
+        raise HTTPException(403, "Accesso riservato agli admin")
+    if not await db.partners.find_one({"id": new_partner_id}, {"_id": 0, "id": 1}):
+        raise HTTPException(404, "Partner di destinazione non trovato")
+
+    key = {"file_id": file_id, "partner_id": partner_id}
+    original_name = body.get("original_name")
+    if original_name:
+        key["original_name"] = str(original_name)
+    matches = await db.files.count_documents(key)
+    if matches == 0:
+        raise HTTPException(404, "Materiale non trovato")
+    if matches > 1:
+        raise HTTPException(409, "Piu' record con questo file_id: indica anche original_name")
+    clash = {"file_id": file_id, "partner_id": new_partner_id}
+    if original_name:
+        clash["original_name"] = str(original_name)
+    if await db.files.count_documents(clash):
+        raise HTTPException(409, "Il partner di destinazione ha gia' un file con lo stesso id")
+
+    fields = {
+        "partner_id": new_partner_id,
+        "previous_partner_id": partner_id,
+        "owner_changed_at": datetime.utcnow().isoformat(),
+    }
+    reason = str(body.get("reason") or "").strip()[:200]
+    if reason:
+        fields["owner_change_reason"] = reason
+    await db.files.update_one(key, {"$set": fields})
+    return {"success": True, "file_id": file_id, "partner_id": new_partner_id, "previous_partner_id": partner_id}
 
 
 async def _serve(file_id: str, disposition: str, credentials):
     doc = await _file_or_404(file_id, credentials)
-    if normalize_file_material(doc)["type"] == "video":
-        raise HTTPException(403, "I video sono disponibili in streaming e non per il download")
+    # I video-materiale del partner (es. reel) sono servibili come gli altri file
+    # SE stanno su storage fidato (Cloudinary). Le lezioni/masterclass NON sono
+    # qui: vivono in `partner_videocorso`/`masterclass_factory` con streaming GCS
+    # dedicato, quindi restano protette a prescindere da questo endpoint.
     source = trusted_storage_url(doc.get("internal_url"))
     if not source:
         raise HTTPException(404, "File non disponibile")

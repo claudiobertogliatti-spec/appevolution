@@ -12,7 +12,7 @@ PASSO 1 — Prendi i dati live dal backend. Esegui con lo strumento PowerShell q
 Lo script parla direttamente col backend con una chiave di sola lettura: non serve il browser, non serve che Claudio sia loggato. Stampa un unico JSON con tre chiavi: `report`, `acq` e `fonti`.
 
 - `report` contiene: acquisition (ingressi_mese, target_ottimale=4, gap, leads_today, diagnostics_today) e delivery (partner_attivi, fermi + fermi_nomi, serve_ok + serve_ok_nomi, offerta_mancante, videocorso_zero, funnel_mancante) e un campo `markdown` gia' pronto.
-- `acq` contiene i recuperi caldi: priorities.clicked_no_purchase (checkout non pagati), priorities.diagnostic_no_purchase (8 Domande senza Blueprint), priorities.purchased_no_call (Blueprint senza call), e bottlenecks.
+- `acq` contiene i recuperi caldi: priorities.diagnostic_no_purchase (questionario completato e analisi pronta, ma call non prenotata), e bottlenecks. Il Blueprint è gratuito: non esistono più checkout non pagati né "Blueprint senza call".
 - `fonti` contiene una busta per ogni fonte letta, tutte con la stessa forma: `fonte`, `ok`, `letto_a`, `dati`, `errore`. La quinta fonte e' il SITO PUBBLICO: `fonti.sito.dati.tutte_ok` dice se i tre URL pubblici hanno risposto tutti 200, e `fonti.sito.dati.url` ha status e millisecondi di ciascuno. Questi valori si LEGGONO da qui: non si danno per buoni.
 
 SE IL COMANDO NON STAMPA IL JSON (errore, oppure $LASTEXITCODE diverso da 0): scrivi a Claudio UNA SOLA RIGA che riporta testualmente il messaggio di errore, e termina. Non fare altro.

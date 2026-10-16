@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import StepBase from "./StepBase";
+import StepGiaCompletato, { isDoneWithoutContent } from "./StepGiaCompletato";
 import { API } from "../../../../utils/api-config";
 import { authHeaders } from "../../api";
 
@@ -7,6 +8,7 @@ export default function Step07ScriptVideolezioni({ step, partnerId, onComplete, 
   const [script, setScript] = useState(step?.data?.script_videolezioni || "");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
+  const [redo, setRedo] = useState(false);
 
   const generate = async () => {
     setGenerating(true);
@@ -36,6 +38,11 @@ export default function Step07ScriptVideolezioni({ step, partnerId, onComplete, 
   };
 
   const canComplete = script.trim().length > 80;
+
+  // Passo già "fatto" senza script generati: non invitare a rigenerare da zero.
+  if (isDoneWithoutContent(step, script) && !redo) {
+    return <StepGiaCompletato step={step} title="Gli script delle videolezioni" onRedo={() => setRedo(true)} />;
+  }
 
   return (
     <StepBase

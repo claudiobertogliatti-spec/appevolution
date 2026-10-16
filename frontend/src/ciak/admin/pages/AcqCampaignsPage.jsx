@@ -1,5 +1,8 @@
+import { useEffect, useState } from "react";
+import { apiGet } from "../api";
 import {
   AlertTriangle,
+  BarChart3,
   ArrowRight,
   BadgeCheck,
   Bot,
@@ -20,6 +23,7 @@ import {
   Target,
   Video,
 } from "lucide-react";
+import { KpiTile as MetricCard } from "../components/ui/KpiTile";
 
 const APPS = [
   {
@@ -96,19 +100,52 @@ function SectionTitle({ icon: Icon, eyebrow, title, children }) {
   );
 }
 
-function MetricCard({ label, value, hint }) {
-  return (
-    <div className="rounded-lg bg-slate-50 border border-slate-100 p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{label}</p>
-      <p className="text-2xl font-semibold text-slate-900 mt-1">{value}</p>
-      <p className="text-xs text-slate-500 mt-1">{hint}</p>
-    </div>
-  );
-}
-
 export function AcqCampaignsPage() {
+  const [ads, setAds] = useState(null);
+  useEffect(() => {
+    apiGet("/ads/overview", { days: 30 })
+      .then(setAds)
+      .catch(() => setAds({ configured: false }));
+  }, []);
+  const on = !!(ads && ads.configured && !ads.error);
+
   return (
     <div className="p-8 space-y-6">
+
+      <div className="bg-white border border-slate-200 rounded-2xl p-6">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-yellow-600" />
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Analisi KPI</p>
+            <h2 className="text-xl font-semibold text-slate-900">Performance ADS del mese</h2>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+          {[
+            { k: "Spesa (30gg)", v: on ? `€${ads.spend}` : "—", h: "Meta Ads" },
+            { k: "Costo per lead", v: on ? (ads.cost_per_lead != null ? `€${ads.cost_per_lead}` : "n/d") : "—", h: "spesa / lead" },
+            { k: "Lead da ADS", v: on ? ads.leads : "—", h: "ultimi 30gg" },
+            { k: "Clic", v: on ? ads.clicks.toLocaleString("it-IT") : "—", h: on ? `CTR ${ads.ctr}%` : "CTR —" },
+          ].map((m) => (
+            <div key={m.k} className="bg-slate-50 rounded-xl p-4">
+              <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{m.k}</div>
+              <div className="text-2xl font-semibold text-slate-900 mt-1">{m.v}</div>
+              <div className="text-[11px] text-slate-400 mt-1">{m.h}</div>
+            </div>
+          ))}
+        </div>
+        {on ? (
+          <div className="mt-4 text-xs text-slate-500">
+            Account {ads.account} · {ads.impressions.toLocaleString("it-IT")} impression · {ads.landing_page_views.toLocaleString("it-IT")} landing view · {(ads.campaigns || []).length} campagne
+          </div>
+        ) : (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            {ads?.error ? `Errore Meta Ads: ${ads.error}` : (ads?.note || "Collega Meta Ads per i dati live (spesa, costo per lead, lead).")}
+          </div>
+        )}
+      </div>
+
       <div className="bg-white border border-yellow-300 rounded-xl p-6 shadow-[0_0_24px_rgba(250,204,21,0.12)]">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
           <div>

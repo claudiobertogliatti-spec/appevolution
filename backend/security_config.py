@@ -2,8 +2,47 @@
 
 from __future__ import annotations
 
+import hmac
 import os
 from urllib.parse import urlparse
+
+
+def systeme_webhook_authorized(secret: str, provided: str) -> bool:
+    """
+    True se una richiesta al webhook Systeme e' ammessa.
+
+    Systeme.io non firma i webhook (nessun HMAC come Stripe): si protegge con un
+    token segreto condiviso. `secret` vuoto = non ancora configurato -> ammessa
+    (rollout, il caller logga un warning); presente -> confronto a tempo costante.
+    """
+    if not secret:
+        return True
+    return hmac.compare_digest(provided or "", secret)
+
+
+def internal_or_admin_authorized(internal_key: str, provided: str, is_admin: bool) -> bool:
+    """
+    True se una richiesta a un endpoint interno (es. attiva-partnership) e' ammessa.
+
+    `internal_key` vuoto = env non configurata -> ammessa (rollout, warn dal caller).
+    Altrimenti: chiave interna corretta (confronto costante) OPPURE admin.
+    """
+    if not internal_key:
+        return True
+    if provided and hmac.compare_digest(provided, internal_key):
+        return True
+    return bool(is_admin)
+
+
+# Ruoli ammessi alla Dashboard Operations (Antonella + admin).
+# Antonella fa login con role "operations" (cfr. tests/test_operations.py):
+# require_ciak_admin la bloccherebbe, quindi serve questo set esplicito.
+OPERATIONS_STAFF_ROLES = ("admin", "superadmin", "operations")
+
+
+def operations_staff_authorized(role: str) -> bool:
+    """True se il ruolo puo' accedere agli endpoint /api/operations/*."""
+    return (role or "") in OPERATIONS_STAFF_ROLES
 
 
 VALID_APP_ENVS = {"production", "development", "test"}

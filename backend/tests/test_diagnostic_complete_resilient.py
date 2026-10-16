@@ -1,0 +1,265 @@
+"""
+Unit test: /diagnostic/complete degrada con grazia quando Matteo fallisce.
+
+Il fallimento di Matteo (credito API, JSON malformato, timeout) NON deve bloccare
+l'acquisizione: /complete deve rispondere 200 (CompleteResponse) così il frontend
+mostra il popup Cal.com. L'analisi si rigenera dopo (sessioni con `report_error`).
+
+Mongo / Anthropic (scoring + Matteo) / Systeme sono mockati: gira in CI senza rete.
+"""
+import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+import routers.diagnostic as diag
+from routers.diagnostic import CompleteRequest, CompleteResponse, complete_diagnostic
+from services.ciak_matteo import MatteoServiceError
+
+pytestmark = pytest.mark.unit
+
+
+_RESPONSES = {
+    "q1_competenza": "Public speaking e comunicazione efficace per professionisti.",
+    "q2_esperienza": "La pratico da dieci anni, prima in azienda poi da libero.",
+    "q3_clienti": "Ho seguito manager bloccati, uno ha parlato a una convention.",
+    "q4_idea": "Un corso online di public speaking con esercizi e feedback.",
+    "q5_target": "Manager 35-50 che devono parlare in pubblico e hanno paura.",
+    "q6_problema": "La paura di parlare in pubblico e di bloccarsi davanti agli altri.",
+    "q7_digitale": "Uso Instagram e LinkedIn, non ho mai venduto online.",
+    "q8_obiettivo": "Lavorare da casa e avere piu tempo per la famiglia.",
+}
+
+
+class _FakeSessions:
+    """Collezione Mongo fake: find_one/replace_one async, registra l'ultimo doc salvato."""
+
+    def __init__(self, doc):
+        self._doc = doc
+        self.saved = None
+
+    async def find_one(self, _query):
+        return self._doc
+
+    async def replace_one(self, _query, doc):
+        self.saved = doc
+        return MagicMock(modified_count=1)
+
+
+class _FakeDB:
+    def __init__(self, doc):
+        self.diagnostic_sessions = _FakeSessions(doc)
+
+
+def _fake_scoring(instradamento="start"):
+    s = MagicMock()
+    s.stato_finale = 2
+    s.score_numerico = 40
+    s.instradamento = instradamento
+    s.override_applicati = []
+    s.to_dict.return_value = {
+        "stato_finale": 2,
+        "score_0_100": 40,
+        "instradamento": instradamento,
+    }
+    return s
+
+
+def _session_doc():
+    return {
+        "session_token": "tok-test",
+        "user_email": "test@example.com",
+        "user_name": "Test",
+        "responses": dict(_RESPONSES),
+        "report": None,
+        "current_state": "ciak_started",
+        "state_history": [],
+        "crm_tags": [],
+        "events": [],
+    }
+
+
+@pytest.mark.asyncio
+async def test_complete_degrada_se_matteo_fallisce(monkeypatch):
+    """Matteo solleva → /complete NON deve sollevare 503, ma ritornare 200 (popup)."""
+    fake_db = _FakeDB(_session_doc())
+    monkeypatch.setattr(diag, "db", fake_db)
+
+    emitted = {}
+
+    async def _fake_emit(**kwargs):
+        emitted.update(kwargs)
+
+    with patch.object(diag, "calculate_scoring_ai", AsyncMock(return_value=_fake_scoring())), \
+            patch.object(diag, "generate_report",
+                         AsyncMock(side_effect=MatteoServiceError("credit balance too low"))), \
+            patch.object(diag, "ciak_emit_event", _fake_emit):
+        res = await complete_diagnostic(CompleteRequest(session_token="tok-test"))
+        # lascia girare il fire-and-forget di ciak_emit_event (asyncio.create_task)
+        await asyncio.sleep(0)
+
+    # 200: risposta valida → il frontend passa a phase "done" e mostra il popup
+    assert isinstance(res, CompleteResponse)
+    assert res.stato == 2
+    assert res.session_token == "tok-test"
+    assert res.instradamento == "start"
+    # la sessione salvata è marcata per la rigenerazione, senza report
+    saved = fake_db.diagnostic_sessions.saved
+    assert saved is not None
+    assert "report_error" in saved
+    assert saved.get("report") is None
+    # ciak_completed emesso comunque (→ mail di recupero), senza i tag Matteo
+    assert emitted.get("event_name") == "ciak_completed"
+    assert emitted["metadata"]["report_generated"] is False
+
+
+@pytest.mark.asyncio
+async def test_complete_ok_quando_matteo_funziona(monkeypatch):
+    """Percorso felice: report generato → 200 + report salvato, nessun report_error."""
+    fake_db = _FakeDB(_session_doc())
+    monkeypatch.setattr(diag, "db", fake_db)
+
+    report = {
+        "report_markdown": "## Analisi\nTesto.",
+        "tags": {
+            "tag_segment": "segment_formatore",
+            "tag_digital_level": "digital_level_base",
+            "tag_obiettivo": "obiettivo_liberta",
+        },
+    }
+
+    async def _fake_emit(**kwargs):
+        pass
+
+    with patch.object(diag, "calculate_scoring_ai", AsyncMock(return_value=_fake_scoring())), \
+            patch.object(diag, "generate_report", AsyncMock(return_value=report)), \
+            patch.object(diag, "ciak_emit_event", _fake_emit):
+        res = await complete_diagnostic(CompleteRequest(session_token="tok-test"))
+        await asyncio.sleep(0)
+
+    assert isinstance(res, CompleteResponse)
+    saved = fake_db.diagnostic_sessions.saved
+    assert saved.get("report") == report
+    assert "report_error" not in saved
+
+
+@pytest.mark.asyncio
+async def test_complete_canale_mariangela_non_emette_tag_recupero(monkeypatch):
+    """utm_source=mariangela: niente tag "ciak_completed" (quello che Systeme
+    ascolta per iscrivere alla campagna di recupero automatico) — la call la
+    fissa Mariangela a voce, non serve/non deve arrivare l'email self-service.
+    Lo stato interno (STATE_CIAK_COMPLETED) resta identico: solo l'evento
+    Systeme cambia nome ed espone un tag extra per la segmentazione.
+    """
+    doc = _session_doc()
+    doc["tracking"] = {"utm_source": "mariangela"}
+    fake_db = _FakeDB(doc)
+    monkeypatch.setattr(diag, "db", fake_db)
+
+    emitted = {}
+
+    async def _fake_emit(**kwargs):
+        emitted.update(kwargs)
+
+    with patch.object(diag, "calculate_scoring_ai", AsyncMock(return_value=_fake_scoring())), \
+            patch.object(diag, "generate_report", AsyncMock(return_value=None)), \
+            patch.object(diag, "ciak_emit_event", _fake_emit):
+        res = await complete_diagnostic(CompleteRequest(session_token="tok-test"))
+        await asyncio.sleep(0)
+
+    assert isinstance(res, CompleteResponse)
+    # lo stato interno non cambia: stessa transizione di sempre
+    saved = fake_db.diagnostic_sessions.saved
+    assert saved["current_state"] == "ciak_completed"
+    # ma l'evento Systeme non è il tag che triggera il recupero automatico
+    assert emitted.get("event_name") == "ciak_completed_mariangela"
+    assert "source_mariangela" in emitted.get("extra_tags", [])
+
+
+@pytest.mark.asyncio
+async def test_complete_senza_tracking_mariangela_emette_tag_normale(monkeypatch):
+    """Caso comune (self-service, nessun tracking Mariangela): comportamento invariato."""
+    doc = _session_doc()
+    doc["tracking"] = {"utm_source": None}
+    fake_db = _FakeDB(doc)
+    monkeypatch.setattr(diag, "db", fake_db)
+
+    emitted = {}
+
+    async def _fake_emit(**kwargs):
+        emitted.update(kwargs)
+
+    with patch.object(diag, "calculate_scoring_ai", AsyncMock(return_value=_fake_scoring())), \
+            patch.object(diag, "generate_report", AsyncMock(return_value=None)), \
+            patch.object(diag, "ciak_emit_event", _fake_emit):
+        await complete_diagnostic(CompleteRequest(session_token="tok-test"))
+        await asyncio.sleep(0)
+
+    assert emitted.get("event_name") == "ciak_completed"
+    assert "source_mariangela" not in emitted.get("extra_tags", [])
+
+
+@pytest.mark.parametrize("instradamento", ["partnership", "start", "nurture"])
+@pytest.mark.asyncio
+async def test_complete_espone_instradamento_calcolato(monkeypatch, instradamento):
+    """Il frontend riceve il verdetto già calcolato senza doverlo dedurre dallo stato."""
+    fake_db = _FakeDB(_session_doc())
+    monkeypatch.setattr(diag, "db", fake_db)
+
+    async def _fake_emit(**kwargs):
+        pass
+
+    with patch.object(
+        diag,
+        "calculate_scoring_ai",
+        AsyncMock(return_value=_fake_scoring(instradamento)),
+    ), patch.object(diag, "generate_report", AsyncMock(return_value=None)), patch.object(
+        diag, "ciak_emit_event", _fake_emit
+    ):
+        res = await complete_diagnostic(CompleteRequest(session_token="tok-test"))
+        await asyncio.sleep(0)
+
+    assert isinstance(res, CompleteResponse)
+    assert res.instradamento == instradamento
+    assert fake_db.diagnostic_sessions.saved["scoring"]["instradamento"] == instradamento
+
+
+async def _run_complete(doc, instradamento="start"):
+    """Esegue /complete con scoring/Matteo/Systeme finti; ritorna (db, eventi emessi)."""
+    fake_db = _FakeDB(doc)
+    diag.db = fake_db
+    emitted = []
+
+    async def _fake_emit(**kwargs):
+        emitted.append(kwargs)
+
+    with patch.object(diag, "calculate_scoring_ai",
+                      AsyncMock(return_value=_fake_scoring(instradamento))), \
+            patch.object(diag, "generate_report", AsyncMock(return_value=None)), \
+            patch.object(diag, "ciak_emit_event", _fake_emit):
+        await complete_diagnostic(CompleteRequest(session_token="tok-test"))
+        await asyncio.sleep(0)
+    return fake_db, emitted
+
+
+@pytest.mark.asyncio
+async def test_complete_nurture_non_iscrive_al_recupero_call(monkeypatch):
+    """Chi va in nurturing vede la masterclass, non il calendario: niente
+    evento ciak_completed (quello che iscrive all'email "prenota la call")."""
+    monkeypatch.setattr(diag, "db", None)
+    _db, emitted = await _run_complete(_session_doc(), instradamento="nurture")
+
+    assert emitted[-1]["event_name"] == "ciak_completed_nurture"
+    assert "instradamento_nurture" in emitted[-1]["extra_tags"]
+
+
+@pytest.mark.asyncio
+async def test_complete_rilanciato_non_rinotifica_systeme(monkeypatch):
+    """La rigenerazione dei report rilancia /complete sulla stessa sessione:
+    Systeme deve ricevere l'evento una volta sola."""
+    monkeypatch.setattr(diag, "db", None)
+    fake_db, first = await _run_complete(_session_doc())
+    assert len(first) == 1
+
+    _db, second = await _run_complete(fake_db.diagnostic_sessions.saved)
+    assert second == []

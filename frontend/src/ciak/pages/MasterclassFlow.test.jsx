@@ -13,11 +13,8 @@ jest.mock("../components/CiakFooter", () => ({
 }));
 
 jest.mock("./Landing", () => ({ CiakLanding: () => <div>Vetrina</div> }));
-jest.mock("./Checkpoint", () => ({ CiakCheckpoint: () => <div /> }));
 jest.mock("./CiakBlueprint", () => ({ CiakBlueprint: () => <div /> }));
-jest.mock("./Grazie", () => ({ CiakGrazie: () => <div /> }));
 jest.mock("./Diagnostica", () => ({ CiakDiagnostica: () => <div /> }));
-jest.mock("./Report", () => ({ CiakReport: () => <div /> }));
 jest.mock("./Analisi", () => ({ CiakAnalisi: () => <div /> }));
 jest.mock("./Proposta", () => ({ CiakProposta: () => <div /> }));
 jest.mock("./PartnerSetupPassword", () => ({ PartnerSetupPassword: () => <div /> }));
@@ -36,10 +33,13 @@ describe("funnel masterclass", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getAllByPlaceholderText("Il tuo nome")).toHaveLength(2);
-    expect(screen.getAllByPlaceholderText("La tua email")).toHaveLength(2);
+    // Due moduli (hero e fondo pagina), campi con etichetta vera dal restyle del 22/7.
+    expect(screen.getAllByLabelText("Il tuo nome")).toHaveLength(2);
+    expect(screen.getAllByLabelText("La tua migliore email")).toHaveLength(2);
+    expect(screen.getAllByRole("textbox")).toHaveLength(4); // solo nome + email, x2
+    expect(screen.queryByLabelText(/telefono/i)).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText(/telefono/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/Metodo EVO/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Metodo EVO/i).length).toBeGreaterThan(0);
   });
 
   test("il viewer mostra il video senza un form di acquisizione", () => {
@@ -51,7 +51,7 @@ describe("funnel masterclass", () => {
 
     expect(screen.getByTitle("Masterclass Ciak")).toHaveAttribute(
       "src",
-      expect.stringContaining("youtube.com/embed/E2XDEdJgzcQ")
+      expect.stringContaining("youtube.com/embed/55M10OBHX4E")
     );
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText(/email/i)).not.toBeInTheDocument();
@@ -71,7 +71,7 @@ describe("funnel masterclass", () => {
 
     expect(screen.getByTitle("Masterclass Ciak")).toHaveAttribute(
       "src",
-      expect.stringContaining("youtube.com/embed/E2XDEdJgzcQ")
+      expect.stringContaining("youtube.com/embed/55M10OBHX4E")
     );
     expect(screen.queryByRole("heading", { name: /Da competenza o corso fermo/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();

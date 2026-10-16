@@ -263,6 +263,7 @@ _PARTNER_STATUS_MAP = {
     None:                  ("nessuno", ""),
     "":                    ("nessuno", ""),
     "queued":              ("ricevuto", "Video ricevuto"),
+    "caricato":            ("ricevuto", "Video ricevuto"),   # grezzo caricato, montaggio non ancora lanciato
     "downloading":         ("lavorazione", "Il team sta lavorando al tuo video"),
     "cleaning":            ("lavorazione", "Il team sta lavorando al tuo video"),
     "transcribing":        ("lavorazione", "Il team sta lavorando al tuo video"),

@@ -1,4 +1,4 @@
-"""Ponte di identita' Ciak Start: un cliente da 499 EUR diventa un soggetto che
+"""Ponte di identita' Ciak Start: un cliente da 390 EUR diventa un soggetto che
 i motori esistenti (brand kit, posizionamento) accettano, senza creare un
 secondo mondo da riconciliare.
 
@@ -100,7 +100,7 @@ START_CLIENT = {
     "name": "Marta Bianchi",
     "access_level": "cliente_start",
     "start_purchased_at": "2026-08-12T10:00:00+00:00",
-    "start_credit_amount": 49900,
+    "start_credit_amount": 39000,
     "session_token": "sess-1",
 }
 
@@ -247,7 +247,7 @@ async def test_non_scrive_nessuno_dei_due_campi_hash_password():
 
 async def test_non_promuove_il_ruolo_users_a_partner():
     """`role` resta cliente: e' `partners.tier` l'asse di accesso, non il ruolo.
-    Promuoverlo aprirebbe tutta l'area partner a un cliente da 499 EUR."""
+    Promuoverlo aprirebbe tutta l'area partner a un cliente da 390 EUR."""
     db = FakeDb(
         clients=[START_CLIENT],
         users=[{"id": "user-esistente", "email": "marta@example.com", "role": "cliente"}],

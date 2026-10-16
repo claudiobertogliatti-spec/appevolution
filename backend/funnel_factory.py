@@ -14,6 +14,7 @@ Pipeline completa (vedi docs/superpowers/specs/2026-07-16-funnel-factory-engine-
 """
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from routers.funnel_builder import (
@@ -22,7 +23,7 @@ from routers.funnel_builder import (
     LandingPageParams,
     DocumentiLegaliParams,
 )
-from funnel_templates_pro import render_optin
+from funnel_templates_pro import render_optin, render_masterclass, render_grazie
 
 # Link legali owned: pagine servite dallo stesso deploy statico.
 OWNED_LEGAL_LINKS = {"LINK_PRIVACY": "/privacy.html", "LINK_TERMINI": "/termini.html"}
@@ -32,7 +33,10 @@ def build_funnel_files(
     optin: dict[str, Any] | None = None,
     sales: dict[str, Any] | None = None,
     legal: dict[str, Any] | None = None,
+    masterclass: dict[str, Any] | None = None,
+    grazie: dict[str, Any] | None = None,
     colore_brand: str | None = None,
+    partner_id: str | None = None,
 ) -> dict[str, str]:
     """
     Assembla i file statici del funnel owned. PURA funzione (nessun accesso rete/DB).
@@ -42,9 +46,20 @@ def build_funnel_files(
     legal        = dati legali (schema DocumentiLegaliParams).
     colore_brand = colore accento dal BrandKit del partner (hex).
     """
-    files: dict[str, str] = {
-        "index.html": render_optin(optin, colore_brand=colore_brand),
-    }
+    optin = dict(optin or {})
+    files: dict[str, str] = {}
+    if partner_id:
+        # Iscrizioni: il modulo invia a /api/optin, che Vercel riscrive verso l'endpoint pubblico di Ciak
+        # (stesso schema del sito di Daniele). L'id è ripulito: solo lettere e numeri.
+        pid = "".join(c for c in str(partner_id) if c.isalnum())
+        optin["OPTIN_ENDPOINT"] = "/api/optin"
+        files["vercel.json"] = json.dumps(
+            {"rewrites": [{"source": "/api/optin", "destination": f"https://www.ciak.io/api/partner-optin/{pid}"}]},
+            indent=2)
+    files["index.html"] = render_optin(optin, colore_brand=colore_brand)
+
+    files["guarda.html"] = render_masterclass(masterclass, colore_brand=colore_brand)
+    files["grazie.html"] = render_grazie(grazie, colore_brand=colore_brand)
 
     legal_params = DocumentiLegaliParams().model_dump()
     legal_params.update({k: v for k, v in (legal or {}).items() if v is not None})
@@ -102,4 +117,12 @@ async def build_funnel_for_partner(db, partner_id: str) -> dict[str, str]:
         "email_legale": partner.get("email", "") or brand.get("email_partner", ""),
         "nome_sito": nome,
     }
-    return build_funnel_files(optin=optin, sales=sales, legal=legal, colore_brand=colore_brand)
+    # ── Masterclass: il video è quello REALE registrato per il partner (mai inventato) ──
+    from services.youtube_titles import youtube_id_from_url
+    mc_doc = (await db.masterclass_factory.find_one({"partner_id": partner_id}, {"_id": 0})
+              or await db.partner_masterclass.find_one({"partner_id": partner_id}, {"_id": 0}) or {})
+    vid = mc_doc.get("video_youtube_id") or youtube_id_from_url(mc_doc.get("video_youtube_url")) or ""
+    masterclass = {"PARTNER_NOME": nome, "VIDEO_ID": vid}
+    grazie = {"PARTNER_NOME": nome, "CONTATTO_EMAIL": partner.get("email", "")}
+    return build_funnel_files(optin=optin, sales=sales, legal=legal, masterclass=masterclass, grazie=grazie,
+                              colore_brand=colore_brand, partner_id=partner_id)

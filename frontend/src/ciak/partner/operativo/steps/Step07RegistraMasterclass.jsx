@@ -3,7 +3,7 @@ import StepBase from "./StepBase";
 import { uploadVideoResumable } from "../../../lib/gcsResumableUpload";
 import { authHeaders } from "../../api";
 
-const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
+const API = process.env.REACT_APP_BACKEND_URL || "";
 
 /**
  * Step 7 — Carica il video grezzo della masterclass.

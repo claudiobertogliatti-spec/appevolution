@@ -142,7 +142,7 @@ def test_senza_crediti_non_inventa_numeri():
 CALAFIORE = {
     "id": "calafiore",
     "nome": "Luigi Calafiore",
-    "importo_totale": 2790.0,
+    "importo_totale": 2990.0,
     "stato": crediti.CREDITO_APERTO,
     "rate": [
         {"numero": 1, "importo": 930.0, "scadenza": "2026-05-13", "stato": "incassata"},
@@ -272,3 +272,62 @@ def test_il_tipo_di_default_resta_credito():
 
     assert r["residuo_totale"] == 1560.0
     assert r["ricorrente_nel_mese"] == 0
+
+
+def test_una_rata_saltata_non_gonfia_previsto_ne_residuo():
+    """
+    #5 (15/9): `saltata` e' un esito terminale (non arriva). Non deve restare nel
+    "previsto nel mese" (soldi che si sa non entrano) ne' nel "residuo da
+    recuperare" (non si recupera). Prima ci finiva in entrambi.
+    """
+    credito = {
+        "id": "c", "nome": "Tizio", "importo_totale": 600.0, "causale": "rientro",
+        "stato": "in_piano", "tipo": "credito",
+        "rate": [
+            {"numero": 1, "importo": 200.0, "scadenza": "2026-09-05", "stato": "saltata"},
+            {"numero": 2, "importo": 200.0, "scadenza": "2026-09-20", "stato": "attesa"},
+            {"numero": 3, "importo": 200.0, "scadenza": "2026-09-28", "stato": "incassata"},
+        ],
+    }
+
+    r = crediti.riepilogo([credito], 2026, 9)
+
+    assert r["previsto_nel_mese"] == 200.0   # solo la rata attesa; NON la saltata
+    assert r["residuo_totale"] == 200.0      # solo la rata ancora aperta
+    assert r["gia_incassato_nel_mese"] == 200.0
+
+
+def test_un_credito_saldato_ha_le_rate_tutte_incassate():
+    """
+    #6 (15/9): saldato = tutto pagato. Le rate (fonte di verita') vanno allineate,
+    altrimenti il residuo le conta come da recuperare e l'obiettivo non le conta
+    come incassato -- lo stesso denaro sbagliato in due direzioni.
+    """
+    credito = {
+        "id": "dep", "nome": "Depalma", "importo_totale": 1200.0, "causale": "rientro",
+        "stato": "saldato", "tipo": "credito",
+        "rate": [
+            {"numero": 1, "importo": 600.0, "scadenza": "2026-09-05", "stato": "incassata"},
+            {"numero": 2, "importo": 600.0, "scadenza": "2026-09-20", "stato": "attesa"},
+        ],
+    }
+
+    crediti.concilia_rate_con_saldato(credito, "2026-09-15T00:00:00+00:00")
+
+    assert all(r["stato"] == "incassata" for r in credito["rate"])
+    assert credito["rate"][1]["incassata_at"] == "2026-09-15T00:00:00+00:00"
+    # E ora i lettori concordano: nulla da recuperare.
+    assert crediti.riepilogo([credito], 2026, 9)["residuo_totale"] == 0.0
+
+
+def test_un_credito_non_saldato_non_viene_toccato():
+    """Solo `saldato` allinea le rate: un credito aperto resta com'e'."""
+    credito = {
+        "id": "x", "nome": "Aperto", "importo_totale": 400.0, "causale": "r",
+        "stato": "in_piano", "tipo": "credito",
+        "rate": [{"numero": 1, "importo": 400.0, "scadenza": "2026-09-20", "stato": "attesa"}],
+    }
+
+    crediti.concilia_rate_con_saldato(credito)
+
+    assert credito["rate"][0]["stato"] == "attesa"

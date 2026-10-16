@@ -9,6 +9,12 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { SITE, CATEGORIES, ARTICLES } from './content.mjs';
 
+// Tracciamento blog -> funnel Ciak. Source/medium/campaign fissi; utm_content = pagina + punto del link
+// (menu, footer, box, inline). Il funnel li legge (Diagnostica.jsx) e il backend li salva col lead.
+const UTM = 'utm_source=blog&amp;utm_medium=organic&amp;utm_campaign=videocorsi';
+const funnelUrl = (page, slot) => `${SITE.cta.href}?${UTM}&amp;utm_content=${encodeURIComponent(page)}_${slot}`;
+const withUtm = (html, page) => html.replace(/href="https:\/\/www\.ciak\.io\/blueprint"/g, `href="${funnelUrl(page,'inline')}"`);
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(__dirname, '..', 'public', 'blog');
 mkdirSync(OUT, { recursive: true });
@@ -55,7 +61,10 @@ footer{background:var(--navy);color:#CBD5E1;padding:56px 0 30px;margin-top:64px}
 .foot-bottom{border-top:1px solid rgba(255,255,255,.1);margin-top:44px;padding-top:22px;display:flex;justify-content:space-between;font-size:12.5px;color:#64748B;flex-wrap:wrap;gap:10px}
 /* index */
 .hero{background:var(--navy);color:#fff;padding:60px 0 130px;position:relative;overflow:hidden}
-.hero::before{content:"";position:absolute;top:-120px;right:-80px;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle at center,rgba(250,204,21,.18),transparent 62%);pointer-events:none}
+.hero::before,.hero::after{content:"";position:absolute;top:50%;right:-3%;width:min(600px,76vw);aspect-ratio:800/879;transform:translateY(-50%);background:center/contain no-repeat;pointer-events:none}
+.hero::before{background-image:url('/brand/evolution-globe-ghost.webp');opacity:.3}
+.hero::after{background-image:url('/brand/evolution-globe-yellow.webp');opacity:.42}
+.hero .wrap{position:relative;z-index:1}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--yellow);margin-bottom:18px}
 .eyebrow::before{content:"";width:26px;height:2px;background:var(--yellow)}
 .hero h1{font-size:clamp(30px,4.6vw,50px);line-height:1.08;font-weight:800;letter-spacing:-.025em;max-width:16ch}
@@ -86,8 +95,11 @@ aside{position:sticky;top:100px;align-self:start;display:flex;flex-direction:col
 .subForm{margin:0}.subMsg{font-size:12.5px;margin-top:8px;font-weight:500}
 /* article */
 .a-hero{background:var(--navy);color:#fff;position:relative;overflow:hidden}
-.a-hero::before{content:"";position:absolute;top:-140px;right:-90px;width:460px;height:460px;border-radius:50%;background:radial-gradient(circle at center,rgba(250,204,21,.18),transparent 62%);pointer-events:none}
-.a-hero .inner{max-width:var(--read);margin:0 auto;padding:34px 24px 46px}
+.a-hero::before,.a-hero::after{content:"";position:absolute;top:50%;right:-4%;width:min(500px,70vw);aspect-ratio:800/879;transform:translateY(-50%);background:center/contain no-repeat;pointer-events:none}
+.a-hero::before{background-image:url('/brand/evolution-globe-ghost.webp');opacity:.26}
+.a-hero::after{background-image:url('/brand/evolution-globe-yellow.webp');opacity:.3}
+.a-hero .inner{position:relative;z-index:1;max-width:var(--read);margin:0 auto;padding:34px 24px 46px}
+@media(max-width:700px){.hero::before,.hero::after{right:-32%}.hero::before{opacity:.2}.hero::after{opacity:.26}.a-hero::before,.a-hero::after{right:-36%}.a-hero::before{opacity:.18}.a-hero::after{opacity:.2}}
 .crumbs{font-size:13px;color:#94A3B8;margin-bottom:22px}.crumbs a:hover{color:var(--yellow)}
 .a-cat{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--navy);background:var(--yellow);padding:6px 13px;border-radius:999px;margin-bottom:18px}
 .a-hero h1{font-size:clamp(28px,4.2vw,42px);line-height:1.14;font-weight:800;letter-spacing:-.02em}
@@ -118,7 +130,7 @@ blockquote{margin:30px 0;padding:6px 0 6px 24px;border-left:4px solid var(--yell
 
 const HEAD_FONTS = `<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">`;
 
-const navHeader = (activeBlog=true) => `
+const navHeader = (activeBlog=true, page='blog') => `
 <header class="nav"><div class="wrap nav-in">
   <a href="${SITE.origin}" class="logo"><img src="/brand/evolution-pro-logo-transparent.webp" alt="Evolution PRO"></a>
   <nav class="menu">
@@ -128,16 +140,16 @@ const navHeader = (activeBlog=true) => `
     <a href="${SITE.origin}/#faq">FAQ</a>
     <a href="/blog/"${activeBlog?' class="active"':''}>Blog</a>
   </nav>
-  <a href="${SITE.cta.href}" class="btn-cta">${SITE.cta.label}</a>
+  <a href="${funnelUrl(page,'menu')}" class="btn-cta">${SITE.cta.label}</a>
   <button class="burger" aria-label="Menu"><span></span><span></span><span></span></button>
 </div></header>`;
 
-const footer = () => `
+const footer = (page='blog') => `
 <footer><div class="wrap"><div class="foot-grid">
   <div><span class="logo-chip"><img src="/brand/evolution-pro-logo-transparent.webp" alt="Evolution PRO"></span>
     <p>Il sistema che trasforma una competenza in un'accademia di videocorsi che acquisisce, eroga e scala.</p></div>
   <div><h5>Blog</h5><a href="/blog/">Ultimi articoli</a><a href="${SITE.origin}/#metodo-evo">Metodo EVO</a><a href="/blog/">Più letti</a></div>
-  <div><h5>Evolution PRO</h5><a href="${SITE.origin}/#metodo-evo">Il metodo</a><a href="${SITE.origin}/#ciak">Piattaforma</a><a href="${SITE.cta.href}">Fai la tua analisi</a><a href="${SITE.origin}/#faq">FAQ</a></div>
+  <div><h5>Evolution PRO</h5><a href="${SITE.origin}/#metodo-evo">Il metodo</a><a href="${SITE.origin}/#ciak">Piattaforma</a><a href="${funnelUrl(page,'footer')}">Fai la tua analisi</a><a href="${SITE.origin}/#faq">FAQ</a></div>
   <div><h5>Legale</h5><a href="${SITE.origin}/privacy">Privacy Policy</a><a href="${SITE.origin}/cookie">Cookie Policy</a></div>
 </div><div class="foot-bottom"><span>© ${new Date().getFullYear()} Evolution PRO. Tutti i diritti riservati.</span><span>Online dal 2025 · Costruito con il Metodo EVO.</span></div></div></footer>`;
 
@@ -197,19 +209,19 @@ function articlePage(a){
 <script type="application/ld+json">${JSON.stringify(jsonld)}</script>
 <script type="application/ld+json">${JSON.stringify(crumbs)}</script>`;
   const relCards = rel.map((r,i)=>`<a class="rel" href="/blog/${r.slug}.html"><div class="cover${i%2===1?' y':''}">${catIll(r.cat)}</div><div class="c"><div class="rc">${esc(r.cat)}</div><div class="rt">${esc(r.title)}</div><div class="rm">⏱ ${r.read} min</div></div></a>`).join('');
-  const ctaBox = `<div class="cta-box"><h3>Vuoi capire a che punto è la tua accademia di videocorsi?</h3><p>Nell'analisi gratuita guardiamo dove sei bloccato oggi e qual è il prossimo passo concreto per creare e vendere i tuoi videocorsi.</p><a href="${SITE.cta.href}">Fai la tua analisi gratuita →</a></div>`;
-  const body = `<div id="progress"></div>${navHeader(true)}
+  const ctaBox = `<div class="cta-box"><h3>Vuoi capire a che punto è la tua accademia di videocorsi?</h3><p>Nell'analisi gratuita guardiamo dove sei bloccato oggi e qual è il prossimo passo concreto per creare e vendere i tuoi videocorsi.</p><a href="${funnelUrl(a.slug,'box')}">Fai la tua analisi gratuita →</a></div>`;
+  const body = `<div id="progress"></div>${navHeader(true, a.slug)}
 <section class="a-hero"><div class="inner">
   <div class="crumbs"><a href="/blog/">Blog</a> &nbsp;›&nbsp; ${esc(a.cat)}</div>
   <span class="a-cat">${esc(a.cat)}</span>
   <h1>${esc(a.title)}</h1>
   <div class="a-meta"><span class="who"><span class="av">CB</span> ${SITE.author}</span><span>·</span><span>${fmt(a.date)}</span><span>·</span><span>⏱ ${a.read} min di lettura</span></div>
 </div></section>
-<article class="article">${a.body}${a.body.includes('cta-box')?'':ctaBox}</article>
+<article class="article">${withUtm(a.body, a.slug)}${a.body.includes('cta-box')?'':ctaBox}</article>
 <div class="author"><div class="av">CB</div><div><div class="n">${SITE.author}</div><div class="r">Fondatore di Evolution PRO</div><div class="b">Aiuta consulenti, coach e professionisti a trasformare la propria competenza in un'accademia di videocorsi che acquisisce, eroga e scala — con il Metodo EVO: Esamina, Valida, Ottimizza.</div></div></div>
 ${rel.length?`<section class="related"><h2>Continua a leggere</h2><div class="rel-grid">${relCards}</div></section>`:''}
 <section class="related" style="margin-top:40px"><div class="card news" style="max-width:var(--read);margin:0 auto"><h3>Ricevi il prossimo articolo</h3><p>Un'analisi concreta ogni due settimane su come creare e vendere videocorsi. Niente spam.</p><form class="subForm"><input type="email" name="email" placeholder="La tua email" aria-label="Email" required><button type="submit">Iscrivimi</button><p class="subMsg" hidden></p></form></div></section>
-${footer()}
+${footer(a.slug)}
 <script>const b=document.getElementById('progress');function u(){const h=document.documentElement,s=h.scrollTop||document.body.scrollTop,m=h.scrollHeight-h.clientHeight;b.style.width=(m>0?s/m*100:0)+'%'}document.addEventListener('scroll',u,{passive:true});u();</script>`;
   return shell({title:`${a.title} | Evolution PRO`, headExtra, body});
 }
@@ -227,7 +239,7 @@ function indexPage(){
 <meta property="og:title" content="Blog Videocorsi — Evolution PRO"><meta property="og:description" content="Guide e analisi su come creare e vendere videocorsi. Il Metodo EVO passo per passo.">
 <meta property="og:url" content="${SITE.origin}/blog/"><meta property="og:image" content="${SITE.logo}">
 <script type="application/ld+json">${JSON.stringify({"@context":"https://schema.org","@type":"Blog",name:"Blog Evolution PRO",description:"Come creare e vendere videocorsi: metodo, funnel e posizionamento.",url:`${SITE.origin}/blog/`,inLanguage:"it-IT",publisher:{"@type":"Organization",name:"Evolution PRO",url:SITE.origin,logo:{"@type":"ImageObject",url:SITE.logo}}})}</script>`;
-  const body = `${navHeader(true)}
+  const body = `${navHeader(true, 'index')}
 <section class="hero"><div class="wrap"><span class="eyebrow">Il blog di Evolution PRO</span>
 <h1>Come creare e vendere videocorsi: metodo, funnel e posizionamento.</h1>
 <p class="sub">Guide e analisi per chi trasforma la propria competenza in un'accademia di videocorsi che vende. Un nuovo articolo ogni due settimane, dal 2025.</p></div></section>
@@ -237,7 +249,7 @@ function indexPage(){
   <div class="card"><h3>Categorie</h3>${catRows}</div>
   <div class="card news"><h3>Il report</h3><p>Un'analisi concreta ogni due settimane su come creare e vendere videocorsi.</p><form class="subForm"><input type="email" name="email" placeholder="La tua email" aria-label="Email" required><button type="submit">Ricevi il report</button><p class="subMsg" hidden></p></form><small>Iscrizione gratuita · disiscrizione con un clic.</small></div>
 </aside>
-</div></div>${footer()}`;
+</div></div>${footer('index')}`;
   return shell({title:'Blog Videocorsi — Come creare e vendere videocorsi | Evolution PRO', headExtra, body});
 }
 

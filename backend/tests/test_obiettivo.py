@@ -24,7 +24,7 @@ PIANO = {
     "target": 10000.0,
     "inizio": "2026-08-01",
     "scadenza": "2026-09-30",
-    "incassato": 375.0,
+    "incassato_pregresso": 375.0,
     "leve": [
         {"nome": "Rosanna Amato", "valore": 1850.0, "stato": "aperta",
          "ultimo_movimento": "2026-08-19", "dipende_da": "solo una call"},
@@ -131,9 +131,186 @@ def test_una_leva_senza_data_di_movimento_non_e_dichiarata_ferma():
 
 
 def test_obiettivo_gia_raggiunto_non_da_gap_negativo():
-    superato = {**PIANO, "incassato": 12000.0}
+    superato = {**PIANO, "incassato_pregresso": 12000.0}
 
     s = ob.stato(superato, OGGI)
 
     assert s["gap"] == 0
     assert s["scoperto"] == 0
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# incassato DERIVATO dai crediti (B, 15/9/2026)
+#
+# Prima l'`incassato` dell'obiettivo era un campo salvato a mano: aggiornare la
+# situazione pagamenti (i crediti) non lo muoveva. Ora `stato(ob, crediti=...)`
+# lo calcola dalle rate davvero incassate dentro la finestra dell'obiettivo, cosi'
+# la Direzione segue i pagamenti senza un secondo posto da ricordarsi.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _credito(nome, rate, tipo="credito"):
+    return {"id": nome.lower().replace(" ", "-"), "nome": nome, "tipo": tipo, "rate": rate}
+
+
+def test_incassato_somma_solo_le_rate_incassate_nella_finestra():
+    crediti = [
+        _credito("Depalma", [
+            {"numero": 1, "importo": 360.0, "stato": "incassata", "incassata_at": "2026-09-15"},
+            {"numero": 2, "importo": 240.0, "stato": "attesa", "scadenza": "2026-10-15"},
+        ]),
+        _credito("Falcone", [
+            {"numero": 1, "importo": 358.0, "stato": "incassata", "incassata_at": "2026-09-10"},
+        ]),
+    ]
+
+    assert ob.incassato_da_crediti(crediti, PIANO, OGGI) == 718.0
+
+
+def test_incassato_ignora_le_rate_non_incassate():
+    """da_verificare / saltata / attesa non sono cassa entrata."""
+    crediti = [
+        _credito("Tizio", [
+            {"numero": 1, "importo": 500.0, "stato": "saltata", "scadenza": "2026-08-10"},
+            {"numero": 2, "importo": 500.0, "stato": "da_verificare", "scadenza": "2026-08-20"},
+            {"numero": 3, "importo": 500.0, "stato": "attesa", "scadenza": "2026-09-20"},
+        ]),
+    ]
+
+    assert ob.incassato_da_crediti(crediti, PIANO, OGGI) == 0.0
+
+
+def test_incassato_usa_la_scadenza_quando_manca_la_data_di_incasso():
+    crediti = [
+        _credito("Senza data incasso", [
+            {"numero": 1, "importo": 200.0, "stato": "incassata", "scadenza": "2026-09-05"},
+        ]),
+    ]
+
+    assert ob.incassato_da_crediti(crediti, PIANO, OGGI) == 200.0
+
+
+def test_incassato_esclude_gli_incassi_fuori_dalla_finestra():
+    """Soldi entrati prima dell'inizio o dopo la scadenza non contano per QUESTO obiettivo."""
+    crediti = [
+        _credito("Prima", [
+            {"numero": 1, "importo": 999.0, "stato": "incassata", "incassata_at": "2026-07-31"},
+        ]),
+        _credito("Dopo", [
+            {"numero": 1, "importo": 999.0, "stato": "incassata", "incassata_at": "2026-10-01"},
+        ]),
+        _credito("Dentro", [
+            {"numero": 1, "importo": 100.0, "stato": "incassata", "incassata_at": "2026-08-01"},
+        ]),
+    ]
+
+    assert ob.incassato_da_crediti(crediti, PIANO, OGGI) == 100.0
+
+
+def test_incassato_esclude_le_rate_incassate_senza_alcuna_data():
+    """Incassata ma non collocabile nel tempo: non si puo' dire che sia nella finestra."""
+    crediti = [
+        _credito("Senza date", [
+            {"numero": 1, "importo": 300.0, "stato": "incassata"},
+        ]),
+    ]
+
+    assert ob.incassato_da_crediti(crediti, PIANO, OGGI) == 0.0
+
+
+def test_incassato_include_i_ricorrenti_perche_sono_cassa_entrata():
+    """Il residuo esclude i ricorrenti; l'incassato no: una mensilita' riscossa e' cassa in banca."""
+    crediti = [
+        _credito("Filieri canone", [
+            {"numero": 9, "importo": 147.0, "stato": "incassata", "incassata_at": "2026-09-03"},
+        ], tipo="ricorrente"),
+    ]
+
+    assert ob.incassato_da_crediti(crediti, PIANO, OGGI) == 147.0
+
+
+def test_stato_somma_pregresso_e_crediti():
+    """Il PIANO ha incassato_pregresso=375; i crediti si SOMMANO alla base."""
+    crediti = [
+        _credito("Depalma", [
+            {"numero": 1, "importo": 600.0, "stato": "incassata", "incassata_at": "2026-09-15"},
+        ]),
+    ]
+
+    s = ob.stato(PIANO, OGGI, crediti=crediti)
+
+    assert s["incassato"] == 975.0   # 375 pregresso + 600 crediti
+    assert s["gap"] == 9025.0
+
+
+def test_stato_senza_crediti_conta_solo_il_pregresso():
+    """Senza crediti l'incassato e' solo la base pregressa (i crediti valgono 0)."""
+    s = ob.stato(PIANO, OGGI)
+
+    assert s["incassato"] == 375.0
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# incassato PREGRESSO: base "vecchia" non a crediti, sommata (15/9/2026)
+#
+# L'incassato dev'essere TUTTO: vecchio + nuovo. I crediti coprono solo cio' che
+# e' registrato li'; l'incassato storico non tracciato entra come base fissa.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_incassato_e_pregresso_piu_crediti():
+    piano = {**PIANO, "incassato_pregresso": 196.0}
+    crediti = [
+        _credito("Gugliucciello", [
+            {"numero": 1, "importo": 199.0, "stato": "incassata", "incassata_at": "2026-09-10"},
+        ]),
+        _credito("Depalma", [
+            {"numero": 1, "importo": 360.0, "stato": "incassata", "incassata_at": "2026-09-15"},
+        ]),
+    ]
+
+    s = ob.stato(piano, OGGI, crediti=crediti)
+
+    # 196 (vecchio non a crediti) + 199 + 360 = 755. Con altri crediti reali in
+    # finestra il totale sale: qui verifichiamo che la base venga SOMMATA, non persa.
+    assert s["incassato"] == 755.0
+    assert s["gap"] == round(10000.0 - 755.0, 2)
+
+
+def test_pregresso_assente_vale_zero_e_conta_solo_i_crediti():
+    """Senza base dichiarata l'incassato e' solo cio' che e' nei crediti."""
+    crediti = [
+        _credito("Depalma", [
+            {"numero": 1, "importo": 360.0, "stato": "incassata", "incassata_at": "2026-09-15"},
+        ]),
+    ]
+
+    piano = {**PIANO, "incassato_pregresso": 0}
+    s = ob.stato(piano, OGGI, crediti=crediti)
+
+    assert s["incassato"] == 360.0
+
+
+def test_la_proiezione_usa_solo_i_crediti_non_la_base_pregressa():
+    """
+    #4 (15/9): la base `incassato_pregresso` e' cassa una-tantum, non un flusso.
+    Il ritmo giornaliero e la proiezione devono basarsi SOLO sui crediti incassati,
+    altrimenti il gate €10k sembra raggiungibile quando non lo e'.
+    """
+    piano = {
+        "id": "g", "titolo": "t", "target": 10000.0,
+        "inizio": "2026-09-01", "scadenza": "2026-09-30",
+        "incassato_pregresso": 4000.0, "leve": [],
+    }
+    oggi = date(2026, 9, 15)  # 14 giorni passati, 15 rimasti
+    crediti = [
+        _credito("X", [
+            {"numero": 1, "importo": 1000.0, "stato": "incassata", "incassata_at": "2026-09-07"},
+        ]),
+    ]
+
+    s = ob.stato(piano, oggi, crediti=crediti)
+
+    assert s["incassato"] == 5000.0                       # 4000 base + 1000 crediti
+    atteso = round(5000.0 + (1000.0 / 14) * 15, 2)        # ritmo dai SOLI crediti
+    assert s["proiezione_al_ritmo_attuale"] == atteso
+    # Col bug (base proiettata) sarebbe ~10.357: qui deve restare ben sotto.
+    assert s["proiezione_al_ritmo_attuale"] < 7000

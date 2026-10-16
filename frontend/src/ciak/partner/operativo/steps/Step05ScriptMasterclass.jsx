@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import StepBase from "./StepBase";
+import StepGiaCompletato, { isDoneWithoutContent } from "./StepGiaCompletato";
 import { API } from "../../../../utils/api-config";
 import axios from "axios";
 import { authHeaders } from "../../api";
@@ -15,6 +16,7 @@ export default function Step05ScriptMasterclass({ step, partnerId, onComplete, o
   const [mc, setMc] = useState(_saved && typeof _saved === "object" ? _saved : null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
+  const [redo, setRedo] = useState(false);
 
   // Tracciamento "toccato": chiavi tipo "blocco-2" o "titolo"
   const [edited, setEdited] = useState(() => new Set());
@@ -86,6 +88,11 @@ export default function Step05ScriptMasterclass({ step, partnerId, onComplete, o
     const sezioni = mc.sezioni.map((s, j) => (j === i ? { ...s, [field]: value } : s));
     save({ ...mc, sezioni });
   };
+
+  // Passo già "fatto" senza script generato: non invitare a rigenerare da zero.
+  if (isDoneWithoutContent(step, mc) && !redo) {
+    return <StepGiaCompletato step={step} title="Lo script della masterclass" onRedo={() => setRedo(true)} />;
+  }
 
   // ─── Stato vuoto: genera ──────────────────────────────────────────────
   if (!mc) {

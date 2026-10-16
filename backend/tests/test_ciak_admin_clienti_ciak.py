@@ -96,7 +96,7 @@ class FakeDb:
                     "blueprint_score": 75,
                     "recommended_offer": "partnership",
                     "offer_decision": "partnership",
-                    "start_credit_amount": 279000,
+                    "start_credit_amount": 299000,
                     "start_purchased_at": "2026-06-20T12:00:00+00:00",
                     "start_progress": [{"step": "done"}],
                     "analysis_status": "inviata",
@@ -214,10 +214,8 @@ def test_clienti_ciak_omits_stale_partner_flags_without_canonical_user(client_ap
 
 
 def test_proposal_button_requires_call_done_and_explicit_partnership_decision():
-    paid_call = {
-        "current_state": "call_done",
-        "events": [{"event": "stripe_payment_completed"}],
-    }
+    # Funnel gratuito: nessun pagamento Blueprint richiesto.
+    paid_call = {"current_state": "call_done", "events": []}
     delivered = {"bozza_inviata_at": "2026-08-12T10:00:00+00:00"}
     partnership = {"offer_decision": "partnership"}
 

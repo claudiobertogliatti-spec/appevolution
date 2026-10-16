@@ -13,7 +13,7 @@ il flow utente — un tag mancato non rompe l'esperienza lead).
 
 Tag emessi (spec ciak_technical_spec.md §4):
   ciak_started              alla creazione diagnostic session
-  ciak_completed            alla fine delle 8 domande
+  ciak_completed            alla fine delle 10 domande
   stato_1 | stato_2 | stato_3 | stato_4  → da scoring
   segment_<x>               da Q1 (classificato da Matteo)
   digital_level_<x>         da Q7 (diretto)
@@ -29,6 +29,7 @@ Tag additivi: un lead accumula tutti i tag del suo percorso. Ogni tag ha un
 timestamp sul lato Systeme. Per audit interno conserviamo anche un log su
 MongoDB collection `ciak_systeme_events`.
 """
+import asyncio
 import logging
 import os
 from datetime import datetime, timezone
@@ -37,6 +38,31 @@ from typing import Optional
 import httpx
 
 logger = logging.getLogger(__name__)
+
+
+# Task in volo tenuti vivi: `asyncio.create_task` senza conservare il riferimento
+# puo' essere garbage-collected dal loop PRIMA di finire (l'event loop tiene solo
+# un weakref) -> il tag Systeme non parte e nessuno se ne accorge. Qui teniamo il
+# riferimento fino al completamento.
+_in_flight: set = set()
+
+
+def fire_and_forget(coro) -> None:
+    """
+    Lancia una coroutine in background senza perderne il riferimento.
+
+    Sostituisce `asyncio.create_task(coro)` "nudo": quest'ultimo puo' sparire per
+    GC prima di completare. Da usare per effetti non bloccanti (es. emissione tag
+    Systeme) che NON devono far aspettare la risposta all'utente ma devono
+    comunque arrivare in fondo. Gli errori restano gestiti dentro la coroutine.
+    """
+    task = asyncio.create_task(coro)
+    # I test neutralizzano spesso `asyncio.create_task` (ritorna None per non
+    # schedulare davvero): in quel caso non c'e' nulla da tracciare.
+    if task is None:
+        return
+    _in_flight.add(task)
+    task.add_done_callback(_in_flight.discard)
 
 SYSTEME_API_KEY = os.environ.get("SYSTEME_API_KEY", "")
 SYSTEME_BASE_URL = "https://api.systeme.io/api"

@@ -13,6 +13,7 @@ import {
   Send, Loader2, Trash2, Sparkles, AlertTriangle, Compass, Target,
 } from "lucide-react";
 import { adminFetch, getAdminUser } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const QUICK_CHIPS = [
   { icon: Compass,       label: "Panoramica reparti" },
@@ -130,6 +131,7 @@ export function LucaChat({ onAuthExpired, compact = false }) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [askClear, setAskClear] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -191,8 +193,9 @@ export function LucaChat({ onAuthExpired, compact = false }) {
     [input, loading, onAuthExpired]
   );
 
-  const clearHistory = async () => {
-    if (!window.confirm("Cancellare la cronologia della chat con Luca?")) return;
+  // Conferma in pagina (ConfirmDialog), non un window.confirm().
+  const doClearHistory = async () => {
+    setAskClear(false);
     try {
       await adminFetch("/api/admin/luca/history", { method: "DELETE" });
       setMessages([{ role: "assistant", content: "Cronologia cancellata. Sono ancora qui.", ts: new Date().toISOString() }]);
@@ -231,7 +234,8 @@ export function LucaChat({ onAuthExpired, compact = false }) {
             Briefing
           </button>
           <button
-            onClick={clearHistory}
+            onClick={() => setAskClear(true)}
+            aria-label="Cancella cronologia"
             className="p-2 rounded-lg transition-all hover:bg-red-50 text-slate-400"
             title="Cancella cronologia"
           >
@@ -310,6 +314,17 @@ export function LucaChat({ onAuthExpired, compact = false }) {
           30% { transform: translateY(-5px); }
         }
       `}</style>
+
+      <ConfirmDialog
+        open={askClear}
+        title="Cancella la cronologia della chat con Luca"
+        body="I messaggi scambiati vengono rimossi. Operazione irreversibile."
+        confirmLabel="Cancella"
+        cancelLabel="Annulla"
+        destructive
+        onConfirm={doClearHistory}
+        onCancel={() => setAskClear(false)}
+      />
     </div>
   );
 }

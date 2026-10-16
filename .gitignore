@@ -392,5 +392,9 @@ backend/graphify-out/
 evolution-pro-site/playwright-artifacts/
 evolution-pro-site/playwright-report/
 evolution-pro-site/tsconfig.tsbuildinfo
-.claude/
+# .claude/: si versionano settings.json, hooks/, skills/ e agents/ (config Claude
+# Code condivisa); restano locali worktree, preferenze personali e launch.json.
+.claude/worktrees/
+.claude/settings.local.json
+.claude/launch.json
 scripts/stato/

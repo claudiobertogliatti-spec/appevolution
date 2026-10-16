@@ -7,6 +7,7 @@
  *  POST /api/consulenza-checkout  → { checkout_url }
  */
 import { useState } from "react";
+import { authHeaders } from "../api";
 import {
   Calendar, CreditCard, Check, Loader2,
   AlertCircle, ChevronRight, Shield, Clock, ArrowLeft,
@@ -69,7 +70,7 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant, package
     try {
       const response = await fetch(`/api/consulenza-checkout`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           service_type: "consulenza_marketing",
           consultant_id: selectedConsultant,

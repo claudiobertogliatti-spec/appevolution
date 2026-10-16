@@ -58,7 +58,7 @@ export function ServiziExtraAdmin({ onAuthExpired }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-5 py-8 sm:px-10 lg:px-16 lg:py-12">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

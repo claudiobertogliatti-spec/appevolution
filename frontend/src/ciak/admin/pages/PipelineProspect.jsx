@@ -12,17 +12,18 @@ import {
   PenTool, DollarSign, Upload, User, FilePlus, Trash2, X, Eye, Headphones,
 } from "lucide-react";
 import { adminFetch } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 // Configurazione colonne del funnel
 const STEPS = [
   { key: "step_registrazione", label: "Registrazione", short: "Reg.", icon: User },
   { key: "step_questionario", label: "Questionario", short: "Quest.", icon: FileText },
-  { key: "step_pagamento_67", label: "€27", short: "€27", icon: CreditCard },
+  { key: "step_pagamento_67", label: "Blueprint", short: "Blueprint", icon: CreditCard },
   { key: "step_analisi_approvata", label: "Analisi", short: "Analisi", icon: Sparkles },
   { key: "step_call_completata", label: "Call", short: "Call", icon: Phone },
   { key: "step_proposta_inviata", label: "Proposta", short: "Proposta", icon: Send },
   { key: "step_contratto_firmato", label: "Contratto", short: "Contr.", icon: PenTool },
-  { key: "step_pagamento_2790", label: "€2.790", short: "€2.790", icon: DollarSign },
+  { key: "step_pagamento_2790", label: "€2.990", short: "€2.990", icon: DollarSign },
   { key: "step_documenti", label: "Documenti", short: "Docs", icon: Upload },
 ];
 
@@ -94,12 +95,13 @@ function CallBadge({ stato }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Modale Contratto Custom
 // ─────────────────────────────────────────────────────────────────────────────
-function ContrattoCustomModal({ cliente, onClose, onAuthExpired }) {
+export function ContrattoCustomModal({ cliente, onClose, onAuthExpired }) {
   const [status, setStatus] = useState(null); // { custom_pdf_url, filename, uploaded_at }
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
+  const [askDelete, setAskDelete] = useState(false);
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -150,13 +152,9 @@ function ContrattoCustomModal({ cliente, onClose, onAuthExpired }) {
     }
   };
 
-  const handleDelete = async () => {
-    if (
-      !window.confirm(
-        "Rimuovere il contratto custom? Il prospect tornerà al contratto standard generato."
-      )
-    )
-      return;
+  // Conferma in pagina (ConfirmDialog), non un window.confirm().
+  const doDelete = async () => {
+    setAskDelete(false);
     setDeleting(true);
     try {
       await adminFetch(`/api/contract/custom-pdf/${cliente.id}`, { method: "DELETE" });
@@ -221,7 +219,7 @@ function ContrattoCustomModal({ cliente, onClose, onAuthExpired }) {
                   Visualizza PDF
                 </a>
                 <button
-                  onClick={handleDelete}
+                  onClick={() => setAskDelete(true)}
                   disabled={deleting}
                   className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:opacity-90 bg-red-50 text-red-600 border border-red-200"
                 >
@@ -307,6 +305,18 @@ function ContrattoCustomModal({ cliente, onClose, onAuthExpired }) {
           </p>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={askDelete}
+        title="Rimuovi il contratto custom"
+        body="Il prospect torna al contratto standard generato."
+        confirmLabel="Rimuovi"
+        cancelLabel="Annulla"
+        destructive
+        busy={deleting}
+        onConfirm={doDelete}
+        onCancel={() => setAskDelete(false)}
+      />
     </div>
   );
 }
@@ -529,12 +539,12 @@ export function PipelineProspect({ onAuthExpired }) {
   const FILTRI = [
     { id: "tutti", label: "Tutti" },
     { id: "questionario", label: "Questionario ✓" },
-    { id: "pagato_67", label: "Pagato €27" },
+    { id: "pagato_67", label: "Blueprint" },
     { id: "analisi", label: "Analisi pronta" },
     { id: "call", label: "Call completata" },
     { id: "proposta", label: "Proposta inviata" },
     { id: "contratto", label: "Contratto firmato" },
-    { id: "pagato_2790", label: "Pagato €2.790" },
+    { id: "pagato_2790", label: "Pagato €2.990" },
   ];
 
   const filtered = clienti.filter((c) => {
@@ -610,7 +620,7 @@ export function PipelineProspect({ onAuthExpired }) {
             cls: "bg-blue-50 border-blue-200 text-blue-500",
           },
           {
-            label: "Pagato €27",
+            label: "Blueprint",
             value: stats.pagato_67,
             cls: "bg-yellow-50 border-yellow-200 text-yellow-600",
           },

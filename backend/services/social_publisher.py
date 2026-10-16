@@ -28,6 +28,7 @@ Prerequisito (fail-closed): `IG_BUSINESS_ID` + `META_PAGE_ACCESS_TOKEN` sul serv
 tocca la coda: i post restano `pending`, non `failed`.
 """
 
+import asyncio
 import logging
 import os
 from datetime import datetime, timezone
@@ -46,6 +47,14 @@ def _cfg() -> tuple[str | None, str | None]:
     ig = os.environ.get("IG_BUSINESS_ID") or os.environ.get("INSTAGRAM_BUSINESS_ID")
     token = os.environ.get("META_PAGE_ACCESS_TOKEN")
     return (ig or None), (token or None)
+
+
+def _linkedin_cfg() -> tuple[str | None, str | None]:
+    """(access_token, author_urn) LinkedIn. None se non configurato (fail-closed)."""
+    return (
+        os.environ.get("LINKEDIN_ACCESS_TOKEN") or None,
+        os.environ.get("LINKEDIN_AUTHOR_URN") or None,  # es. urn:li:organization:12345
+    )
 
 
 def is_meta_publish_configured() -> bool:
@@ -80,12 +89,35 @@ async def _graph_get(client: httpx.AsyncClient, path: str, params: dict) -> dict
 
 
 # ─── Instagram ────────────────────────────────────────────────────────────────
+async def _attendi_container_pronto(client, ig, creation_id: str, token: str,
+                                    tentativi: int = 10, pausa: float = 2.0) -> None:
+    """Instagram elabora il container in modo ASINCRONO: `media_publish` va chiamato
+    solo quando `status_code == FINISHED`. Chiamarlo prima da' Graph 400 code 9007
+    ('Media ID is not available' / 'il contenuto non e' pronto, attendi un momento') —
+    l'errore che teneva Instagram fermo (verificato dai log del 7/9/2026). Si fa polling
+    finche' pronto; si solleva se il container va in ERROR o resta non pronto."""
+    stato = None
+    for _ in range(tentativi):
+        j = await _graph_get(client, creation_id, {
+            "fields": "status_code", "access_token": token})
+        stato = j.get("status_code")
+        if stato == "FINISHED":
+            return
+        if stato == "ERROR":
+            raise RuntimeError(f"container IG {creation_id} in ERROR: {j.get('status') or j}")
+        await asyncio.sleep(pausa)
+    raise RuntimeError(
+        f"container IG {creation_id} non pronto dopo {tentativi} tentativi (status={stato})")
+
+
 async def _pubblica_ig(client, ig, token, image_urls: list[str], caption: str) -> dict:
-    """Ritorna {media_id, permalink}. Carosello se >1 immagine, altrimenti singola."""
+    """Ritorna {media_id, permalink}. Carosello se >1 immagine, altrimenti singola.
+    Ogni container si attende FINISHED prima di pubblicarlo (_attendi_container_pronto)."""
     if len(image_urls) == 1:
         cont = await _graph_post(client, f"{ig}/media", {
             "image_url": image_urls[0], "caption": caption, "access_token": token})
         creation = cont["id"]
+        await _attendi_container_pronto(client, ig, creation, token)
     else:
         if not (2 <= len(image_urls) <= 10):
             raise ValueError(f"un carosello IG vuole 2-10 immagini, ricevute {len(image_urls)}")
@@ -93,11 +125,13 @@ async def _pubblica_ig(client, ig, token, image_urls: list[str], caption: str) -
         for url in image_urls:
             j = await _graph_post(client, f"{ig}/media", {
                 "image_url": url, "is_carousel_item": "true", "access_token": token})
+            await _attendi_container_pronto(client, ig, j["id"], token)
             child_ids.append(j["id"])
         album = await _graph_post(client, f"{ig}/media", {
             "media_type": "CAROUSEL", "children": ",".join(child_ids),
             "caption": caption, "access_token": token})
         creation = album["id"]
+        await _attendi_container_pronto(client, ig, creation, token)
     pub = await _graph_post(client, f"{ig}/media_publish", {
         "creation_id": creation, "access_token": token})
     media_id = pub["id"]
@@ -132,7 +166,86 @@ async def _pubblica_fb(client, page_id, token, image_urls: list[str], caption: s
     return {"post_id": post_id, "permalink": info.get("permalink_url")}
 
 
+# ─── LinkedIn ───────────────────────────────────────────────────────────────────
+async def _pubblica_linkedin(client, urls: list[str], caption: str) -> dict:
+    """Pubblica un post immagine (cover) su LinkedIn via UGC Posts API. Fail-closed:
+    senza LINKEDIN_ACCESS_TOKEN/LINKEDIN_AUTHOR_URN solleva (il canale risulta failed,
+    IG/FB escono comunque). NB: flusso documentato LinkedIn, da collaudare col token reale."""
+    token, author = _linkedin_cfg()
+    if not (token and author):
+        raise ValueError("LinkedIn non configurato (LINKEDIN_ACCESS_TOKEN/LINKEDIN_AUTHOR_URN)")
+    if not urls:
+        raise ValueError("post senza immagini")
+    headers = {"Authorization": f"Bearer {token}", "X-Restli-Protocol-Version": "2.0.0"}
+
+    reg = await client.post(
+        "https://api.linkedin.com/v2/assets?action=registerUpload",
+        headers={**headers, "Content-Type": "application/json"},
+        json={"registerUploadRequest": {
+            "recipes": ["urn:li:digitalmediaRecipe:feedshare-image"],
+            "owner": author,
+            "serviceRelationships": [
+                {"relationshipType": "OWNER", "identifier": "urn:li:userGeneratedContent"}
+            ],
+        }},
+    )
+    reg.raise_for_status()
+    val = reg.json()["value"]
+    upload_url = val["uploadMechanism"][
+        "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
+    ]["uploadUrl"]
+    asset = val["asset"]
+
+    img = await client.get(urls[0], timeout=30)
+    img.raise_for_status()
+    up = await client.post(upload_url, headers={"Authorization": f"Bearer {token}"}, content=img.content)
+    up.raise_for_status()
+
+    ugc = await client.post(
+        "https://api.linkedin.com/v2/ugcPosts",
+        headers={**headers, "Content-Type": "application/json"},
+        json={
+            "author": author,
+            "lifecycleState": "PUBLISHED",
+            "specificContent": {"com.linkedin.ugc.ShareContent": {
+                "shareCommentary": {"text": caption},
+                "shareMediaCategory": "IMAGE",
+                "media": [{"status": "READY", "media": asset}],
+            }},
+            "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"},
+        },
+    )
+    ugc.raise_for_status()
+    pid = ugc.headers.get("x-restli-id") or (ugc.json() or {}).get("id")
+    return {"post_id": pid, "permalink": f"https://www.linkedin.com/feed/update/{pid}" if pid else None}
+
+
 # ─── Orchestrazione ─────────────────────────────────────────────────────────────
+async def _pubblica_reel_ig(client, ig, token, video_url: str, caption: str) -> dict:
+    """Reel Instagram: container REELS con video_url -> si attende FINISHED (il video si
+    elabora piu' lentamente delle immagini) -> media_publish -> permalink riletto."""
+    cont = await _graph_post(client, f"{ig}/media", {
+        "media_type": "REELS", "video_url": video_url, "caption": caption,
+        "share_to_feed": "true", "access_token": token})
+    await _attendi_container_pronto(client, ig, cont["id"], token, tentativi=30, pausa=5.0)
+    pub = await _graph_post(client, f"{ig}/media_publish", {
+        "creation_id": cont["id"], "access_token": token})
+    info = await _graph_get(client, pub["id"], {"fields": "permalink", "access_token": token})
+    return {"media_id": pub["id"], "permalink": info.get("permalink")}
+
+
+async def _pubblica_reel_fb(client, page_id, token, video_url: str, caption: str) -> dict:
+    """Video sulla Pagina Facebook da URL; il permalink si rilegge dalla piattaforma."""
+    if not page_id:
+        raise RuntimeError("ID Pagina Facebook non disponibile")
+    j = await _graph_post(client, f"{page_id}/videos", {
+        "file_url": video_url, "description": caption, "access_token": token})
+    vid = j["id"]
+    info = await _graph_get(client, vid, {"fields": "permalink_url", "access_token": token})
+    rel = info.get("permalink_url")
+    return {"video_id": vid, "permalink": f"https://www.facebook.com{rel}" if rel and rel.startswith("/") else rel}
+
+
 async def _pubblica_post(client, ig, token, page_id, post: dict) -> tuple[dict, list[str]]:
     """
     Pubblica un post su tutti i suoi canali. Ritorna (results, errori):
@@ -140,18 +253,29 @@ async def _pubblica_post(client, ig, token, page_id, post: dict) -> tuple[dict, 
     """
     urls = post.get("image_urls") or []
     caption = post.get("caption") or ""
-    if not urls:
-        raise ValueError("post senza immagini")
+    video_url = post.get("video_url")
+    if not urls and not video_url:
+        raise ValueError("post senza immagini ne' video")
     canali = post.get("channels") or CANALI_DEFAULT
 
-    await _prewarm(client, urls)
+    if not video_url:
+        await _prewarm(client, urls)
     results, errori = {}, []
     for canale in canali:
         try:
-            if canale == "instagram":
+            if video_url:
+                if canale == "instagram":
+                    results["instagram"] = await _pubblica_reel_ig(client, ig, token, video_url, caption)
+                elif canale == "facebook":
+                    results["facebook"] = await _pubblica_reel_fb(client, page_id, token, video_url, caption)
+                else:
+                    errori.append(f"{canale}: i reel non sono ancora supportati su questo canale")
+            elif canale == "instagram":
                 results["instagram"] = await _pubblica_ig(client, ig, token, urls, caption)
             elif canale == "facebook":
                 results["facebook"] = await _pubblica_fb(client, page_id, token, urls, caption)
+            elif canale == "linkedin":
+                results["linkedin"] = await _pubblica_linkedin(client, urls, caption)
             else:
                 errori.append(f"{canale}: canale sconosciuto")
         except Exception as e:
@@ -169,8 +293,10 @@ async def pubblica_coda_social(db, oggi: str | None = None, limit: int = 3) -> d
     `failed` se nessuno. Fail-closed: senza token la coda non si tocca.
     """
     oggi = oggi or _oggi_iso()
-    in_coda = await db[COLLECTION].count_documents(
-        {"status": "pending", "scheduled_date": {"$lte": oggi}})
+    # `partial` conta fra gli scaduti da lavorare: un post uscito a meta' (es. FB si',
+    # IG no) va ripreso, non abbandonato — era il motivo per cui Instagram si fermava.
+    da_lavorare = {"status": {"$in": ["pending", "partial"]}, "scheduled_date": {"$lte": oggi}}
+    in_coda = await db[COLLECTION].count_documents(da_lavorare)
 
     ig, token = _cfg()
     if not (ig and token):
@@ -178,9 +304,7 @@ async def pubblica_coda_social(db, oggi: str | None = None, limit: int = 3) -> d
         return {"configurato": False, "in_coda_scaduti": in_coda, "pubblicati": 0, "falliti": 0,
                 "nota": "manca il token di pubblicazione: la coda resta pending"}
 
-    cursor = db[COLLECTION].find(
-        {"status": "pending", "scheduled_date": {"$lte": oggi}}
-    ).sort("scheduled_date", 1).limit(limit)
+    cursor = db[COLLECTION].find(da_lavorare).sort("scheduled_date", 1).limit(limit)
     dovuti = await cursor.to_list(length=limit)
 
     pubblicati, parziali, falliti, esiti = 0, 0, 0, []
@@ -193,11 +317,27 @@ async def pubblica_coda_social(db, oggi: str | None = None, limit: int = 3) -> d
 
         for post in dovuti:
             pid = post.get("post_id") or str(post.get("_id"))
-            canali = post.get("channels") or CANALI_DEFAULT
+            canali_richiesti = post.get("channels") or CANALI_DEFAULT
+            # Canali gia' pubblicati in un giro precedente (post `partial`): il loro
+            # permalink si conserva e NON si ripubblica -> nessun doppione sulla Pagina.
+            gia_usciti = dict(post.get("results") or {})
+            da_fare = [c for c in canali_richiesti if c not in gia_usciti]
+            if not da_fare:
+                # Gia' completo su tutti i canali richiesti: normalizza, non ripubblicare.
+                await db[COLLECTION].update_one(
+                    {"_id": post["_id"]}, {"$set": {"status": "published"}})
+                pubblicati += 1
+                esiti.append({"post_id": pid, "stato": "published",
+                              "permalink": {k: v.get("permalink") for k, v in gia_usciti.items()},
+                              "errori": []})
+                continue
             try:
-                results, errori = await _pubblica_post(client, ig, token, page_id, post)
+                # Si passa a `_pubblica_post` solo i canali mancanti.
+                nuovi, errori = await _pubblica_post(
+                    client, ig, token, page_id, {**post, "channels": da_fare})
+                results = {**gia_usciti, **nuovi}
                 usciti = list(results.keys())
-                if len(usciti) == len(canali) and not errori:
+                if set(canali_richiesti) <= set(results) and not errori:
                     stato = "published"
                     pubblicati += 1
                 elif usciti:

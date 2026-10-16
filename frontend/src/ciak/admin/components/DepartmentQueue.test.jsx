@@ -1,0 +1,179 @@
+/**
+ * Ciak Admin — Coda del reparto (T18).
+ *
+ * La coda mette in fila chi aspetta un passo: prossima azione, responsabile
+ * (persona vs agente AI), scadenza e blocco. Priorita': prima i fermi. I dati
+ * arrivano gia' pronti (props) dalla stessa fonte di Audit Delivery.
+ */
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { DepartmentQueue, DeliveryQueue, VenditeQueue, BackOfficeQueue } from "./DepartmentQueue";
+import { apiGet } from "../api";
+
+jest.mock("../api", () => ({ apiGet: jest.fn(() => Promise.resolve({ items: [] })) }));
+
+const ITEMS = [
+  { id: "1", name: "Zeta Uno", passaggio: "Valida", next_action: "Sollecita video", owner: "Antonella", scadenza: "15/09/2026", blocked: true, stale: false, incoerenza: false },
+  { id: "2", name: "Alfa Due", passaggio: "Esamina", next_action: "Genera bozza", owner: "Valentina", scadenza: null, blocked: false, stale: false, incoerenza: false },
+  { id: "3", name: "Beta Tre", passaggio: "Ottimizza", next_action: null, owner: "Claudio", scadenza: null, blocked: false, stale: true, incoerenza: false },
+];
+
+beforeEach(() => {
+  window.history.replaceState({}, "", "/");
+});
+
+test("mostra le colonne operative e il tag persona vs agente AI", () => {
+  render(<DepartmentQueue items={ITEMS} />);
+  const r1 = screen.getByTestId("coda-row-1");
+  expect(r1.textContent).toMatch(/Sollecita video/);
+  expect(within(r1).getByText("persona")).toBeTruthy(); // Antonella = persona
+  // Scadenza e Blocco non sono piu' colonne della coda.
+  expect(screen.queryByRole("columnheader", { name: "Scadenza" })).toBeNull();
+  expect(screen.queryByRole("columnheader", { name: "Blocco" })).toBeNull();
+  expect(r1.textContent).not.toMatch(/Fermo|15\/09\/2026/);
+  const r2 = screen.getByTestId("coda-row-2");
+  expect(within(r2).getByText("agente AI")).toBeTruthy(); // Valentina = agente AI
+});
+
+test("ordina per priorita': prima i fermi, poi in ritardo, poi il resto", () => {
+  render(<DepartmentQueue items={ITEMS} />);
+  const order = screen.getAllByTestId(/coda-row-/).map((r) => r.getAttribute("data-testid"));
+  expect(order).toEqual(["coda-row-1", "coda-row-3", "coda-row-2"]);
+});
+
+test("il filtro 'Bloccati' mostra solo i bloccati e persiste in URL", () => {
+  render(<DepartmentQueue items={ITEMS} />);
+  fireEvent.click(screen.getByRole("button", { name: "Bloccati" }));
+  expect(screen.getByTestId("coda-row-1")).toBeTruthy();
+  expect(screen.queryByTestId("coda-row-2")).toBeNull();
+  expect(window.location.search).toMatch(/coda=bloccati/);
+});
+
+// ─── Blocco 2: apertura del record esatto ────────────────────────────────────
+// Il callback riceve la RIGA intera (non piu' solo l'id), cosi' ogni reparto
+// sceglie la destinazione giusta: contatto per Vendite, credito per Back office,
+// partner per Delivery.
+
+test("cliccare una riga apre il record passando la riga intera", () => {
+  const onOpen = jest.fn();
+  render(<DepartmentQueue items={ITEMS} onOpenPartner={onOpen} />);
+  fireEvent.click(screen.getByTestId("coda-row-2"));
+  expect(onOpen).toHaveBeenCalledTimes(1);
+  expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: "2", name: "Alfa Due" }));
+});
+
+test("una riga si apre anche da tastiera (Enter) — accessibile", () => {
+  const onOpen = jest.fn();
+  render(<DepartmentQueue items={ITEMS} onOpenPartner={onOpen} />);
+  fireEvent.keyDown(screen.getByTestId("coda-row-2"), { key: "Enter" });
+  expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: "2" }));
+});
+
+test("una riga senza destinazione (openable:false) non e cliccabile", () => {
+  const onOpen = jest.fn();
+  const items = [{ id: "x", name: "Senza destinazione", openable: false }];
+  render(<DepartmentQueue items={items} onOpenPartner={onOpen} />);
+  const row = screen.getByTestId("coda-row-x");
+  expect(row.getAttribute("role")).toBeNull();
+  fireEvent.click(row);
+  expect(onOpen).not.toHaveBeenCalled();
+});
+
+test("senza callback nessuna riga e cliccabile", () => {
+  render(<DepartmentQueue items={ITEMS} />);
+  expect(screen.getByTestId("coda-row-2").getAttribute("role")).toBeNull();
+});
+
+// ─── Loader Vendite / Back office (dati reali dagli endpoint) ────────────────
+
+test("VenditeQueue: prospect da /pipeline-blueprint, passaggio + prossima azione derivata", async () => {
+  apiGet.mockImplementation((path) => {
+    if (path === "/pipeline-blueprint") {
+      return Promise.resolve({
+        columns: [
+          { id: "call_fatta", label: "Call fatta", items: [{ email: "p@x.it", nome: "Prospetto Uno", updated_at: new Date().toISOString(), owner: "Gaia" }] },
+        ],
+      });
+    }
+    return Promise.resolve({});
+  });
+  render(<VenditeQueue />);
+  const row = await screen.findByTestId("coda-row-p@x.it");
+  expect(row.textContent).toMatch(/Prospetto Uno/);
+  expect(row.textContent).toMatch(/Call fatta/);
+  expect(row.textContent).toMatch(/Invia la proposta/); // derivata dallo stadio
+  expect(row.textContent).toMatch(/Gaia/); // owner (Responsabile) dalla proposta
+});
+
+test("VenditeQueue: la riga con email apre il contatto; senza email resta non cliccabile", async () => {
+  apiGet.mockImplementation((path) => {
+    if (path === "/pipeline-blueprint") {
+      return Promise.resolve({
+        columns: [
+          { id: "call_fatta", label: "Call fatta", items: [
+            { email: "con@mail.it", nome: "Con Email", updated_at: new Date().toISOString() },
+            { session_token: "tok-123", nome: "Senza Email", updated_at: new Date().toISOString() },
+          ] },
+        ],
+      });
+    }
+    return Promise.resolve({});
+  });
+  const onOpen = jest.fn();
+  render(<VenditeQueue onOpenPartner={onOpen} />);
+  const conEmail = await screen.findByTestId("coda-row-con@mail.it");
+  fireEvent.click(conEmail);
+  expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ email: "con@mail.it" }));
+  const senzaEmail = screen.getByTestId("coda-row-tok-123");
+  expect(senzaEmail.getAttribute("role")).toBeNull(); // niente email → nessun link /admin/leads
+});
+
+test("BackOfficeQueue: crediti da /crediti con scadenza e 'in ritardo', saldati esclusi", async () => {
+  apiGet.mockImplementation((path) => {
+    if (path === "/crediti") {
+      return Promise.resolve({
+        crediti: [
+          { id: "c1", nome: "Cliente Rosso", stato: "in_piano", owner: "Valentina", rate: [{ numero: 1, importo: 100, scadenza: "2026-09-01", stato_effettivo: "da_verificare" }] },
+          { id: "c2", nome: "Cliente Saldato", stato: "saldato", rate: [] },
+        ],
+      });
+    }
+    return Promise.resolve({});
+  });
+  render(<BackOfficeQueue />);
+  const r1 = await screen.findByTestId("coda-row-c1");
+  expect(r1.textContent).toMatch(/Cliente Rosso/);
+  expect(r1.textContent).toMatch(/Incassa \/ verifica rata/);
+  expect(r1.textContent).toMatch(/Valentina/); // owner (Responsabile) reale dal credito
+  expect(screen.queryByTestId("coda-row-c2")).toBeNull(); // saldato escluso dalla coda
+});
+
+test("BackOfficeQueue: la riga apre il credito esatto (per id)", async () => {
+  apiGet.mockImplementation((path) => {
+    if (path === "/crediti") {
+      return Promise.resolve({
+        crediti: [{ id: "c1", nome: "Cliente Rosso", stato: "in_piano", rate: [{ numero: 1, importo: 100, scadenza: "2026-09-01", stato_effettivo: "da_verificare" }] }],
+      });
+    }
+    return Promise.resolve({});
+  });
+  const onOpen = jest.fn();
+  render(<BackOfficeQueue onOpenPartner={onOpen} />);
+  fireEvent.click(await screen.findByTestId("coda-row-c1"));
+  expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: "c1" }));
+});
+
+test("DeliveryQueue: il filtro persona accetta il nome completo e dichiara le assegnazioni vuote", async () => {
+  apiGet.mockImplementation((path) => {
+    if (path === "/partners") return Promise.resolve({ items: [{ id: "p1", name: "Partner Uno" }] });
+    if (path === "/delivery-audit") return Promise.resolve({ items: [{ id: "p1", owner: "Antonella Rossi" }] });
+    return Promise.resolve({ overrides: {} });
+  });
+  render(<DeliveryQueue ownerFilter="Antonella" />);
+  expect(await screen.findByTestId("coda-row-p1")).toBeTruthy();
+});
+
+test("DeliveryQueue: quando non ci sono assegnazioni lo dichiara senza confonderlo col reparto vuoto", async () => {
+  apiGet.mockResolvedValue({ items: [], overrides: {} });
+  render(<DeliveryQueue ownerFilter="Antonella" />);
+  expect(await screen.findByText("Nessuna attività assegnata: Antonella.")).toBeTruthy();
+});

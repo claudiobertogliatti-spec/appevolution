@@ -144,15 +144,20 @@ async def _compute_prefill_from_ciak(partner_id: str) -> dict:
         return {}
     session = await db.diagnostic_sessions.find_one(
         {"email": partner["email"]},
-        {"_id": 0, "answers": 1, "competenza_raw": 1, "problema_raw": 1},
+        {"_id": 0, "responses": 1, "answers": 1, "competenza_raw": 1, "problema_raw": 1},
         sort=[("created_at", -1)],
     )
     if not session:
         return {}
-    competenza = (session.get("competenza_raw") or
-                  (session.get("answers") or {}).get("competenza", "")).strip()
-    problema = (session.get("problema_raw") or
-                (session.get("answers") or {}).get("problema", "")).strip()
+    # Schema attuale: risposte APERTE in responses.qX. Fallback ai campi vecchi
+    # (competenza_raw/answers) per le sessioni pre-migrazione.
+    responses = session.get("responses") or {}
+    competenza = (responses.get("q1_competenza") or
+                  session.get("competenza_raw") or
+                  (session.get("answers") or {}).get("competenza") or "").strip()
+    problema = (responses.get("q6_problema") or
+                session.get("problema_raw") or
+                (session.get("answers") or {}).get("problema") or "").strip()
     out = {}
     if competenza:
         out["nicchia"] = competenza

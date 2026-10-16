@@ -13,6 +13,7 @@ Note:
   - Gestione errori: rate limit / API down / JSON malformato → MatteoServiceError.
   - Output: dict con report_markdown + tags structurati.
 """
+import asyncio
 import json
 import logging
 import os
@@ -24,7 +25,53 @@ import anthropic
 logger = logging.getLogger(__name__)
 
 _MODEL = os.environ.get("MATTEO_MODEL", "claude-sonnet-4-6")
-_MAX_TOKENS = int(os.environ.get("MATTEO_MAX_TOKENS", "2048"))
+# 4096: report (600-900 parole) + tag vivono nell'input del tool_use; 2048 rischiava
+# di troncarlo (stop_reason=max_tokens) e produrre un tool_use incompleto.
+_MAX_TOKENS = int(os.environ.get("MATTEO_MAX_TOKENS", "4096"))
+
+# Structured output: il modello DEVE rispondere chiamando questo tool (tool_choice
+# forzato). L'SDK consegna un dict già conforme allo schema in .input → niente più
+# JSON testuale da parsare a mano, niente "JSON malformato dall'output Matteo".
+_EMIT_REPORT_TOOL = {
+    "name": "emit_report",
+    "description": (
+        "Restituisci il report Ciak e i tag di segmentazione. Usa SEMPRE questo "
+        "strumento per rispondere: non scrivere testo fuori dal tool."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "report_markdown": {
+                "type": "string",
+                "description": "Report 600-900 parole in markdown, 8 sezioni con titolo H2.",
+            },
+            "tags": {
+                "type": "object",
+                "properties": {
+                    "stato": {"type": "integer", "enum": [1, 2, 3, 4]},
+                    "tag_segment": {"type": "string"},
+                    "tag_segment_note": {"type": "string"},
+                    "tag_digital_level": {
+                        "type": "string",
+                        "enum": [
+                            "digital_level_nessuna", "digital_level_base",
+                            "digital_level_intermedia", "digital_level_avanzata",
+                        ],
+                    },
+                    "tag_obiettivo": {
+                        "type": "string",
+                        "enum": [
+                            "obiettivo_extra", "obiettivo_scalare",
+                            "obiettivo_libertà", "obiettivo_indeciso",
+                        ],
+                    },
+                },
+                "required": ["stato", "tag_segment", "tag_digital_level", "tag_obiettivo"],
+            },
+        },
+        "required": ["report_markdown", "tags"],
+    },
+}
 
 
 # ─── System prompt v1.4 ───────────────────────────────────────────────
@@ -41,7 +88,7 @@ Stile: diretto, chiaro, italiano semplice, non tecnico, senza fuffa.
 
 REGOLE NON NEGOZIABILI:
 1. NON ricalcolare lo stato. Il sistema lo ha già calcolato. Tu lo USI.
-2. NON dare la roadmap completa. La roadmap è nell'Analisi 67€. Il tuo report apre, non chiude.
+2. NON dare la roadmap completa. La roadmap si costruisce nella videocall strategica gratuita con Claudio. Il tuo report apre, non chiude.
 3. NON inventare dati. Se mancano elementi, dichiara "non ho elementi sufficienti per..." e procedi.
 4. NON usare statistiche economiche non verificabili (costo opportunità in €, percentuali, multipli).
 5. NON usare linguaggio motivazionale ("puoi farcela", "credi in te", "successo", "sogni").
@@ -84,11 +131,11 @@ DETECTION INCOERENZE (4 pattern, 1 frase nella sezione 1 se rilevi):
 - digitale=Avanzata AND competenza non-digitale → "Hai indicato esperienza online avanzata in un settore tradizionalmente offline: probabilmente hai già un sito o canale, è un vantaggio"
 - Q1 generico ("consulente", "coach" senza specifica) AND Q6 generico ("aiutare a crescere") → sezione 5 PRIMO punto: "Non hai ancora descritto nello specifico cosa fai. Frasi come [cita esattamente] sono il modo in cui parla chi è ancora all'inizio o non si è chiarito le idee"
 
-CTA per stato:
-- Stato 1: NIENTE CTA primaria 67€. CTA: "Iscriviti alla newsletter" + "Scarica la guida gratuita". CTA secondaria discreta in fondo: "Hai già le idee chiare? Richiedi comunque l'Analisi Strategica"
-- Stato 2: "Valida il tuo progetto — Analisi Strategica 67€. Per chi vuole evitare di sprecare 3 mesi su un'idea sbagliata."
-- Stato 3: "Costruisci la tua roadmap — Analisi Strategica 67€. 60 minuti con Claudio e il team Evolution PRO. Documento di sintesi entro 48h."
-- Stato 4: "Richiedi l'Analisi Strategica estesa — 67€. 90 minuti invece di 60 per progettare la struttura del tuo metodo. Con Claudio e il team Evolution PRO."
+CTA per stato (il passo successivo è sempre gratuito: niente prezzi nel report):
+- Stato 1: CTA: "Guarda la masterclass gratuita". CTA secondaria discreta in fondo: "Hai già le idee chiare? Prenota comunque la videocall strategica gratuita"
+- Stato 2: "Valida il tuo progetto — prenota la videocall strategica gratuita. Per chi vuole evitare di sprecare 3 mesi su un'idea sbagliata."
+- Stato 3: "Costruisci la tua roadmap — prenota la videocall strategica gratuita con Claudio: analizziamo insieme il tuo progetto."
+- Stato 4: "Progetta la struttura del tuo metodo — prenota la videocall strategica gratuita con Claudio e il team Evolution PRO."
 
 MAPPATURA tag_segment (scegli UNA delle 9):
 - "facilitatore costellazioni", "naturopata", "shiatsu", "yoga teacher" → segment_benessere
@@ -126,7 +173,7 @@ def _get_client() -> anthropic.Anthropic:
     api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
         raise MatteoServiceError("ANTHROPIC_API_KEY non configurata")
-    return anthropic.Anthropic(api_key=api_key)
+    return anthropic.Anthropic(api_key=api_key, timeout=120.0, max_retries=1)
 
 
 async def _resolve_system_prompt() -> str:
@@ -175,12 +222,14 @@ async def generate_report(
         payload_for_matteo["user_name"] = user_name
 
     user_message = (
-        "Genera il report per questo lead. Output JSON come da istruzioni.\n\n"
+        "Genera il report per questo lead chiamando lo strumento emit_report.\n\n"
         f"```json\n{json.dumps(payload_for_matteo, ensure_ascii=False, indent=2)}\n```"
     )
 
     try:
-        response = client.messages.create(
+        # In un thread: il client è sincrono e bloccherebbe l'unico worker.
+        response = await asyncio.to_thread(
+            client.messages.create,
             model=_MODEL,
             max_tokens=_MAX_TOKENS,
             system=[
@@ -193,6 +242,8 @@ async def generate_report(
             messages=[
                 {"role": "user", "content": user_message},
             ],
+            tools=[_EMIT_REPORT_TOOL],
+            tool_choice={"type": "tool", "name": "emit_report"},
         )
     except anthropic.BadRequestError as e:
         logger.error("[MATTEO] Bad request: %s", e)
@@ -204,23 +255,22 @@ async def generate_report(
     if not response.content:
         raise MatteoServiceError("Risposta vuota da Anthropic")
 
-    raw = response.content[0].text.strip()
-    json_str = _extract_json(raw)
-
-    try:
-        data = json.loads(json_str)
-    except json.JSONDecodeError as e:
-        logger.error("[MATTEO] JSON malformed: %s\nRaw: %s", e, raw[:500])
-        raise MatteoServiceError(f"JSON malformato dall'output Matteo: {e}") from e
-
-    if "error" in data:
-        # Caso input_too_sparse — non dovrebbe arrivare qui se backend valida
+    if getattr(response, "stop_reason", None) == "max_tokens":
         raise MatteoServiceError(
-            f"Matteo refused input: {data.get('error')} | "
-            f"missing: {data.get('missing_fields')}"
+            "Output Matteo troncato (max_tokens): alza MATTEO_MAX_TOKENS."
         )
 
-    # Validazione minimale output
+    # Structured output: leggo il blocco tool_use. `.input` è già un dict conforme
+    # allo schema del tool → nessun json.loads su testo libero, nessun JSON malformato.
+    tool_block = next(
+        (b for b in response.content if getattr(b, "type", None) == "tool_use"),
+        None,
+    )
+    if tool_block is None:
+        raise MatteoServiceError("Matteo non ha usato il tool emit_report")
+    data = dict(tool_block.input)
+
+    # Validazione minimale output (difesa in profondità sullo schema del tool)
     if "report_markdown" not in data or "tags" not in data:
         raise MatteoServiceError(f"Output Matteo mancante di campi obbligatori: {list(data.keys())}")
 
@@ -246,37 +296,3 @@ async def generate_report(
             "tag_segment_override": None,
         },
     }
-
-
-def _extract_json(text: str) -> str:
-    """
-    Estrai JSON ben-formato da output Matteo.
-    Gestisce intro/outro testuali (es. "Ecco il report:\\n```json\\n{...}\\n```").
-    """
-    # Rimuovi code fence se presente
-    if "```json" in text:
-        start = text.find("```json") + len("```json")
-        end = text.find("```", start)
-        if end != -1:
-            return text[start:end].strip()
-    if "```" in text:
-        start = text.find("```") + 3
-        end = text.find("```", start)
-        if end != -1:
-            return text[start:end].strip()
-
-    # Fallback: trova prima { e ultima } bilanciata
-    start = text.find("{")
-    if start == -1:
-        return text
-
-    depth = 0
-    for i in range(start, len(text)):
-        if text[i] == "{":
-            depth += 1
-        elif text[i] == "}":
-            depth -= 1
-            if depth == 0:
-                return text[start : i + 1]
-
-    return text[start:]

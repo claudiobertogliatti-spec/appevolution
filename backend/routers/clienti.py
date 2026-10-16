@@ -11,7 +11,14 @@ import os
 import stripe
 import asyncio
 
-router = APIRouter(prefix="/api/clienti", tags=["clienti"])
+# Vecchio flusso "Analisi Strategica €67" (ritirato). Chiuso agli estranei
+# dal 29/9/2026: registrava clienti con password in chiaro, convertiva in
+# partner "active" e lanciava l'LLM senza autenticazione. Si elimina del
+# tutto dopo l'export dei dati storici (decisione Claudio).
+from fastapi import Depends as _Depends
+from routers.ciak_admin import require_ciak_admin as _require_ciak_admin
+
+router = APIRouter(prefix="/api/clienti", tags=["clienti"], dependencies=[_Depends(_require_ciak_admin)])
 
 # Auth admin (role admin/superadmin) — riusa la dependency del router Ciak admin.
 from routers.ciak_admin import require_ciak_admin
@@ -500,7 +507,13 @@ async def get_clienti_stats():
 
 @router.post("/create-checkout-session")
 async def create_checkout_session(data: CheckoutRequest, request: Request):
-    """Create Stripe checkout session for €27 analysis"""
+    """Create Stripe checkout session for €27 analysis — RITIRATO.
+
+    L'analisi (Blueprint) è gratuita: il funnel porta alle 10 domande, nessun
+    pagamento. Endpoint neutralizzato (410) per eliminare il rischio di un
+    addebito €27 da vecchi link; la route /analisi-strategica redirige a /blueprint.
+    """
+    raise HTTPException(status_code=410, detail="Analisi gratuita: nessun checkout a pagamento.")
     if not stripe.api_key:
         raise HTTPException(status_code=500, detail="Stripe not configured")
     

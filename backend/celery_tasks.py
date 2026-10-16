@@ -428,11 +428,18 @@ Prodotto da Evolution PRO
         if self.request.retries < self.max_retries:
             raise self.retry(exc=e)
         
-        # Mark YouTube step as failed but don't fail entire job
-        run_async(get_db().pipeline_jobs.update_one(
-            {"job_id": job_id},
-            {"$set": {"steps.youtube_upload": f"failed: {str(e)}"}}
-        ))
+        # Mark YouTube step as failed but don't fail entire job.
+        # get_db() ritorna la tupla (client, db): senza unpack, `.pipeline_jobs`
+        # esplodeva (AttributeError) proprio qui, lasciando il job appeso in
+        # "uploading_youtube" invece di chiuderlo come completed_partial.
+        _yt_client, _yt_db = get_db()
+        try:
+            run_async(_yt_db.pipeline_jobs.update_one(
+                {"job_id": job_id},
+                {"$set": {"steps.youtube_upload": f"failed: {str(e)}"}}
+            ))
+        finally:
+            _yt_client.close()
         run_async(mark_job_completed(job_id, None, youtube_failed=True))
         raise
 
@@ -579,6 +586,7 @@ def check_stuck_video_pipelines():
     try:
         async def _check():
             from video_pipeline_task import process_partner_video
+            from services.video_retry_guard import attempts_exhausted, MAX_PIPELINE_ATTEMPTS
             client, db = get_db()
             now = datetime.now(timezone.utc)
             cutoff_hb = (now - timedelta(minutes=HEARTBEAT_DEAD_MINUTES)).isoformat()
@@ -593,20 +601,25 @@ def check_stuck_video_pipelines():
                     {"pipeline_heartbeat_at": {"$exists": True, "$lt": cutoff_hb}},
                     {"pipeline_heartbeat_at": {"$exists": False}, "updated_at": {"$lt": cutoff_old}},
                 ]
-            }, {"partner_id": 1, "video_pipeline_status": 1, "video_raw_url": 1, "pipeline_heartbeat_at": 1}).to_list(50)
+            }, {"partner_id": 1, "video_pipeline_status": 1, "video_raw_url": 1, "pipeline_heartbeat_at": 1,
+                "pipeline_attempts": 1, "pipeline_attempts_since": 1}).to_list(50)
 
             for doc_mc in stuck_mc:
                 pid = doc_mc["partner_id"]
                 old_status = doc_mc["video_pipeline_status"]
                 video_url = doc_mc.get("video_raw_url", "")
                 has_hb = bool(doc_mc.get("pipeline_heartbeat_at"))
-                can_retrigger = has_hb and bool(video_url)
+                exhausted = attempts_exhausted(doc_mc.get("pipeline_attempts"), doc_mc.get("pipeline_attempts_since"), now)
+                can_retrigger = has_hb and bool(video_url) and not exhausted
 
                 await db.masterclass_factory.update_one(
                     {"partner_id": pid},
                     {"$set": {
                         "video_pipeline_status": "queued" if can_retrigger else "error",
-                        "video_pipeline_error": f"[Auto-recovery] bloccata in '{old_status}' — {'retrigger' if can_retrigger else 'reset manuale necessario'}",
+                        "video_pipeline_error": (
+                            f"[Auto-recovery] bloccata in '{old_status}' — tetto di {MAX_PIPELINE_ATTEMPTS} tentativi raggiunto, serve intervento manuale"
+                            if exhausted else
+                            f"[Auto-recovery] bloccata in '{old_status}' — {'retrigger' if can_retrigger else 'reset manuale necessario'}"),
                         "pipeline_heartbeat_at": None,
                         "updated_at": datetime.now(timezone.utc).isoformat()
                     }}
@@ -638,12 +651,15 @@ def check_stuck_video_pipelines():
                     if not is_stuck:
                         continue
                     lk = f"lessons.{lid}"
-                    can_ret = bool(hb) and bool(video_url_vc)
+                    exhausted_vc = attempts_exhausted(lesson.get("pipeline_attempts"), lesson.get("pipeline_attempts_since"), now)
+                    can_ret = bool(hb) and bool(video_url_vc) and not exhausted_vc
                     await db.partner_videocorso.update_one(
                         {"partner_id": pid},
                         {"$set": {
                             f"{lk}.pipeline_status": "queued" if can_ret else "error",
-                            f"{lk}.pipeline_error": f"[Auto-recovery] bloccata in '{ls}'",
+                            f"{lk}.pipeline_error": (
+                                f"[Auto-recovery] bloccata in '{ls}' — tetto di {MAX_PIPELINE_ATTEMPTS} tentativi raggiunto, serve intervento manuale"
+                                if exhausted_vc else f"[Auto-recovery] bloccata in '{ls}'"),
                             f"{lk}.pipeline_heartbeat_at": None,
                             "updated_at": datetime.now(timezone.utc).isoformat()
                         }}
@@ -739,26 +755,34 @@ def send_analisi_welcome_email(self, user_id: str, cliente_id: str):
                     except Exception as e:
                         logger.warning(f"[CELERY] Systeme.io tag failed: {e}")
                 
-                # 2. Send Telegram notification
-                await send_telegram_notification(
-                    f"📧 *Email Benvenuto Analisi Inviata*\n\n"
-                    f"👤 {nome} {cognome}\n"
-                    f"📧 {email}\n"
-                    f"🔗 Booking disponibile: {booking_available.strftime('%d/%m/%Y %H:%M')}\n"
-                    f"✅ Tag Systeme.io aggiunti"
-                )
-                
-                # 3. Update database
-                await db.clienti_analisi.update_one(
-                    {"id": cliente_id},
-                    {"$set": {
-                        "email_benvenuto_inviata": True,
-                        "email_benvenuto_inviata_at": datetime.now(timezone.utc).isoformat(),
-                        "booking_available_at": booking_available.isoformat(),
-                        "booking_link": booking_link,
-                        "updated_at": datetime.now(timezone.utc).isoformat()
-                    }}
-                )
+                # 2. Send Telegram notification — la verità sull'invio, non "sempre ok".
+                if _ok:
+                    await send_telegram_notification(
+                        f"📧 *Email Benvenuto Analisi Inviata*\n\n"
+                        f"👤 {nome} {cognome}\n"
+                        f"📧 {email}\n"
+                        f"🔗 Booking disponibile: {booking_available.strftime('%d/%m/%Y %H:%M')}"
+                    )
+                else:
+                    await send_telegram_notification(
+                        f"⚠️ *Email Benvenuto Analisi NON inviata* (SMTP fallito)\n\n"
+                        f"👤 {nome} {cognome}\n"
+                        f"📧 {email}\n"
+                        f"➡️ Va reinviata a mano: il cliente ha pagato e non ha ricevuto il benvenuto."
+                    )
+
+                # 3. Update database. Il flag di INVIO si scrive SOLO se l'email e'
+                # partita davvero; i dati di booking sono calcolati, non un invio,
+                # quindi si salvano comunque.
+                _set = {
+                    "booking_available_at": booking_available.isoformat(),
+                    "booking_link": booking_link,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }
+                if _ok:
+                    _set["email_benvenuto_inviata"] = True
+                    _set["email_benvenuto_inviata_at"] = datetime.now(timezone.utc).isoformat()
+                await db.clienti_analisi.update_one({"id": cliente_id}, {"$set": _set})
                 
                 # 4. Log email
                 await db.email_logs.insert_one({
@@ -772,11 +796,11 @@ def send_analisi_welcome_email(self, user_id: str, cliente_id: str):
                     "systeme_tags": ["analisi_pagata", "welcome_analisi"]
                 })
                 
-                logger.info(f"[CELERY] Welcome email sent for {email}")
-                return True
+                logger.info(f"[CELERY] Welcome email {'sent' if _ok else 'FAILED'} for {email}")
+                return _ok
             finally:
                 client.close()
-        
+
         result = run_async(_send_email())
         return {"success": result, "user_id": user_id}
         
@@ -852,24 +876,29 @@ def send_analisi_48h_reminder(self, user_id: str, cliente_id: str):
                     except Exception as e:
                         logger.warning(f"[CELERY] Systeme.io reminder tag failed: {e}")
                 
-                # 2. Send Telegram notification to admin
-                await send_telegram_notification(
-                    f"⏰ *Reminder 48h Inviato*\n\n"
-                    f"👤 {nome}\n"
-                    f"📧 {email}\n"
-                    f"📞 Call NON ancora prenotata\n"
-                    f"🔗 Link: {booking_link}"
-                )
-                
-                # 3. Update database
-                await db.clienti_analisi.update_one(
-                    {"id": cliente_id},
-                    {"$set": {
-                        "reminder_48h_inviato": True,
-                        "reminder_48h_inviato_at": datetime.now(timezone.utc).isoformat(),
-                        "updated_at": datetime.now(timezone.utc).isoformat()
-                    }}
-                )
+                # 2. Send Telegram notification to admin — verità sull'invio.
+                if _ok:
+                    await send_telegram_notification(
+                        f"⏰ *Reminder 48h Inviato*\n\n"
+                        f"👤 {nome}\n"
+                        f"📧 {email}\n"
+                        f"📞 Call NON ancora prenotata\n"
+                        f"🔗 Link: {booking_link}"
+                    )
+                else:
+                    await send_telegram_notification(
+                        f"⚠️ *Reminder 48h NON inviato* (SMTP fallito)\n\n"
+                        f"👤 {nome}\n"
+                        f"📧 {email}\n"
+                        f"➡️ Da reinviare a mano."
+                    )
+
+                # 3. Update database — il flag di invio SOLO se l'email e' partita.
+                _set = {"updated_at": datetime.now(timezone.utc).isoformat()}
+                if _ok:
+                    _set["reminder_48h_inviato"] = True
+                    _set["reminder_48h_inviato_at"] = datetime.now(timezone.utc).isoformat()
+                await db.clienti_analisi.update_one({"id": cliente_id}, {"$set": _set})
                 
                 # 4. Log email
                 await db.email_logs.insert_one({
@@ -883,11 +912,11 @@ def send_analisi_48h_reminder(self, user_id: str, cliente_id: str):
                     "systeme_tags": ["reminder_48h_analisi"]
                 })
                 
-                logger.info(f"[CELERY] 48h reminder sent for {email}")
-                return True
+                logger.info(f"[CELERY] 48h reminder {'sent' if _ok else 'FAILED'} for {email}")
+                return _ok
             finally:
                 client.close()
-        
+
         result = run_async(_send_reminder())
         return {"success": result, "user_id": user_id}
         
@@ -1126,8 +1155,15 @@ def process_auto_approve_leads():
     - Ha email valida
     - Non ancora in sequenza
     - Outreach già approvato o in stato pending
+
+    ⛔ RITIRATA (9/9): la sequenza email €67 vende un'analisi ora GRATUITA con un
+    checkout €27 ritirato (410). No-op: non avvia più l'outbound €67. Le 4 email
+    (lead_sequence_email_*) restano come bozze legacy; riattivare solo con copy
+    nuova approvata (analisi gratuita → callback), non da qui.
     """
-    try:
+    logger.info("[CELERY] process_auto_approve_leads: sequenza email €67 ritirata — no-op")
+    return {"processed": 0, "reason": "sequenza_email_67_ritirata"}
+    try:  # pragma: no cover — codice legacy irraggiungibile dopo il return
         logger.info("[CELERY] Running auto-approve leads check")
         
         async def _process():
@@ -1622,21 +1658,31 @@ def daily_hot_leads_outreach(self, max_leads: int = 5):
                         # Crea task per VALENTINA
                         task_id = f"valentina_auto_{lead_id}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
                         
+                        # title/description espliciti: la coda approvazioni li
+                        # legge per mostrare il task. Senza, la card resta vuota e
+                        # l'admin non capisce cosa stia approvando.
+                        _score = lead.get("score_total", 0)
                         task_data = {
                             "id": task_id,
                             "type": "auto_outreach_lead",
                             "agent": "VALENTINA",
+                            "title": f"Outreach a {lead_name} (score {_score})",
+                            "description": (
+                                f"Contatta il lead hot {lead_name}"
+                                + (f" <{email}>" if email else "")
+                                + f", score {_score}, fonte {lead.get('source', 'sconosciuta')}."
+                            ),
                             "lead_id": lead_id,
                             "lead_name": lead_name,
                             "lead_email": email,
                             "lead_source": lead.get("source", "unknown"),
-                            "lead_score": lead.get("score_total", 0),
+                            "lead_score": _score,
                             "status": "pending",
                             "priority": "high",
                             "auto_triggered": True,
                             "created_at": datetime.now(timezone.utc).isoformat(),
                             "due_date": (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat(),
-                            "notes": f"Outreach automatico giornaliero - Lead hot score {lead.get('score_total', 0)}"
+                            "notes": f"Outreach automatico giornaliero - Lead hot score {_score}"
                         }
                         
                         await db.agent_tasks.insert_one(task_data)

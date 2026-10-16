@@ -26,6 +26,6 @@ def test_generation_never_auto_approves_outputs():
 
 def test_admin_ui_exposes_explicit_generate_and_approve_actions():
     source = (ROOT / "frontend" / "src" / "ciak" / "admin" / "pages" / "ConsegneStart.jsx").read_text(encoding="utf-8")
-    assert "Genera calendario 90 giorni" in source
+    assert "Genera ciclo contenuti 60 giorni" in source
     assert "Approva calendario" in source
     assert "Genera verifica readiness" in source

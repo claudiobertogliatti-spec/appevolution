@@ -2,6 +2,8 @@ import { useState } from "react";
 import { ArrowRight, LayoutDashboard, MessageCircle } from "lucide-react";
 import { LucaChat } from "../pages/LucaChat";
 import { StefaniaAdmin } from "../pages/StefaniaAdmin";
+import { AndreaChat } from "./AndreaChat";
+import { AgenteChat } from "./AgenteChat";
 
 function AgentAvatar({ agent, size = "lg" }) {
   const dim = size === "sm" ? "w-10 h-10" : "w-16 h-16";
@@ -59,6 +61,12 @@ function AgentChat({ room, onAuthExpired }) {
   if (room.agent.chat === "stefania") {
     return <StefaniaAdmin onAuthExpired={onAuthExpired} compact />;
   }
+  if (room.agent.chat === "andrea") {
+    return <AndreaChat onAuthExpired={onAuthExpired} />;
+  }
+  if (["carlo", "marco", "valentina"].includes(room.agent.chat)) {
+    return <AgenteChat agente={room.agent.chat} onAuthExpired={onAuthExpired} />;
+  }
   return <MiniCheckBox room={room} />;
 }
 
@@ -75,10 +83,10 @@ export function DepartmentMetricStrip({ metrics, values = {} }) {
   );
 }
 
-export function DepartmentRoomIntro({ room, onAuthExpired, metricValues = {} }) {
+export function DepartmentRoomIntro({ room, onAuthExpired, metricValues = {}, showHeading = true }) {
   return (
     <div className="space-y-5 mb-8">
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
+      {showHeading && <section className="rounded-xl border border-slate-200 bg-white p-5">
         <div className="flex items-start gap-4">
           <div className="mt-1 inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-slate-900 text-yellow-400">
             <LayoutDashboard className="h-5 w-5" />
@@ -86,12 +94,18 @@ export function DepartmentRoomIntro({ room, onAuthExpired, metricValues = {} }) 
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Reparto admin</p>
             <h1 className="text-3xl font-semibold leading-tight text-slate-900">{room.label}</h1>
-            <p className="mt-2 text-sm text-slate-500">
-              Agente di riferimento: <span className="font-semibold text-slate-700">{room.agent.name}</span>
-            </p>
+            {room.agenti?.length ? (
+              <p className="mt-2 text-sm text-slate-500">
+                Agenti: <span className="font-semibold text-slate-700">{room.agenti.join(", ")}</span>
+              </p>
+            ) : (
+              <p className="mt-2 text-sm text-slate-500">
+                Agente di riferimento: <span className="font-semibold text-slate-700">{room.agent.name}</span>
+              </p>
+            )}
           </div>
         </div>
-      </section>
+      </section>}
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,0.82fr)_minmax(360px,1.18fr)] gap-5">

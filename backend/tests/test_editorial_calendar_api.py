@@ -291,7 +291,7 @@ def _with_ready_review_resources(client, partner_token, calendar_version):
             "bonus_id": "bonus-authoritative-v1",
             "version": "bonus-v1",
             "name": "Sessione di orientamento",
-            "expires_at": "2026-10-01T23:59:59+02:00",
+            "expires_at": "2099-12-31T23:59:59+02:00",  # lontana: il controllo la confronta con l'ora attuale
         },
     }
     response = client.put(
@@ -1690,7 +1690,7 @@ def test_approve_never_attests_reserved_test_destinations(client, partner_token,
             "bonus_id": "bonus-authoritative-v1",
             "version": "bonus-v1",
             "name": "Sessione di orientamento",
-            "expires_at": "2026-10-01T23:59:59+02:00",
+            "expires_at": "2099-12-31T23:59:59+02:00",  # lontana: il controllo la confronta con l'ora attuale
         },
     }
     ready = client.put(

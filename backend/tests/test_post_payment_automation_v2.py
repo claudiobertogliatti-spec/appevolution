@@ -16,10 +16,11 @@ import os
 import uuid
 from datetime import datetime, timezone
 
-# Get BASE_URL from environment
+# Test di integrazione: colpisce un backend live. Senza REACT_APP_BACKEND_URL si
+# salta come gli altri (vedi conftest.py) invece di far fallire la raccolta dei test.
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    raise ValueError("REACT_APP_BACKEND_URL not set")
+    pytest.skip("richiede REACT_APP_BACKEND_URL (backend live)", allow_module_level=True)
 
 
 class TestStripeWebhook:

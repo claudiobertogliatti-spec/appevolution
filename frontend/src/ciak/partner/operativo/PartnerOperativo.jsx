@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState } from "react";
+import React, { lazy, Suspense, useEffect, useState } from "react";
 import { useJourneyState } from "./hooks/useJourneyState";
 import ProgressBar from "./ProgressBar";
 import PhaseAgentHeader from "./PhaseAgentHeader";
@@ -6,6 +6,11 @@ import GoLive21Banner from "./GoLive21Banner";
 import AgentDrawer from "./AgentDrawer";
 import Benvenuto from "./Benvenuto";
 import GuidedHome from "./GuidedHome";
+import { STEP_COPY } from "./JourneyMap";
+import { useSearchParams } from "react-router-dom";
+import SerenoHome from "../sereno/SerenoHome";
+import { useHelp } from "../sereno/SerenoHelp";
+import { PARTNER_SERENO_ENABLED } from "../sereno/feature";
 
 // Step components lazy-loaded — implementati in Phase 4
 const STEP_COMPONENTS = {
@@ -39,6 +44,8 @@ const WORKSPACE_COMPONENTS = {
   "ws1-masterclass": Workspace1Masterclass,
   "ws2-corso": Workspace2Corso,
   "ws3-vendita": Workspace3SistemaVendita,
+  // Lo step F-13 reale apre la nuova schermata "Il tuo funnel" (funnel fuori da Systeme).
+  "10-sistema-vendita": Workspace3SistemaVendita,
 };
 
 /**
@@ -47,8 +54,12 @@ const WORKSPACE_COMPONENTS = {
  * Drawer chat si apre al click "Chiedi →".
  */
 export default function PartnerOperativo({ partnerId, partnerName }) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { state, loading, error, completeStep, saveDraft, refresh } = useJourneyState(partnerId);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Con il nuovo layout la chat e' una sola (quella del bottone "Chiedi aiuto"): niente secondo cassetto.
+  const { openHelp } = useHelp();
+  const askHelp = () => (PARTNER_SERENO_ENABLED ? openHelp() : setDrawerOpen(true));
   // La home guidata e' la prima schermata reale del partner.
   // Il benvenuto resta ri-apribile dal pulsante "Rivedi il video di benvenuto".
   const [benvenutoSeen, setBenvenutoSeen] = useState(() => {
@@ -57,12 +68,30 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
   });
   // se !== null: si apre direttamente quello step (modifica step già done, o
   // deep-link "Vai allo step" dalla scheda admin via localStorage).
-  const [viewingStepId, setViewingStepId] = useState(() => {
+  const [legacyViewingStepId, setLegacyViewingStepId] = useState(() => {
     if (typeof window === "undefined") return null;
     const deepLink = localStorage.getItem("ciak_partner_initial_step");
     if (deepLink) localStorage.removeItem("ciak_partner_initial_step");
     return deepLink || null;
   });
+  const viewingStepId = PARTNER_SERENO_ENABLED ? searchParams.get('step') : legacyViewingStepId;
+  const setViewingStepId = (id) => {
+    if (!PARTNER_SERENO_ENABLED) { setLegacyViewingStepId(id); return; }
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous);
+      if (id) next.set('step', id); else next.delete('step');
+      return next;
+    });
+  };
+  useEffect(() => {
+    if (!PARTNER_SERENO_ENABLED || !legacyViewingStepId) return;
+    if (!searchParams.has('step')) {
+      const next = new URLSearchParams(searchParams);
+      next.set('step', legacyViewingStepId);
+      setSearchParams(next, { replace: true });
+    }
+    setLegacyViewingStepId(null);
+  }, [legacyViewingStepId, searchParams, setSearchParams]);
 
   if (loading) {
     return (
@@ -72,6 +101,7 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
     );
   }
   if (error) {
+    if (PARTNER_SERENO_ENABLED) return <section className="sereno-focus" role="alert"><h2>Non riusciamo ad aprire il percorso.</h2><p>{String(error).includes('AUTH_EXPIRED') ? 'Accedi di nuovo per continuare da questa pagina.' : 'Il caricamento non è riuscito. Riprova tra poco.'}</p><div className="sereno-actions"><button className="sereno-primary" onClick={() => String(error).includes('AUTH_EXPIRED') ? window.location.reload() : refresh()}>{String(error).includes('AUTH_EXPIRED') ? 'Accedi di nuovo' : 'Riprova'}</button></div></section>;
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center font-[Poppins,system-ui,sans-serif]">
         <div className="bg-white border border-gray-200 rounded-md p-6 text-center max-w-md">
@@ -82,6 +112,8 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
     );
   }
   if (!state) return null;
+  if (PARTNER_SERENO_ENABLED && viewingStepId && !WORKSPACE_COMPONENTS[viewingStepId] && !state.steps?.some(s => s.step_id === viewingStepId)) return <section className="sereno-focus"><h2>Questo passaggio non è disponibile.</h2><p>Torna alla Home per ritrovare l’attività corrente.</p><button className="sereno-primary" onClick={() => setViewingStepId(null)}>Torna a Oggi</button></section>;
+  if (PARTNER_SERENO_ENABLED && !viewingStepId) return <SerenoHome state={state} partnerName={partnerName} partnerId={partnerId} onOpenStep={setViewingStepId} />;
 
   // Deep-link ai Workspace della Fase Valida (pilota nuova architettura a 5 Workspace).
   const WorkspaceComp = viewingStepId ? WORKSPACE_COMPONENTS[viewingStepId] : null;
@@ -145,13 +177,17 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
   } else if (allDone) {
     StepComponent = OperativoContinuo;
   } else if (stepToShow) {
-    StepComponent = STEP_COMPONENTS[stepToShow.step_id];
+    // La fase Ottimizza continuativa vive in OperativoContinuo: mappiamo qui lo
+    // step di journey così non cade nel fallback "in preparazione".
+    StepComponent = stepToShow.step_id === "20-ottimizzazione"
+      ? OperativoContinuo
+      : STEP_COMPONENTS[stepToShow.step_id];
   }
 
   return (
     <div className="min-h-screen bg-slate-50 font-[Poppins,system-ui,sans-serif] text-slate-900">
       <div className="max-w-5xl mx-auto px-4 py-6">
-        {!allDone && !isBenvenuto && (
+        {!PARTNER_SERENO_ENABLED && !allDone && !isBenvenuto && (
           <GoLive21Banner
             stepStatus={stepToShow?.status}
             startDate={
@@ -172,7 +208,7 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
                 setViewingStepId(id);
                 if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              onAsk={() => setDrawerOpen(true)}
+              onAsk={askHelp}
               onReplayWelcome={() => {
                 try {
                   localStorage.removeItem(`ciak_benvenuto_seen_${partnerId}`);
@@ -194,7 +230,7 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
               </button>
             )}
 
-            {!isBenvenuto && (
+            {!PARTNER_SERENO_ENABLED && !isBenvenuto && (
               <ProgressBar
                 macroPhases={state.macro_phases}
                 steps={state.steps}
@@ -206,7 +242,7 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
               <PhaseAgentHeader
                 macroPhaseId={stepToShow.macro_phase}
                 partnerName={partnerName}
-                onAsk={() => setDrawerOpen(true)}
+                onAsk={askHelp}
                 variant={showFullWelcome ? "full" : "compact"}
                 onStart={() => {
                   if (typeof document !== "undefined") {
@@ -225,7 +261,7 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
                     step={stepToShow}
                     partnerId={partnerId}
                     partnerName={partnerName}
-                    onAsk={() => setDrawerOpen(true)}
+                    onAsk={askHelp}
                     onSaveDraft={(d) => stepToShow && saveDraft(stepToShow.step_id, d)}
                     onComplete={async (d) => {
                       if (!stepToShow) return;
@@ -241,8 +277,26 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
                   />
                 </Suspense>
               ) : (
-                <div className="bg-white border border-gray-200 rounded-md p-8 text-slate-500 text-center">
-                  Step "{stepToShow?.step_id}" non ancora implementato.
+                <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center">
+                  <span className="inline-block mb-3 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1">
+                    In preparazione
+                  </span>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    {STEP_COPY[stepToShow?.step_id]?.title || "Questo passo"}
+                  </h3>
+                  <p className="mt-2 text-slate-600 max-w-md mx-auto">
+                    {STEP_COPY[stepToShow?.step_id]?.desc
+                      ? STEP_COPY[stepToShow.step_id].desc + " "
+                      : ""}
+                    Il team sta completando questa parte del tuo percorso: la troverai
+                    qui a breve. Nel frattempo puoi proseguire con gli altri passi.
+                  </p>
+                  <button
+                    onClick={askHelp}
+                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-slate-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-slate-800 transition"
+                  >
+                    Chiedi aiuto all'assistente
+                  </button>
                 </div>
               )}
             </div>
@@ -250,12 +304,14 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
         )}
       </div>
 
-      <AgentDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        partnerId={partnerId}
-        currentStep={stepToShow}
-      />
+      {!PARTNER_SERENO_ENABLED && (
+        <AgentDrawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          partnerId={partnerId}
+          currentStep={stepToShow}
+        />
+      )}
     </div>
   );
 }

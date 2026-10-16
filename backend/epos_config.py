@@ -27,7 +27,7 @@ PRICING_CONFIG = {
         "descrizione": "Analisi Strategica Personalizzata (21 sezioni)"
     },
     "partnership": {
-        "prezzo": 2790,
+        "prezzo": 2990,
         "valuta": "EUR",
         "descrizione": "Partnership Evolution PRO (12 mesi)"
     },
@@ -103,7 +103,7 @@ SPOILER_CONFIG = {
 }
 
 # ============================================================================
-# PROTOCOLLO 3: PARTNERSHIP OPERATIVA (2.790€ + 10% FEE)
+# PROTOCOLLO 3: PARTNERSHIP OPERATIVA (2.990€ + 10% FEE)
 # ============================================================================
 
 FASI_PARTNERSHIP = [

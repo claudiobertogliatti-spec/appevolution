@@ -38,6 +38,9 @@ export function ListaFredda({ onAuthExpired }) {
   const [exporting, setExporting] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  // Errore di caricamento mostrato al posto della tabella: senza, un 403 (es.
+  // account commerciale) lasciava l'archivio "vuoto" senza spiegazione.
+  const [loadError, setLoadError] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -46,6 +49,7 @@ export function ListaFredda({ onAuthExpired }) {
   const loadData = async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       const statsRes = await adminFetch("/api/lista-fredda/stats");
       setStats(await statsRes.json());
 
@@ -55,6 +59,7 @@ export function ListaFredda({ onAuthExpired }) {
       setLeads(leadsData.leads || []);
     } catch (err) {
       if (err.message === "AUTH_EXPIRED") onAuthExpired();
+      else setLoadError(err.message || "Errore nel caricamento della lista fredda.");
     } finally {
       setLoading(false);
     }
@@ -75,6 +80,7 @@ export function ListaFredda({ onAuthExpired }) {
       window.URL.revokeObjectURL(url);
     } catch (err) {
       if (err.message === "AUTH_EXPIRED") onAuthExpired();
+      else toast.error(err.message || "Errore nell'esportazione.");
     } finally {
       setExporting(false);
     }
@@ -228,6 +234,10 @@ export function ListaFredda({ onAuthExpired }) {
                   <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" />
                   Caricamento...
                 </td>
+              </tr>
+            ) : loadError ? (
+              <tr>
+                <td colSpan={7} role="alert" className="text-center py-8 text-sm font-medium text-red-700">{loadError}</td>
               </tr>
             ) : filteredLeads.length === 0 ? (
               <tr>

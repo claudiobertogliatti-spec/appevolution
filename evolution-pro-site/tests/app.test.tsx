@@ -24,11 +24,11 @@ describe('homepage shell', () => {
     expect(screen.getAllByRole('main')).toHaveLength(1);
   });
 
-  it('propone la masterclass gratuita su Ciak', () => {
+  it("propone l'analisi gratuita su Ciak", () => {
     render(<App />);
 
-    for (const link of screen.getAllByRole('link', { name: /masterclass gratuita/i })) {
-      expect(link).toHaveAttribute('href', 'https://www.ciak.io/masterclass');
+    for (const link of screen.getAllByRole('link', { name: /analisi gratuita/i })) {
+      expect(link).toHaveAttribute('href', 'https://www.ciak.io/analisi');
     }
   });
 

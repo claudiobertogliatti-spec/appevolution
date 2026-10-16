@@ -25,8 +25,10 @@ import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { MessageCircle, Send, Loader2 } from "lucide-react";
+import { ContractBody } from "../components/ContractBody";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
+import { PRICING } from "../pricing";
 
 const FASI = [
   { num: 1, titolo: "Esamina", desc: "Settimana 1. Mettiamo ordine in identità, posizionamento, offerta e priorità. La roadmap diventa un piano operativo chiaro." },
@@ -99,6 +101,13 @@ export function CiakProposta() {
       if (res.status === 410) { setError("scaduta"); setLoading(false); return; }
       if (!res.ok) throw new Error("Errore caricamento");
       const data = await res.json();
+      // Vecchi link: chi non ha ancora iniziato (né accettato, né firmato, né pagato) e non
+      // rientra da Stripe vede la pagina post-call personalizzata sul Blueprint. Il flusso
+      // di firma/pagamento/documenti resta qui: Stripe rientra su /proposta/:token.
+      if (!data.pagamento_completato && !data.contratto_firmato_at && !data.accettato_at && !searchParams.get("pagamento")) {
+        window.location.replace(`/insider/${encodeURIComponent(token)}`);
+        return;
+      }
       setProposta(data);
       if (data.pagamento_completato) setStep("conferma");
       else if (data.contratto_firmato_at) setStep("pagamento");
@@ -150,9 +159,17 @@ export function CiakProposta() {
         headers: { "Content-Type": "application/json" },
       });
       const data = await res.json();
-      if (data.checkout_url) window.location.href = data.checkout_url;
+      if (!res.ok) {
+        if (data?.detail?.code === "BUSINESS_DECLARATION_REQUIRED") {
+          window.location.href = `/insider/${encodeURIComponent(token)}`;
+          return;
+        }
+        throw new Error(data?.detail?.message || (typeof data?.detail === "string" ? data.detail : "Pagamento non disponibile"));
+      }
+      if (!data.checkout_url) throw new Error("Pagamento non disponibile");
+      window.location.href = data.checkout_url;
     } catch (e) {
-      toast.error("Errore avvio pagamento");
+      toast.error(e.message || "Errore avvio pagamento");
     }
   };
 
@@ -211,7 +228,7 @@ export function CiakProposta() {
   if (error) return <ErrorScreen type="generic" />;
   if (!proposta) return null;
 
-  const corrispettivo = proposta.contract_params?.corrispettivo || 2790;
+  const corrispettivo = proposta.contract_params?.corrispettivo || PRICING.partnership.cents / 100;
   const corrisFormat = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(corrispettivo);
 
   return (
@@ -591,7 +608,7 @@ export function CiakProposta() {
 /**
  * Floating chatbot di assistenza contrattuale per il flusso pre-pagamento.
  * Backend: POST /api/contract/chat (Claude Haiku 4.5, FAQ pre-cablate su
- * LLC americana, Revolut, reverse charge, rimborso, esclusiva, €2.790+10%).
+ * LLC americana, Revolut, reverse charge, rimborso, esclusiva, €2.990+10%).
  * Endpoint pubblico, non richiede auth — usa partner_id dalla proposta.
  */
 function ContractChat({ partnerId }) {
@@ -652,7 +669,7 @@ function ContractChat({ partnerId }) {
     "Cosa significa reverse charge?",
     "Posso avere un rimborso?",
     "In cosa consiste l'esclusiva?",
-    "Pago €2.790 E il 10%?",
+    "Pago €2.990 E il 10%?",
   ];
 
   if (!open) {
@@ -875,8 +892,10 @@ function ContrattoInline({ proposta, onFirma, firmato }) {
         <h2 className="font-semibold text-lg">Contratto di Partnership</h2>
         <p className="text-slate-400 text-sm">Leggi attentamente e firma in basso.</p>
       </div>
-      <div className="p-6 max-h-[500px] overflow-y-auto text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
-        {contractText || "Caricamento testo contratto…"}
+      <div className="px-6 md:px-8 py-6 max-h-[68vh] overflow-y-auto">
+        {contractText
+          ? <ContractBody text={contractText} />
+          : <p className="text-sm text-slate-400">Caricamento testo contratto…</p>}
       </div>
       <div className="border-t border-gray-200 p-6 bg-gray-50">
         <label className="flex items-start gap-3 mb-6 cursor-pointer">

@@ -89,7 +89,7 @@ def test_inspect_partner_clean():
     hub = {
         "partner_id": "100",
         "offerName": "Mastery PRO",
-        "offerPrice": "2790",
+        "offerPrice": "2990",
         "updated_at": "2026-07-19T10:00:00Z"
     }
     issues = inspect_partner_issues(clean_partner, hub)

@@ -10,8 +10,8 @@
  * Ogni sotto-pagina mostra in cima un tasto "← Torna a [Sezione]" che riporta
  * alla home della sezione (la pagina-reparto con le macro-finestre).
  *  - Dashboard    (Luca)      → Oggi · Cabina di Regia
- *  - Acquisizione (Luca)      → New Lead · Lista Fredda · Pipeline · Campagne Ads · Calendario Editoriale
- *  - Vendite      (Gaia)      → Ciak Blueprint · Analisi da validare · Call di vendita · Trattative OK · Trattative KO
+ *  - Acquisizione (Luca)      → Contatti · Lead in arrivo · Campagne Ads · Calendario Editoriale
+ *  - Vendite      (Marco)     → Ciak Blueprint · Analisi da validare · Call di vendita · Trattative OK · Trattative KO
  *  - Delivery     (Stefania)  → Pipeline Partner · Quarantena · Ex Partner · File · Masterclass · Video Lezioni · Calendario editoriale · Campagne ADV · KPI Partner
  *  - Casi studio  (Andrea)    → Casi studio                            [link diretto, 1 pagina]
  *  - Back office  (Valentina) → Pagamenti · Fatture · Date contratti · Servizi extra
@@ -25,37 +25,60 @@
  *
  * Auth: role `admin` via /api/auth/login. Token in localStorage `ciak_admin_token`.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { matchesAdminPath, filterDepartmentPages } from "./navigationMatch";
 import { Routes, Route, NavLink, Link, Navigate, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowRight,
   BarChart3,
   BriefcaseBusiness,
   ClipboardCheck,
+  Clock,
   CreditCard,
+  Handshake,
   LayoutDashboard,
   LogOut,
   Megaphone,
+  Menu,
+  Search,
+  UserCheck,
+  UserPlus,
   Users,
+  X,
 } from "lucide-react";
+import { useDrawer } from "./components/useDrawer";
+import { SezioneNav } from "./components/SezioneNav";
+import { trovaSezione } from "./sezioneModel";
+import { CercaPalette } from "./components/CercaPalette";
 import { DepartmentRoomIntro } from "./components/DepartmentRoom";
-import { getDepartmentRoom } from "./departmentRooms";
+import { DeliveryQueue, VenditeQueue, BackOfficeQueue } from "./components/DepartmentQueue";
+import { AcquisizioneQueue } from "./components/AcquisizioneQueue";
+import { getDepartmentRoom, DEPARTMENT_ROOMS } from "./departmentRooms";
+import { OggiSharedProvider, useOggiShared } from "./components/OggiShared";
+import { daSollecitare } from "./nuovaHomeModel";
 import { useRepartoMetrics } from "./repartoMetrics";
 import { getToken, getAdminUser, clearSession, login } from "./api";
 import { AdminLeads } from "./pages/AdminLeads";
 import { AdminLeadDetail } from "./pages/AdminLeadDetail";
 import { AdminTransactions } from "./pages/AdminTransactions";
-import { LeadManager } from "./pages/LeadManager";
 import { ListaFredda } from "./pages/ListaFredda";
 import { ClientiAnalisi } from "./pages/ClientiAnalisi";
 import { ClientiCiak } from "./pages/ClientiCiak";
 import { PartnerHub } from "./pages/PartnerHub";
+import { CodaLezioni } from "./pages/CodaLezioni";
 import { DeliveryAudit } from "./pages/DeliveryAudit";
 import { Approvazioni } from "./pages/Approvazioni";
 import { StefaniaAdmin } from "./pages/StefaniaAdmin";
 import { TemplateEmail } from "./pages/TemplateEmail";
-import { PipelineList } from "./pages/PipelineList";
-import { PipelineAcquisizione } from "./pages/PipelineAcquisizione";
+import { TrattativePipeline } from "./pages/TrattativePipeline";
+import { AcquisizionePipelineProspect } from "./pages/AcquisizionePipelineProspect";
+import { AcquisizioneCommandCenter } from "./pages/AcquisizioneCommandCenter";
+import { AcquisizionePanoramica } from "./pages/AcquisizionePanoramica";
+import { VenditePanoramica } from "./pages/VenditePanoramica";
+import { VenditeCatalogo } from "./pages/VenditeCatalogo";
+import { DeliveryPanoramica } from "./pages/DeliveryPanoramica";
+import { AcquisizioneEditoriale } from "./pages/AcquisizioneEditoriale";
+import { AcquisizioneScript } from "./pages/AcquisizioneScript";
 import { AcqCampaignsPage } from "./pages/AcqCampaignsPage";
 import { QuarantenaPartner } from "./pages/QuarantenaPartner";
 import { ExPartner } from "./pages/ExPartner";
@@ -67,24 +90,36 @@ import { CalendarioEditoriale } from "./pages/CalendarioEditoriale";
 import { ServiziExtraAdmin } from "./pages/ServiziExtraAdmin";
 import { AgentDashboard } from "./pages/AgentDashboard";
 import { CabinaRegia } from "./pages/CabinaRegia";
+import { AdminHome } from "./pages/AdminHome";
+import { PersonaHome } from "./pages/PersonaHome";
 import { SimulatoreFatturato } from "./pages/SimulatoreFatturato";
 import { MasterclassReview } from "./pages/MasterclassReview";
 import { SystemHealth } from "./pages/SystemHealth";
 import { MetrichePostLancio } from "./pages/MetrichePostLancio";
 import { PartnerSalesEngine } from "./pages/PartnerSalesEngine";
 import { MatteoKBEditor } from "./pages/MatteoKBEditor";
+import { MemoriaCiak } from "./pages/MemoriaCiak";
+import { NuovaHome } from "./pages/NuovaHome";
+import { Contenuti } from "./pages/Contenuti";
 import { AnalisiPromptEditor } from "./pages/AnalisiPromptEditor";
 import { MasterclassAnalytics } from "./pages/MasterclassAnalytics";
 import { SiteConfig } from "./pages/SiteConfig";
 import { PartnerSetupPending } from "./pages/PartnerSetupPending";
 import { ConsegneMancate } from "./pages/ConsegneMancate";
 import { ConsegneStart } from "./pages/ConsegneStart";
+import { LeadHub } from "./pages/LeadHub";
+import { PipelineStart } from "./pages/PipelineStart";
+import { SchedaStart } from "./pages/SchedaStart";
+import { RisultatiFinali } from "./pages/RisultatiFinali";
 import { AnalisiDaValidare } from "./pages/AnalisiDaValidare";
 import { AntonellaDashboard } from "./pages/AntonellaDashboard";
 import { AntonellaOggi } from "./pages/AntonellaOggi";
 import { Fatture } from "./pages/Fatture";
 import { Amministrazione } from "./pages/Amministrazione";
 import { Collaboratori } from "./pages/Collaboratori";
+import { ConsegnaManuale } from "./pages/ConsegnaManuale";
+import { ListinoPrezzi } from "./pages/ListinoPrezzi";
+import { CollaudoCheckout } from "./pages/CollaudoCheckout";
 import {
   AcquisizioneCalendarioHub,
   CasiStudio,
@@ -101,97 +136,121 @@ import {
 // Riferimento"). `landing: true` → il click sulla sezione apre la pagina-reparto
 // con grandi card cliccabili (nessun menu a tendina). hideFor nasconde la macro
 // alla vista Antonella. Ogni pagina ha un `desc` breve usato nelle card.
-const NAV = [
+// Fuori dal menu ma ancora raggiungibili da URL (route tecniche, non lavoro quotidiano):
+//  /admin/listino-prezzi (sostituito dal Catalogo) · /admin/collaudo-checkout (runbook
+//  del collaudo pagamenti). Le voci con lo stesso nome in due reparti sono vietate:
+//  Acquisizione = contenuti e campagne di Ciak, Delivery = quelli dei partner.
+/** Redirect che conserva la query (?apri=importa ...) dei vecchi link. */
+function RedirectKeepSearch({ to }) {
+  const { search } = useLocation();
+  return <Navigate to={`${to}${search}`} replace />;
+}
+
+export const NAV = [
   // ── DASHBOARD · Luca ───────────────────────────────────────────────────
   {
     id: "dashboard",
-    label: "Dashboard",
-    agente: "Luca",
-    to: "/admin",
+    label: "Direzione",
+    agenti: ["Luca"],
+    to: "/admin/direzione",
     end: true,
+    // Mariangela (account commerciale) lavora solo in Acquisizione: il backend
+    // le nega il resto (routers/ciak_admin.py, scope commerciale).
+    hideFor: ["mariangela"],
     pages: [],
   },
-  // ── ACQUISIZIONE · Luca ── dal freddo al €27 ───────────────────────────
+  // ── ACQUISIZIONE · Luca ── dal freddo al Blueprint ─────────────────────
   {
     id: "acquisizione",
     label: "Acquisizione",
-    agente: "Luca",
+    agenti: ["Carlo", "Andrea"],
     landing: true,
     hideFor: ["antonella"],
     pages: [
-      { to: "/admin/lead-manager", label: "New Lead", desc: "20 contatti mirati al giorno per alimentare Acquisizione Evolution" },
-      { to: "/admin/lista-fredda", label: "Lista Fredda", desc: "Archivio congelato: niente email massive, solo audience e analisi" },
-      { to: "/admin/pipeline", label: "Acquisizione Evolution", desc: "Progetto pilota madre: Blueprint, call, recuperi e target 3/4" },
+      { to: "/admin/pipeline", label: "Contatti", desc: "Chi contattare oggi: ricerca, nuovo lead, importa, \"Da Systeme\" e scheda di lavorazione" },
+      { to: "/admin/leads", label: "Lead in arrivo", desc: "Chi si e' iscritto o ha fatto il questionario: stato, tappe e scheda completa" },
       { to: "/admin/acq-campagne-ads", label: "Campagne Ads", desc: "Acceleratore da usare dopo la validazione organica/manuale" },
       { to: "/admin/acq-calendario", label: "Calendario Editoriale", desc: "Contenuti Claudio per generare conversazioni e Blueprint" },
+      { to: "/admin/acquisizione-editoriale", label: "Editoriale", desc: "Caroselli con l'AI: obiettivi del mese, contenuti da approvare e pubblicare" },
+      { to: "/admin/acquisizione-script", label: "Script", desc: "La procedura di acquisizione su LinkedIn, con gli script da copiare" },
     ],
   },
-  // ── VENDITE · Gaia ── dal €27 alla firma (stadi separati) ──────────────
+  // ── VENDITE · Marco ── dal Blueprint alla firma (assorbe "Acquisizione e vendita":
+  //    Listino entra qui; Collaudo checkout resta route
+  //    tecnica via URL, fuori dal lavoro quotidiano — audit #1 + strategia).
+  //    Responsabile = Marco (accountability/follow-up); Gaia resta al Supporto Tecnico. ──
   {
     id: "vendite",
     label: "Vendite",
-    agente: "Gaia",
+    agenti: ["Marco", "Carlo"],
     landing: true,
-    hideFor: ["antonella"],
+    hideFor: ["antonella", "mariangela"],
     pages: [
-      { to: "/admin/pipeline-blueprint", label: "Ciak Blueprint", desc: "Chi ha pagato i €27 — analisi acquistata" },
-      { to: "/admin/clienti-ciak", label: "Clienti Ciak", desc: "Blueprint, Start e upgrade verso Partnership" },
+      { to: "/admin/trattative", label: "Trattative", desc: "Pipeline dopo il Blueprint in un'unica vista a tab: Blueprint, Call, In trattativa, OK" },
       { to: "/admin/analisi-da-validare", label: "Analisi da validare", desc: "Report diagnostici da validare prima della call" },
-      { to: "/admin/vendite-call", label: "Call di vendita", desc: "Call prenotate e call fatte" },
-      { to: "/admin/vendite-trattativa", label: "In trattativa", desc: "Proposte inviate, viste o accettate" },
-      { to: "/admin/vendite-ok", label: "Trattative OK", desc: "Contratti firmati e pagati — nuovi partner" },
-      { to: "/admin/vendite-ko", label: "Trattative KO", desc: "Trattative chiuse senza esito" },
+      { to: "/admin/consegna-manuale", label: "Invia il Blueprint", desc: "Invia il Blueprint a un cliente fuori-funnel (PDF già pronto) + accesso alla sales page" },
+      { to: "/admin/vendite-ko", label: "Trattative perse", desc: "Trattative chiuse senza esito" },
+      { to: "/admin/clienti-ciak", label: "Account Ciak", desc: "Tutti gli account: chi ha solo il Blueprint gratuito e chi ha comprato Start o la Partnership" },
+      { to: "/admin/catalogo", label: "Catalogo", desc: "Il catalogo completo dei servizi, con le descrizioni ufficiali" },
     ],
   },
   // ── DELIVERY · Stefania ── dalla firma al LIVE (partner-facing) ────────
   {
     id: "delivery",
     label: "Delivery",
-    agente: "Simona",
+    agenti: ["Simona", "Valentina", "Andrea", "Marco"],
     landing: true,
-    pages: [
-      { to: "/admin/consegne-start", label: "Consegne Start", desc: "Le 3 tappe datate promesse per iscritto a ogni cliente Ciak Start" },
-      { to: "/admin/partner", label: "Pipeline Partner", desc: "Kanban delle 3 fasi EVO dei partner attivi" },
-      { to: "/admin/delivery-audit", label: "Audit Delivery", desc: "Stato reale percorso EVO: offerta, videocorso, funnel, blocchi" },
-      { to: "/admin/motore-vendite-partner", label: "Motore Vendite Partner", desc: "Setup Systeme, KPI e prime vendite per ogni partner" },
-      { to: "/admin/quarantena-partner", label: "Quarantena", desc: "Partner in pausa o a rischio" },
-      { to: "/admin/ex-partner", label: "Ex Partner", desc: "Partner usciti dal percorso" },
-      { to: "/admin/documenti-partner", label: "File", desc: "Documenti e file caricati dai partner" },
-      { to: "/admin/delivery-masterclass", label: "Masterclass", desc: "Produzione masterclass dei partner" },
-      { to: "/admin/delivery-lezioni", label: "Video Lezioni", desc: "Produzione lezioni del videocorso" },
-      { to: "/admin/calendario-editoriale", label: "Calendario editoriale", desc: "Piano contenuti dei partner live" },
-      { to: "/admin/campagne-ads", label: "Campagne ADV", desc: "Gestione campagne pubblicitarie dei partner" },
-      { to: "/admin/metriche", label: "KPI Partner", desc: "Metriche post-lancio dei partner" },
-    ],
-  },
-  // ── CASI STUDIO · Andrea ── prova sociale che alimenta il funnel ───────
-  {
-    id: "casi-studio",
-    label: "Casi studio",
-    agente: "Andrea",
-    landing: true,
-    hideFor: ["antonella"],
-    pages: [
-      { to: "/admin/casi-studio", label: "Casi studio", desc: "Prova sociale: risultati dei partner per il funnel" },
+    hideFor: ["mariangela"],
+    // 12 funzioni raccolte in 4 gruppi chiari (stile Poste). Nessuna rimossa.
+    groups: [
+      { title: "Partner", pages: [
+        { to: "/admin/partner", label: "Partner", desc: "Kanban delle 3 fasi EVO dei partner attivi" },
+        { to: "/admin/motore-vendite-partner", label: "Vendite dei partner", desc: "Setup Systeme, KPI e prime vendite per ogni partner" },
+        { to: "/admin/quarantena-partner", label: "Partner in pausa", desc: "Partner in pausa o a rischio" },
+        { to: "/admin/ex-partner", label: "Partner usciti", desc: "Partner usciti dal percorso" },
+      ] },
+      { title: "Materiali e video", pages: [
+        { to: "/admin/documenti-partner", label: "File", desc: "Documenti e file caricati dai partner" },
+        { to: "/admin/coda-lezioni", label: "Coda lezioni", desc: "Lezioni montate da controllare e caricare su Systeme, con il piano di oggi dentro le ore concordate" },
+        { to: "/admin/video-review", label: "Video da approvare", desc: "Coda unica: masterclass + lezioni da revisionare e approvare, con filtro e monitor tecnico" },
+        { to: "/admin/risultati-finali", label: "Siti e funnel da guardare", desc: "Il lavoro finito da guardare: siti vetrina Start e funnel dei partner in anteprima" },
+      ] },
+      { title: "Contenuti e percorso", pages: [
+        { to: "/admin/start", propria: true, fuoriBarra: true, label: "Clienti Start", desc: "Tutti i clienti Start in colonne: a che punto sono e cosa tocca a te. Un clic apre il loro account" },
+        { to: "/admin/consegne-start", fuoriBarra: true, label: "Scadenze Start", desc: "Le 3 tappe datate promesse per iscritto a ogni cliente Ciak Start" },
+        { to: "/admin/delivery-audit", label: "Stato del percorso", desc: "Stato reale percorso EVO: offerta, videocorso, funnel, blocchi" },
+        { to: "/admin/calendario-editoriale", label: "Calendario partner", desc: "Piano contenuti dei partner live" },
+        { to: "/admin/campagne-ads", label: "Campagne partner", desc: "Gestione campagne pubblicitarie dei partner" },
+      ] },
+      { title: "Risultati", pages: [
+        { to: "/admin/metriche", label: "Numeri dei partner", desc: "Metriche post-lancio dei partner" },
+        { to: "/admin/casi-studio", label: "Casi studio", desc: "Prova sociale: casi studio dei partner per il funnel" },
+      ] },
     ],
   },
   // ── BACK OFFICE · Valentina ── soldi e contratti ──────────────────────
   {
     id: "back-office",
     label: "Back office",
-    agente: "Valentina",
+    agenti: ["Valentina"],
     landing: true,
-    hideFor: ["antonella"],
+    hideFor: ["antonella", "mariangela"],
     pages: [
       { to: "/admin/amministrazione", label: "Amministrazione", desc: "Obiettivo del mese, scadenze e crediti da recuperare" },
       { to: "/admin/transactions", label: "Pagamenti", desc: "Transazioni e incassi" },
       { to: "/admin/fatture", label: "Fatture", desc: "Genera e scarica le fatture di cortesia" },
       { to: "/admin/collaboratori", label: "Collaboratori", desc: "Ore approvate, accordi mensili e pagamenti operativi" },
-      { to: "/admin/date-contratti", label: "Date contratti", desc: "Scadenze e rinnovi contrattuali" },
+      { to: "/admin/date-contratti", label: "Scadenze contratti", desc: "Scadenze e rinnovi contrattuali" },
       { to: "/admin/servizi-extra", label: "Servizi extra", desc: "Upsell e servizi aggiuntivi" },
     ],
   },
 ];
+
+// Andrea (Contenuti) non ha un reparto nel menu classico: ha la sua voce solo nella colonna con
+// le facce. Fuori da NAV di proposito: il menu di tutti gli altri non cambia.
+export const PAGINE_DI_ANDREA = ["/admin/acquisizione-editoriale", "/admin/acq-calendario"];
+
+export const VOCE_CONTENUTI = { id: "casi-studio", label: "Contenuti", to: "/admin/contenuti" };
 
 const MACRO_ICONS = {
   dashboard: LayoutDashboard,
@@ -201,6 +260,18 @@ const MACRO_ICONS = {
   "casi-studio": ClipboardCheck,
   "back-office": CreditCard,
 };
+
+// Accessi diretti "per persona", sopra i reparti: le tre cose che si cercano di
+// piu'. Non sono voci nuove: puntano a pagine che gia' esistono (e restano anche
+// nel loro reparto). Lead = il percorso del lead in una pagina (Contatti, Lead in arrivo, call, trattative); Clienti =
+// clienti Start in colonne; Partner = pipeline partner (Delivery).
+// hideFor come per i reparti: Mariangela vede solo i lead, Antonella solo clienti
+// e partner.
+const QUICK = [
+  { to: "/admin/lead", label: "Lead", Icon: UserPlus, hideFor: ["antonella"] },
+  { to: "/admin/start", label: "Clienti", Icon: UserCheck, hideFor: ["mariangela"] },
+  { to: "/admin/partner", label: "Partner", Icon: Handshake, hideFor: ["mariangela"] },
+];
 
 // Pagine di una macro (gestisce sia `pages` flat sia eventuali `groups`).
 function macroPages(macro) {
@@ -213,28 +284,6 @@ function macroTarget(macro) {
   if (macro.to) return macro.to;
   if (macro.landing) return `/admin/reparto/${macro.id}`;
   return macroPages(macro)[0].to;
-}
-
-// Una pagina "possiede" una path se è esattamente quella o un suo sotto-path.
-// Evita che to="/admin/pipeline" catturi "/admin/pipeline-blueprint".
-function pageOwns(pathname, p) {
-  if (p.end) return pathname === p.to;
-  return pathname === p.to || pathname.startsWith(p.to + "/");
-}
-
-// Data una path, trova la sezione (macro landing) a cui appartiene, per il
-// tasto "Indietro". Esclude il root /admin e le pagine-reparto (le home).
-function sectionLandingFor(pathname) {
-  if (pathname === "/admin") return null;
-  if (pathname.startsWith("/admin/reparto/")) return null;
-  for (const macro of NAV) {
-    if (!macro.landing) continue;
-    if (macroPages(macro).some((p) => pageOwns(pathname, p))) {
-      if (macro.to && pathname === macro.to) return null;
-      return { to: macro.to || `/admin/reparto/${macro.id}`, label: macro.label };
-    }
-  }
-  return null;
 }
 
 // ─── Login ───────────────────────────────────────────────────────────────
@@ -302,8 +351,79 @@ function LoginScreen({ onLogin }) {
 
 // ─── Sidebar a macro-voci (click → pagina-reparto, niente flyout) ────────
 
-function MacroItem({ macro, currentPath }) {
+// Responsabili del reparto = solo gli agenti AI ("Agenti: X, Y"). Le persone non
+// compaiono: il lavoro lo fa Claudio, e i nomi di facciata confondevano (4/10).
+function MacroRoster({ macro, cls }) {
+  const agenti = macro.agenti || [];
+  if (!agenti.length) return null;
+  return <span className={cls}>Agenti: {agenti.join(", ")}</span>;
+}
+
+// Menu con la faccia dell'agente al posto dell'icona (anteprima del 12/10/2026, solo Claudio).
+// Spento con localStorage `ciak_admin_sidebar_facce` = "0". Se il reparto non ha un agente
+// con la foto resta l'icona: mai la faccia sbagliata.
+export function sidebarConFacce(adminType) {
+  if (adminType !== "claudio") return false;
+  try {
+    return window.localStorage.getItem("ciak_admin_sidebar_facce") !== "0";
+  } catch {
+    return true;
+  }
+}
+
+// Marcatore + testo di una voce. Con le facce: foto, nome dell'agente, reparto sotto.
+export function MacroLabel({ macro, Icon, facce, badge = null }) {
+  const agente = facce ? DEPARTMENT_ROOMS[macro.id]?.agent : null;
+  if (agente?.avatar) {
+    return (
+      <>
+        <img
+          src={agente.avatar}
+          alt=""
+          width={44}
+          height={44}
+          className="w-11 h-11 rounded-full object-cover flex-shrink-0 bg-slate-200"
+        />
+        <span className="min-w-0 flex-1">
+          <span className="block text-base leading-tight truncate">{agente.name}</span>
+          <span className="block text-[13px] font-normal normal-case opacity-70 leading-tight mt-0.5 truncate">{macro.label}</span>
+        </span>
+        {badge > 0 && (
+          <span
+            className="inline-grid min-w-[26px] h-[26px] px-1.5 place-items-center rounded-full bg-slate-900 text-xs font-bold text-white flex-shrink-0"
+            aria-label={`${badge} da fare`}
+          >
+            {badge}
+          </span>
+        )}
+      </>
+    );
+  }
+  return (
+    <>
+      <Icon className="w-4 h-4 flex-shrink-0 mt-0.5" />
+      <span className="min-w-0">
+        <span className="block leading-tight truncate">{macro.label}</span>
+        <MacroRoster macro={macro} cls="block text-[11px] font-normal normal-case opacity-70 leading-tight mt-0.5" />
+      </span>
+    </>
+  );
+}
+
+// Numero accanto all'agente: solo dove c'e' un dato vero. Marco = trattative da sollecitare,
+// Simona = partner che aspettano te. Gli altri non hanno ancora un numero e non se ne inventa uno.
+export function useBadgeAgente(macroId) {
+  const shared = useOggiShared();
+  const model = shared?.oggi?.model;
+  if (!model) return null;
+  if (macroId === "vendite") return daSollecitare(model.trattative)?.lista.length ?? null;
+  if (macroId === "delivery") return model.partner ? model.partner.tocca.length : null;
+  return null;
+}
+
+function MacroItem({ macro, currentPath, facce = false }) {
   const Icon = MACRO_ICONS[macro.id] || BriefcaseBusiness;
+  const badge = useBadgeAgente(macro.id);
   // Macro "diretta" (link semplice).
   if (macro.to) {
     return (
@@ -311,22 +431,14 @@ function MacroItem({ macro, currentPath }) {
         to={macro.to}
         end={macro.end}
         className={({ isActive }) =>
-          `flex items-start gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+          `flex ${facce ? "items-center" : "items-start"} gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
             isActive
               ? "bg-slate-900 text-yellow-400"
               : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
           }`
         }
       >
-        <Icon className="w-4 h-4 flex-shrink-0 mt-0.5" />
-        <span className="min-w-0">
-          <span className="block leading-tight truncate">{macro.label}</span>
-          {macro.agente && (
-            <span className="block text-[11px] font-normal normal-case opacity-70 leading-tight mt-0.5 truncate">
-              Agente: {macro.agente}
-            </span>
-          )}
-        </span>
+        <MacroLabel macro={macro} Icon={Icon} facce={facce} badge={badge} />
       </NavLink>
     );
   }
@@ -334,52 +446,154 @@ function MacroItem({ macro, currentPath }) {
   const allPages = macroPages(macro);
   const landingPath = macro.landing ? `/admin/reparto/${macro.id}` : null;
   const isActive =
-    (landingPath && currentPath.startsWith(landingPath)) ||
-    allPages.some((p) => (p.end ? currentPath === p.to : currentPath.startsWith(p.to)));
+    (landingPath && matchesAdminPath(currentPath, landingPath)) ||
+    allPages.some((p) => !p.propria && matchesAdminPath(currentPath, p.to, p.end));
   return (
     <NavLink
       to={macroTarget(macro)}
-      className={`flex items-start gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+      className={`flex ${facce ? "items-center" : "items-start"} gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
         isActive
           ? "bg-slate-900 text-yellow-400"
           : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
       }`}
     >
-      <Icon className="w-4 h-4 flex-shrink-0 mt-0.5" />
-      <span className="min-w-0">
-        <span className="block leading-tight truncate">{macro.label}</span>
-        {macro.agente && (
-          <span className="block text-[11px] font-normal normal-case opacity-70 leading-tight mt-0.5 truncate">
-            Agente: {macro.agente}
-          </span>
-        )}
-      </span>
+      <MacroLabel macro={macro} Icon={Icon} facce={facce} badge={badge} />
     </NavLink>
   );
 }
 
 function AdminShell({ user, onLogout, children }) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  // Sotto i 1024px il menu e' un cassetto che si apre dal pulsante in alto.
+  const drawer = useDrawer(pathname);
+  // Finestra di ricerca ⌘K (persone + pagine): vale a ogni larghezza.
+  const cerca = useDrawer(pathname, { closeOnDesktop: false });
+  const apriCerca = () => { drawer.setOpen(false); cerca.setOpen(true); };
+  const setCercaOpen = cerca.setOpen;
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && String(e.key).toLowerCase() === "k") {
+        e.preventDefault();
+        setCercaOpen(true);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [setCercaOpen]);
+  const isMac = typeof navigator !== "undefined" && /Mac/i.test(navigator.platform || "");
   // Sidebar filtrata per ruolo admin: ogni macro con `hideFor` che include
   // l'admin_type corrente viene tolta. Claudio (o qualsiasi tipo non elencato)
   // vede tutto. NB: le route restano registrate — e' un filtro di vista.
   const adminType = user?.admin_type || "claudio";
   const nav = NAV.filter((m) => !(m.hideFor || []).includes(adminType));
-  // Tasto "Indietro" verso la home della sezione corrente (se siamo in una
-  // sotto-pagina di una sezione con landing).
-  const back = sectionLandingFor(pathname);
+  const facce = sidebarConFacce(adminType);
+  // Pagine cercabili: SOLO quelle del ruolo (un account con accesso limitato non
+  // trova nemmeno le pagine che non sono sue).
+  const pagineCercabili = nav.flatMap((macro) => macroPages(macro)
+    .filter((page) => !(page.hideFor || []).includes(adminType))
+    .map((page) => ({ ...page, department: macro.label })));
+  // Menu di sezione: le pagine sorelle del reparto, su ogni pagina del reparto
+  // (sostituisce il "Torna a ..." e i tre sotto-menu scritti a mano).
+  const sezione = trovaSezione(pathname, nav, adminType);
+  // Il volto sul titolo: quello del reparto, ma Editoriale e Calendario Editoriale sono lavoro di
+  // Andrea (contenuti) anche se stanno nel menu di Acquisizione, dove Mariangela li usa: il menu non cambia.
+  const voltoPagina = !facce ? null
+    : PAGINE_DI_ANDREA.some((p) => pathname === p || pathname.startsWith(`${p}/`)) ? "/agents/andrea.jpg"
+    : (sezione && DEPARTMENT_ROOMS[sezione.id]?.agent?.avatar) || null;
+  const bottoneCerca = (
+      <button
+        type="button"
+        ref={cerca.triggerRef}
+        onClick={apriCerca}
+        className="my-2 flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left text-[13px] text-slate-500 hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+      >
+        <Search className="h-4 w-4 flex-shrink-0 text-slate-400" aria-hidden />
+        <span className="flex-1 truncate">Cerca persone o pagine</span>
+        <kbd className="hidden lg:inline rounded border border-slate-200 px-1.5 text-[11px] font-semibold text-slate-500">{isMac ? "⌘K" : "Ctrl K"}</kbd>
+      </button>
+  );
   return (
+    <OggiSharedProvider enabled={adminType === "claudio"} onAuthExpired={onLogout}>
     <div className="min-h-screen bg-gray-50 flex font-[Poppins,system-ui,sans-serif]">
-      <aside className="w-72 flex-shrink-0 min-h-screen bg-gray-100 p-3">
+      {/* Sfondo scuro piatto (niente blur) dietro il cassetto, solo sotto lg. */}
+      {drawer.open && (
+        <div className="fixed inset-0 z-40 bg-slate-900/40 lg:hidden" onClick={drawer.close} aria-hidden="true" />
+      )}
+      <aside
+        id="admin-menu"
+        ref={drawer.panelRef}
+        aria-label="Menu admin"
+        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-gray-100 p-3 transition-[transform,visibility] duration-200 motion-reduce:transition-none lg:static lg:z-auto lg:max-w-none lg:min-h-screen lg:flex-shrink-0 lg:translate-x-0 lg:visible ${drawer.open ? "translate-x-0 visible" : "-translate-x-full invisible"}`}
+      >
         <div className="h-full bg-white border border-slate-200 rounded-xl flex flex-col overflow-hidden">
-        <div className="px-5 py-5 border-b border-slate-100">
-          <img src="/ciak/logo.webp" alt="Ciak.io" className="h-9 w-auto object-contain" />
-          <p className="text-xs font-semibold text-yellow-600 uppercase tracking-widest mt-4">Area Admin</p>
-          <p className="text-[12px] leading-relaxed text-slate-500 mt-1">
-            Cabina operativa per funnel, partner e Metodo EVO.
-          </p>
+        <div className="relative px-5 py-5 border-b border-slate-100">
+          <button
+            type="button"
+            onClick={drawer.close}
+            aria-label="Chiudi il menu"
+            className="lg:hidden absolute right-2 top-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+          >
+            <X className="h-5 w-5" aria-hidden />
+          </button>
+          <Link to="/admin" aria-label="Vai alla Home admin">
+            <img src="/ciak/logo.webp" alt="Ciak.io" className="h-9 w-auto object-contain" />
+          </Link>
+          {!facce && (
+            <>
+              <p className="text-xs font-semibold text-yellow-600 uppercase tracking-widest mt-4">Area Admin</p>
+              <p className="text-[12px] leading-relaxed text-slate-500 mt-1">
+                Cabina operativa per funnel, partner e Metodo EVO.
+              </p>
+            </>
+          )}
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {facce ? (
+            <>
+          {bottoneCerca}
+          <NavLink
+            to="/admin"
+            end
+            className={({ isActive }) => `flex items-center gap-3 rounded-xl px-4 py-3.5 text-base font-semibold transition-colors ${isActive ? "bg-slate-900 text-yellow-400" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
+          >
+            <Clock className="w-5 h-5" aria-hidden /> Oggi
+          </NavLink>
+          <p className="px-1 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-widest text-slate-500">La tua squadra</p>
+          {nav.map((macro) => (
+            <MacroItem key={macro.id} macro={macro} currentPath={pathname} facce />
+          ))}
+          <MacroItem macro={VOCE_CONTENUTI} currentPath={pathname} facce />
+          <p className="px-1 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-widest text-slate-500">Accessi rapidi</p>
+          {QUICK.filter((q) => !(q.hideFor || []).includes(adminType)).map(({ to, label, Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${isActive ? "bg-slate-900 text-yellow-400" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
+            >
+              <Icon className="w-4 h-4" aria-hidden /> {label}
+            </NavLink>
+          ))}
+            </>
+          ) : (
+            <>
+          <NavLink
+            to="/admin"
+            end
+            className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${isActive ? "bg-slate-900 text-yellow-400" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
+          >
+            <LayoutDashboard className="w-4 h-4" aria-hidden /> Home
+          </NavLink>
+          {QUICK.filter((q) => !(q.hideFor || []).includes(adminType)).map(({ to, label, Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${isActive ? "bg-slate-900 text-yellow-400" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
+            >
+              <Icon className="w-4 h-4" aria-hidden /> {label}
+            </NavLink>
+          ))}
+          {bottoneCerca}
           <p className="px-1 pb-2 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
             Reparti
           </p>
@@ -392,6 +606,8 @@ function AdminShell({ user, onLogout, children }) {
               Acquisizione, vendite, delivery, materiali e post-lancio in un'unica regia.
             </p>
           </div>
+            </>
+          )}
         </nav>
         <div className="px-4 py-4 border-t border-slate-100">
           <p className="text-sm font-semibold text-slate-900 truncate">{user?.name}</p>
@@ -406,20 +622,50 @@ function AdminShell({ user, onLogout, children }) {
         </div>
         </div>
       </aside>
-      <main className="flex-1 min-w-0 overflow-auto">
-        {back && (
-          <div className="px-8 pt-6">
-            <Link
-              to={back.to}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-900 hover:text-slate-900 transition-colors"
-            >
-              <span aria-hidden>←</span> Torna a {back.label}
-            </Link>
-          </div>
-        )}
+      <div className="flex-1 min-w-0 flex flex-col">
+      {/* Barra in alto, solo sotto lg: il pulsante che apre il menu (touch target 44px). */}
+      <div className="lg:hidden sticky top-0 z-30 flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-2">
+        <button
+          type="button"
+          ref={drawer.triggerRef}
+          onClick={() => drawer.setOpen(true)}
+          aria-label="Apri il menu"
+          aria-expanded={drawer.open}
+          aria-controls="admin-menu"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+        >
+          <Menu className="h-5 w-5" aria-hidden />
+        </button>
+        <Link to="/admin" aria-label="Vai alla Home admin">
+          <img src="/ciak/logo.webp" alt="Ciak.io" className="h-7 w-auto object-contain" />
+        </Link>
+        <button
+          type="button"
+          onClick={apriCerca}
+          aria-label="Cerca persone o pagine"
+          className="ml-auto inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+        >
+          <Search className="h-5 w-5" aria-hidden />
+        </button>
+      </div>
+      <main
+        className={`ciak-pagina flex-1 min-w-0 overflow-auto${voltoPagina ? " ciak-con-volto" : ""}`}
+        style={voltoPagina ? { "--volto": `url(${voltoPagina})` } : undefined}
+      >
+        {sezione && <SezioneNav label={sezione.label} voci={sezione.voci} attiva={sezione.attiva} volto={facce ? DEPARTMENT_ROOMS[sezione.id]?.agent?.avatar : null} />}
         {children}
       </main>
+      </div>
+      <CercaPalette
+        open={cerca.open}
+        onClose={cerca.close}
+        panelRef={cerca.panelRef}
+        pages={pagineCercabili}
+        onSelect={(to) => navigate(to)}
+        onAuthExpired={onLogout}
+      />
     </div>
+    </OggiSharedProvider>
   );
 }
 
@@ -427,46 +673,112 @@ function AdminShell({ user, onLogout, children }) {
 
 function RepartoLanding({ macro, onAuthExpired }) {
   const pages = macroPages(macro);
-  const Icon = MACRO_ICONS[macro.id] || BriefcaseBusiness;
   const room = getDepartmentRoom(macro.id);
+  const [toolSearchByDepartment, setToolSearchByDepartment] = useState({});
+  const toolSearch = toolSearchByDepartment[macro.id] || "";
+  const setToolSearch = (value) => setToolSearchByDepartment(previous => ({ ...previous, [macro.id]: value }));
+  const visiblePages = filterDepartmentPages(pages, toolSearch);
   const metricValues = useRepartoMetrics(macro.id);
+  const navigate = useNavigate();
   return (
     <div className="p-10 max-w-5xl mx-auto">
-      <DepartmentRoomIntro room={room} onAuthExpired={onAuthExpired} metricValues={metricValues} />
       <div className="mb-8 bg-white border border-slate-200 rounded-xl p-6">
-        <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-slate-900 text-yellow-400 mb-4">
-          <Icon className="w-5 h-5" />
+        <h1 className="text-3xl font-semibold text-slate-900">{macro.label}</h1>
+        <MacroRoster macro={macro} cls="block text-sm text-slate-500 mt-2" />
+      </div>
+
+      {/* Coda del reparto (T18): chi, prossima azione, responsabile, scadenza, blocco.
+          Oggi cablata per Delivery (fonte /delivery-audit); gli altri reparti hanno
+          fonti diverse (lead pipeline, amministrazione) → wiring successivo. */}
+      {macro.id === "delivery" && (
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-slate-900 mb-1">Coda del reparto</h2>
+          <p className="text-sm text-slate-500 mb-3">Chi aspetta un passo, chi ci lavora e cosa lo blocca.</p>
+          <DeliveryQueue onOpenPartner={(row) => navigate(`/admin/partner?partner=${row.id}&tab=panoramica`)} />
         </div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">
-          Reparto admin
-        </p>
-        <h1 className="text-4xl font-semibold text-slate-900 leading-tight mt-1">{macro.label}</h1>
-        {macro.agente && (
-          <p className="text-base text-slate-500 mt-2">
-            Agente di riferimento: <span className="font-semibold text-slate-700">{macro.agente}</span>
-          </p>
-        )}
+      )}
+
+      {/* Acquisizione: scorciatoie subito visibili (Importa lista / Ricerca automatica,
+          che riusano i modali di LeadManager via ?apri=) + coda outbound con
+          "Nuovo lead" inline (Mariangela/Claudio). */}
+      {macro.id === "acquisizione" && (
+        <div className="mb-8">
+          <div className="flex flex-wrap gap-2.5 mb-4">
+            <button type="button" onClick={() => navigate("/admin/pipeline?apri=importa")}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400">
+              Importa lista
+            </button>
+            <button type="button" onClick={() => navigate("/admin/pipeline?apri=ricerca")}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400">
+              Ricerca automatica
+            </button>
+          </div>
+          <AcquisizioneQueue onAuthExpired={onAuthExpired} />
+        </div>
+      )}
+
+      {/* Vendite: coda pipeline dopo il Blueprint (Blueprint → firma). */}
+      {macro.id === "vendite" && (
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-slate-900 mb-1">Coda del reparto</h2>
+          <p className="text-sm text-slate-500 mb-3">Prospect dal Blueprint alla firma: a che punto sono e la prossima mossa.</p>
+          <VenditeQueue onOpenPartner={(row) => row.email && navigate(`/admin/leads/${encodeURIComponent(row.email)}`)} />
+        </div>
+      )}
+
+      {/* Back office: coda crediti/incassi (scadenze, rate da verificare). */}
+      {macro.id === "back-office" && (
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-slate-900 mb-1">Coda del reparto</h2>
+          <p className="text-sm text-slate-500 mb-3">Incassi e scadenze: cosa scade, cosa è in ritardo, cosa serve fare.</p>
+          <BackOfficeQueue onOpenPartner={(row) => navigate(`/admin/amministrazione?credito=${encodeURIComponent(row.id)}`)} />
+        </div>
+      )}
+      <details className="mb-8">
+        <summary className="cursor-pointer text-sm font-semibold text-slate-900 mb-4">Supporto, priorità e indicatori del reparto</summary>
+        <DepartmentRoomIntro room={room} showHeading={false} onAuthExpired={onAuthExpired} metricValues={metricValues} />
+      </details>
+      <div className="mb-5">
+        <label htmlFor={`tools-${macro.id}`} className="block text-sm font-semibold text-slate-900 mb-2">Cerca negli strumenti di {macro.label}</label>
+        <input id={`tools-${macro.id}`} type="search" value={toolSearch} onChange={(event) => setToolSearch(event.target.value)}
+          className="w-full px-4 py-3 rounded-lg bg-white border border-slate-200 text-slate-900 focus:ring-2 focus:ring-yellow-400"
+          placeholder="Nome della funzione o parola chiave" />
+        <p role="status" className="mt-2 text-sm text-slate-500">{visiblePages.length} {visiblePages.length === 1 ? "strumento" : "strumenti"} su {pages.length}</p>
+        {!visiblePages.length && <button className="text-sm font-semibold text-slate-900 mt-2" onClick={() => setToolSearch("")}>Mostra tutti gli strumenti</button>}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {pages.map((p) => (
-          <NavLink
-            key={p.to}
-            to={p.to}
-            end={p.end}
-            className="group flex flex-col justify-between min-h-[150px] rounded-xl border border-slate-200 bg-white p-6 transition-colors hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
-          >
-            <div>
-              <span className="block text-xl font-semibold text-slate-900">
-                {p.label}
-              </span>
-              {p.desc && <span className="block text-base text-slate-500 mt-2 leading-snug">{p.desc}</span>}
+      {/* Strumenti: raggruppati con intestazione se il reparto definisce `groups`
+          (es. Delivery), altrimenti una griglia unica. La ricerca filtra tutto. */}
+      {(macro.groups || [{ title: "Strumenti", pages }]).map((group, gi) => {
+        const groupVisible = filterDepartmentPages(group.pages, toolSearch);
+        if (!groupVisible.length) return null;
+        return (
+          <div key={group.title || `g${gi}`} className="mb-8 last:mb-0">
+            {group.title && (
+              <h3 className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-3">{group.title}</h3>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {groupVisible.map((p) => (
+                <NavLink
+                  key={p.to}
+                  to={p.to}
+                  end={p.end}
+                  className="group flex flex-col justify-between min-h-[150px] rounded-xl border border-slate-200 bg-white p-6 transition-colors hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+                >
+                  <div>
+                    <span className="block text-xl font-semibold text-slate-900">
+                      {p.label}
+                    </span>
+                    {p.desc && <span className="block text-base text-slate-500 mt-2 leading-snug">{p.desc}</span>}
+                  </div>
+                  <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-900 group-hover:gap-2.5 transition-all">
+                    Apri <ArrowRight className="w-4 h-4" />
+                  </span>
+                </NavLink>
+              ))}
             </div>
-            <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-900 group-hover:gap-2.5 transition-all">
-              Apri <ArrowRight className="w-4 h-4" />
-            </span>
-          </NavLink>
-        ))}
-      </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -512,24 +824,48 @@ export default function CiakAdminApp() {
   // compiti (AntonellaDashboard/AntonellaOggi). Conserva pieni poteri admin
   // nelle sezioni visibili.
   const isAntonella = user?.admin_type === "antonella";
+  // Account commerciale: la sua home è il reparto Acquisizione.
+  const isMariangela = user?.admin_type === "mariangela";
 
   return (
     <AdminShell user={user} onLogout={handleLogout}>
       {/* NOTA: CiakAdminApp e' montato sotto `/admin/*` in CiakApp, quindi i path
           di queste Route sono RELATIVI a /admin (niente prefisso /admin/). */}
       <Routes>
-        {/* Home /admin = Panoramica Reparti (Cabina di Regia) per Claudio;
-            Antonella mantiene la sua dashboard dedicata. */}
+        {/* Home /admin = "Regia": lancia-reparti (stile app bancaria). La Cabina
+            di Regia (cockpit Direzione) è su /admin/direzione. Antonella mantiene
+            la sua dashboard dedicata sia come home sia come Direzione. */}
         <Route index element={isAntonella
           ? <AntonellaDashboard onAuthExpired={handleLogout} />
-          : <CabinaRegia onAuthExpired={handleLogout} />} />
+          : isMariangela
+            ? <Navigate to="/admin/reparto/acquisizione" replace />
+            : <NuovaHome user={user} onAuthExpired={handleLogout} />} />
+        {/* La vecchia home «Regia» resta raggiungibile qui (riserva), solo per Claudio. */}
+        <Route path="regia" element={isAntonella || isMariangela
+          ? <Navigate to="/admin" replace />
+          : <AdminHome user={user} onAuthExpired={handleLogout} />} />
+        <Route path="direzione" element={isAntonella
+          ? <AntonellaDashboard onAuthExpired={handleLogout} />
+          : isMariangela
+            ? <Navigate to="/admin/reparto/acquisizione" replace />
+            : <CabinaRegia onAuthExpired={handleLogout} />} />
+        {/* Sezioni dedicate alle collaboratrici (coda personale filtrata per owner). */}
+        <Route path="persona/:slug" element={<PersonaHome onAuthExpired={handleLogout} />} />
 
         {/* ── Landing-reparto: grandi finestre cliccabili ── */}
         {NAV.filter((m) => m.landing).map((m) => (
           <Route
             key={m.id}
             path={`reparto/${m.id}`}
-            element={<RepartoLanding macro={m} onAuthExpired={handleLogout} />}
+            element={
+              m.id === "acquisizione"
+                ? <AcquisizionePanoramica onAuthExpired={handleLogout} />
+                : m.id === "vendite"
+                  ? <VenditePanoramica onAuthExpired={handleLogout} />
+                  : m.id === "delivery"
+                    ? <DeliveryPanoramica onAuthExpired={handleLogout} />
+                    : <RepartoLanding macro={m} onAuthExpired={handleLogout} />
+            }
           />
         ))}
 
@@ -543,85 +879,50 @@ export default function CiakAdminApp() {
           : <SimulatoreFatturato />} />
 
         {/* ── Acquisizione ── */}
-        <Route path="lead-manager" element={<LeadManager onAuthExpired={handleLogout} />} />
+        {/* "New Lead" e "Acquisizione Evolution" erano lo stesso strumento: ora una voce sola, "Contatti". */}
+        <Route path="lead-manager" element={<RedirectKeepSearch to="/admin/pipeline" />} />
         <Route path="lista-fredda" element={<ListaFredda onAuthExpired={handleLogout} />} />
-        {/* Pipeline = Masterclass (Panoramica) + Pipeline Prospect (Contatti) accorpate */}
-        <Route path="pipeline" element={<PipelineAcquisizione onAuthExpired={handleLogout} />} />
+        {/* Pipeline Prospect = pagina unica acquisizione: ingresso (ricerca/inserimento)
+            + gestione (recuperi con owner AI/team, funnel, lista con "Contatta" via Brevo).
+            Fonde le ex pagine Prospect e Pipeline (decisione Claudio 19/9). */}
+        <Route path="pipeline" element={<AcquisizionePipelineProspect onAuthExpired={handleLogout} />} />
+        {/* Briefing operativo & canali (ex vista "oggi" della Pipeline), raggiungibile
+            dai link in fondo alla pagina. */}
+        <Route path="acquisizione-briefing" element={<AcquisizioneCommandCenter onAuthExpired={handleLogout} />} />
         {/* Route vecchie mantenute per i link diretti */}
         <Route
           path="masterclass-analytics"
           element={<MasterclassAnalytics onAuthExpired={handleLogout} />}
         />
-        <Route
-          path="pipeline-prospect"
-          element={
-            <PipelineList
-              endpoint="/pipeline-prospect"
-              title="Pipeline Prospect"
-              subtitle="Funnel pre-acquisto: iscritto → checkpoint → 8 Domande → report → click €27"
-              mirrorNote="Specchio dei tag Systeme — sola lettura. Il movimento di stato avviene in Systeme, non qui."
-              onAuthExpired={handleLogout}
-              deletable
-            />
-          }
-        />
+        {/* Il kanban pre-call è confluito nella lista Lead unica. */}
+        <Route path="pipeline-prospect" element={<Navigate to="/admin/leads" replace />} />
         <Route path="acq-campagne-ads" element={<AcqCampaignsPage />} />
         <Route path="acq-calendario" element={<AcquisizioneCalendarioHub />} />
+        <Route path="acquisizione-editoriale" element={<AcquisizioneEditoriale onAuthExpired={handleLogout} />} />
+        <Route path="acquisizione-script" element={<AcquisizioneScript />} />
+        {/* Ex pagina Prospect: fusa in Pipeline Prospect. Redirect per i vecchi link. */}
+        <Route path="acquisizione-prospect" element={<Navigate to="/admin/pipeline" replace />} />
 
-        {/* ── Vendite (stadi separati della pipeline-blueprint) ── */}
-        <Route
-          path="pipeline-blueprint"
-          element={
-            <PipelineList
-              endpoint="/pipeline-blueprint"
-              title="Ciak Blueprint"
-              subtitle="Ha pagato i €27 — analisi acquistata"
-              lockedStages={["acquistato"]}
-              onAuthExpired={handleLogout}
-            />
-          }
-        />
+        {/* ── Acquisizione e vendita (cockpit di chiusura) ── */}
+        {/* Pagina tolta: la chiusura post-call vive nell'area cliente (che crea da sola la proposta). */}
+        <Route path="chiusura-insider" element={<Navigate to="/admin/trattative" replace />} />
+        <Route path="consegna-manuale" element={<ConsegnaManuale onAuthExpired={handleLogout} />} />
+        <Route path="listino-prezzi" element={<ListinoPrezzi />} />
+        <Route path="catalogo" element={<VenditeCatalogo />} />
+        <Route path="collaudo-checkout" element={<CollaudoCheckout />} />
+
+        {/* ── Vendite ── Trattative: vista unica a tab (audit #7). I vecchi path per
+            stadio rimandano al tab corrispondente. ── */}
+        <Route path="trattative" element={<TrattativePipeline onAuthExpired={handleLogout} />} />
+        <Route path="pipeline-blueprint" element={<Navigate to="/admin/trattative" replace />} />
         <Route path="clienti-ciak" element={<ClientiCiak onAuthExpired={handleLogout} />} />
-        <Route
-          path="vendite-call"
-          element={
-            <PipelineList
-              endpoint="/pipeline-blueprint"
-              title="Call di vendita"
-              subtitle="Call prenotata e call fatta"
-              lockedStages={["call_prenotata", "call_fatta"]}
-              onAuthExpired={handleLogout}
-            />
-          }
-        />
-        <Route
-          path="vendite-trattativa"
-          element={
-            <PipelineList
-              endpoint="/pipeline-blueprint"
-              title="In trattativa"
-              subtitle="Proposte inviate, viste, accettate o contratti firmati in attesa pagamento"
-              lockedStages={["in_trattativa"]}
-              onAuthExpired={handleLogout}
-            />
-          }
-        />
+        <Route path="vendite-call" element={<Navigate to="/admin/trattative?stadio=call" replace />} />
+        <Route path="vendite-trattativa" element={<Navigate to="/admin/trattative?stadio=trattativa" replace />} />
         <Route
           path="analisi-da-validare"
           element={<AnalisiDaValidare onAuthExpired={handleLogout} />}
         />
-        <Route
-          path="vendite-ok"
-          element={
-            <PipelineList
-              endpoint="/pipeline-blueprint"
-              title="Trattative OK"
-              subtitle="Contratto firmato + pagato — diventa partner"
-              lockedStages={["contratto_pagato"]}
-              onAuthExpired={handleLogout}
-            />
-          }
-        />
+        <Route path="vendite-ok" element={<Navigate to="/admin/trattative?stadio=ok" replace />} />
         <Route path="vendite-ko" element={<TrattativeKoHub />} />
 
         {/* ── Delivery ── */}
@@ -654,19 +955,33 @@ export default function CiakAdminApp() {
         <Route path="leads/:email" element={<AdminLeadDetail onAuthExpired={handleLogout} />} />
         <Route path="clienti-analisi" element={<ClientiAnalisi onAuthExpired={handleLogout} />} />
         <Route path="percorso-evo" element={<Navigate to="/admin/partner" replace />} />
+        {/* "Acquisizione e vendita" assorbita in Vendite: vecchio URL → nuova landing. */}
+        <Route path="reparto/acquisizione-vendita" element={<Navigate to="/admin/reparto/vendite" replace />} />
         <Route path="approvazioni" element={<Approvazioni />} />
         <Route path="partner/:id" element={<SectionStub />} />
         <Route path="video-review" element={<VideoReview onAuthExpired={handleLogout} />} />
+        <Route path="coda-lezioni" element={<CodaLezioni onAuthExpired={handleLogout} />} />
         <Route path="video-pipeline" element={<VideoPipelineMonitor onAuthExpired={handleLogout} />} />
         <Route path="partner-setup-pending" element={<PartnerSetupPending onAuthExpired={handleLogout} />} />
         <Route path="consegne-mancate" element={<ConsegneMancate onAuthExpired={handleLogout} />} />
         <Route path="consegne-start" element={<ConsegneStart onAuthExpired={handleLogout} />} />
+        <Route path="lead" element={<LeadHub onAuthExpired={handleLogout} />} />
+        <Route path="start" element={<PipelineStart onAuthExpired={handleLogout} />} />
+        <Route path="start/:clientId" element={<SchedaStart onAuthExpired={handleLogout} />} />
+        <Route path="risultati-finali" element={<RisultatiFinali onAuthExpired={handleLogout} />} />
         <Route path="automazione" element={<AgentDashboard onAuthExpired={handleLogout} />} />
-        <Route path="cabina-regia" element={<Navigate to="/admin" replace />} />
+        <Route path="cabina-regia" element={<Navigate to="/admin/direzione" replace />} />
         <Route path="revisione-video/:partnerId" element={<MasterclassReview onAuthExpired={handleLogout} />} />
         <Route path="revisione-video/:partnerId/:lessonId" element={<MasterclassReview onAuthExpired={handleLogout} />} />
         <Route path="sistema" element={<SystemHealth onAuthExpired={handleLogout} />} />
         <Route path="kb-matteo" element={<MatteoKBEditor onAuthExpired={handleLogout} />} />
+        <Route path="memoria" element={<MemoriaCiak onAuthExpired={handleLogout} />} />
+        {/* La nuova home «Oggi» ora e' la home di /admin: il vecchio indirizzo rimanda li'. */}
+        <Route path="nuova" element={<Navigate to="/admin" replace />} />
+        {/* La stanza di Andrea: solo Claudio, voce nella colonna con le facce. */}
+        <Route path="contenuti" element={isAntonella || isMariangela
+          ? <Navigate to="/admin" replace />
+          : <Contenuti onAuthExpired={handleLogout} />} />
         <Route path="analisi-prompt" element={<AnalisiPromptEditor onAuthExpired={handleLogout} />} />
         <Route path="template-email" element={<TemplateEmail onAuthExpired={handleLogout} />} />
         <Route path="configurazione" element={<SiteConfig onAuthExpired={handleLogout} />} />

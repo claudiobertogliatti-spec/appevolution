@@ -6,7 +6,7 @@ import { authHeaders } from "../../api";
 
 /**
  * Step 12 — Webinar live + prezzo del corso (Valida, agente Andrea).
- * Andrea genera lo script del webinar in 6 fasi + il prezzo con promo a scadenza,
+ * Andrea genera lo script del webinar in 6 fasi; il prezzo viene dall'offerta decisa (mai dall'AI),
  * dal Posizionamento e dall'outline. Il partner lo edita.
  * Rigenera tiene ciò che il partner ha toccato e riscrive solo l'intatto.
  */
@@ -24,8 +24,6 @@ export default function Step12PrezzoWebinar({ step, partnerId, onComplete, onSav
   const [deck, setDeck] = useState(_savedDeck && typeof _savedDeck === "object" ? _savedDeck : null);
   const [genDeck, setGenDeck] = useState(false);
   const [deckError, setDeckError] = useState(null);
-  const [exporting, setExporting] = useState(false);
-  const [exportRes, setExportRes] = useState(null);
 
   const save = (next) => {
     setStrat(next);
@@ -40,7 +38,6 @@ export default function Step12PrezzoWebinar({ step, partnerId, onComplete, onSav
   const generaDeck = async () => {
     setGenDeck(true);
     setDeckError(null);
-    setExportRes(null);
     try {
       const res = await axios.post(
         `${API}/api/partner/webinar/deck`,
@@ -64,42 +61,6 @@ export default function Step12PrezzoWebinar({ step, partnerId, onComplete, onSav
     saveDeck({ ...deck, slides });
   };
   const setSlidePunti = (i, text) => setSlideField(i, "punti", text.split("\n"));
-
-  // Esporta su Gamma (EXTRA). Se non c'è chiave Gamma, il backend ritorna il markdown.
-  const pollGamma = async (id, tries = 0) => {
-    try {
-      const res = await axios.get(`${API}/api/partner/webinar/deck/export/${id}`);
-      const st = res.data?.status;
-      if (st === "completed" || st === "failed" || tries >= 10) {
-        setExportRes({ mode: "gamma", ...res.data });
-        return;
-      }
-    } catch {
-      /* riprovo finché non scade */
-    }
-    setTimeout(() => pollGamma(id, tries + 1), 4000);
-  };
-
-  const esportaGamma = async () => {
-    setExporting(true);
-    setDeckError(null);
-    setExportRes(null);
-    try {
-      const res = await axios.post(
-        `${API}/api/partner/webinar/deck/export`,
-        { partner_id: partnerId, deck },
-        { headers: authHeaders() }
-      );
-      setExportRes(res.data);
-      if (res.data?.mode === "gamma" && res.data?.generation_id) {
-        pollGamma(res.data.generation_id);
-      }
-    } catch {
-      setDeckError("Errore tecnico nell'export. Riprova tra qualche minuto.");
-    } finally {
-      setExporting(false);
-    }
-  };
 
   const callGenerate = async () => {
     const res = await axios.post(
@@ -190,7 +151,7 @@ export default function Step12PrezzoWebinar({ step, partnerId, onComplete, onSav
           <p className="text-[14px] text-slate-300 mb-4 max-w-md mx-auto leading-relaxed">
             Dalla tua scaletta e dal tuo posizionamento, Andrea costruisce lo script del
             webinar (apertura → problema → metodo → prove → offerta → chiusura) e ti propone
-            listino, prezzo promo e bonus a scadenza. Ci mette qualche secondo.
+            il prezzo dell'offerta e i bonus già previsti nel corso. Ci mette qualche secondo.
           </p>
           <button
             type="button"
@@ -310,28 +271,17 @@ export default function Step12PrezzoWebinar({ step, partnerId, onComplete, onSav
         <div className="border border-slate-200 rounded-xl p-4 mb-5 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide mb-1">
-                Listino
-              </div>
-              <input
-                value={p.listino || ""}
-                onChange={(e) => setPrezzoField("listino", e.target.value)}
-                placeholder="es. 297€"
-                className="w-full text-[14px] font-bold text-slate-900 border border-slate-200 rounded-md px-2 py-1.5 focus:outline-none focus:border-yellow-400"
-              />
+              <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide mb-1">Listino</div>
+              <div className="text-[16px] font-bold text-slate-900">{p.listino || "—"}</div>
             </div>
             <div>
-              <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide mb-1">
-                Promo webinar
-              </div>
-              <input
-                value={p.promo_webinar || ""}
-                onChange={(e) => setPrezzoField("promo_webinar", e.target.value)}
-                placeholder="es. 197€"
-                className="w-full text-[14px] font-bold text-emerald-700 border border-slate-200 rounded-md px-2 py-1.5 focus:outline-none focus:border-yellow-400"
-              />
+              <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide mb-1">Promo webinar</div>
+              <div className="text-[16px] font-bold text-emerald-700">{p.promo_webinar || "nessuna promo"}</div>
             </div>
           </div>
+          <p className="text-[12px] text-slate-500">
+            Il prezzo è quello dell'offerta decisa con il team: qui non si cambia. Se è sbagliato, scrivilo ad Andrea.
+          </p>
           <div>
             <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide mb-1">
               Scadenza promo
@@ -339,25 +289,27 @@ export default function Step12PrezzoWebinar({ step, partnerId, onComplete, onSav
             <input
               value={p.scadenza_promo || ""}
               onChange={(e) => setPrezzoField("scadenza_promo", e.target.value)}
-              placeholder="es. entro 48h dal live"
+              placeholder="Scrivila solo se la rispetterai davvero"
               className="w-full text-[13px] text-slate-700 border border-slate-200 rounded-md px-2 py-1.5 focus:outline-none focus:border-yellow-400"
             />
           </div>
-          <div>
-            <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide mb-1">
-              Bonus a scadenza
+          {(p.bonus || []).length > 0 && (
+            <div>
+              <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide mb-1">
+                Bonus del corso
+              </div>
+              <div className="space-y-1.5">
+                {(p.bonus || []).map((b, i) => (
+                  <input
+                    key={i}
+                    value={b}
+                    onChange={(e) => setBonus(i, e.target.value)}
+                    className="w-full text-[12.5px] text-slate-700 border border-slate-200 rounded-md px-2 py-1.5 focus:outline-none focus:border-yellow-400"
+                  />
+                ))}
+              </div>
             </div>
-            <div className="space-y-1.5">
-              {(p.bonus || []).map((b, i) => (
-                <input
-                  key={i}
-                  value={b}
-                  onChange={(e) => setBonus(i, e.target.value)}
-                  className="w-full text-[12.5px] text-slate-700 border border-slate-200 rounded-md px-2 py-1.5 focus:outline-none focus:border-yellow-400"
-                />
-              ))}
-            </div>
-          </div>
+          )}
           {p.razionale && (
             <div className="text-[12px] text-slate-500 italic bg-slate-50 rounded-lg px-3 py-2">
               {p.razionale}
@@ -447,47 +399,9 @@ export default function Step12PrezzoWebinar({ step, partnerId, onComplete, onSav
               >
                 {genDeck ? "Rigenero…" : "↻ Rigenera le slide"}
               </button>
-              <button
-                type="button"
-                onClick={esportaGamma}
-                disabled={exporting}
-                className="bg-slate-900 text-yellow-400 font-bold text-[13px] px-4 py-2 rounded-xl hover:bg-slate-800 transition disabled:opacity-50"
-              >
-                {exporting ? "Esporto…" : "⬆ Esporta su Gamma"}
-              </button>
               <span className="text-[11px] text-slate-400">{(deck.slides || []).length} slide</span>
             </div>
 
-            {/* Esito export */}
-            {exportRes?.mode === "gamma" && (
-              <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-[13px] text-slate-700">
-                {exportRes.gamma_url ? (
-                  <>
-                    Deck pronto su Gamma:{" "}
-                    <a href={exportRes.gamma_url} target="_blank" rel="noreferrer" className="text-amber-700 font-semibold underline">
-                      apri il deck
-                    </a>
-                  </>
-                ) : exportRes.status === "failed" ? (
-                  "Gamma non è riuscita a creare il deck. Riprova o usa il testo qui sotto."
-                ) : (
-                  "Gamma sta creando il deck… il link comparirà tra qualche secondo."
-                )}
-              </div>
-            )}
-            {exportRes?.mode === "markdown" && (
-              <div className="mt-3">
-                <div className="text-[12px] text-slate-500 mb-1.5">
-                  Copia questo testo e incollalo in Gamma (Crea → Incolla testo) per generare il deck:
-                </div>
-                <textarea
-                  readOnly
-                  value={exportRes.markdown || ""}
-                  rows={8}
-                  className="w-full text-[12px] font-mono text-slate-700 border border-slate-200 rounded-lg p-2 bg-slate-50 focus:outline-none resize-y"
-                />
-              </div>
-            )}
           </div>
         )}
 

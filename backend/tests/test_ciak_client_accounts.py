@@ -5,7 +5,6 @@ import pytest
 from services.ciak_client_accounts import (
     START_AMOUNT_CENTS,
     create_magic_login_token,
-    default_start_progress,
     ensure_client_for_blueprint,
     offer_for_score,
     partnership_price_for_client,
@@ -88,57 +87,44 @@ def test_offer_for_score_routes_50_and_above_to_partnership():
 
 
 def test_start_credit_amount_constant_is_499_euro():
-    assert START_AMOUNT_CENTS == 49900
+    assert START_AMOUNT_CENTS == 39000
 
 
 def test_partnership_price_applies_guaranteed_start_credit():
-    client = {"access_level": "cliente_start", "start_credit_amount": 49900}
+    client = {"access_level": "cliente_start", "start_credit_amount": 39000}
     price = partnership_price_for_client(client)
     assert price == {
-        "full_amount_cents": 279000,
-        "credit_amount_cents": 49900,
-        "due_amount_cents": 229100,
+        "full_amount_cents": 299000,
+        "credit_amount_cents": 39000,
+        "due_amount_cents": 260000,
         "currency": "eur",
     }
 
 
 def test_partnership_price_retains_start_credit_after_partner_promotion():
-    client = {"access_level": "partner", "start_credit_amount": 49900}
+    client = {"access_level": "partner", "start_credit_amount": 39000}
     price = partnership_price_for_client(client)
-    assert price["credit_amount_cents"] == 49900
-    assert price["due_amount_cents"] == 229100
+    assert price["credit_amount_cents"] == 39000
+    assert price["due_amount_cents"] == 260000
 
 
 def test_partnership_price_floors_start_credit_to_guaranteed_minimum():
     client = {"access_level": "cliente_start", "start_credit_amount": 1200}
     price = partnership_price_for_client(client)
-    assert price["credit_amount_cents"] == 49900
-    assert price["due_amount_cents"] == 229100
+    assert price["credit_amount_cents"] == 39000
+    assert price["due_amount_cents"] == 260000
 
 
 def test_partnership_price_does_not_grant_credit_to_unrelated_partner():
     price = partnership_price_for_client({"access_level": "partner"})
-    assert price["due_amount_cents"] == 279000
+    assert price["due_amount_cents"] == 299000
     assert price["credit_amount_cents"] == 0
 
 
 def test_partnership_price_without_start_is_full_price():
     price = partnership_price_for_client({"access_level": "cliente_blueprint"})
-    assert price["due_amount_cents"] == 279000
+    assert price["due_amount_cents"] == 299000
     assert price["credit_amount_cents"] == 0
-
-
-def test_default_start_progress_has_expected_services():
-    labels = [item["label"] for item in default_start_progress()]
-    assert labels == [
-        "Direzione di posizionamento",
-        "Basi del brand",
-        "Sistemazione profili social",
-        "Sito vetrina semplice",
-        "Strategia contenuti",
-        "Calendario contenuti",
-        "Revisione finale e readiness partnership",
-    ]
 
 
 @pytest.mark.asyncio
@@ -239,7 +225,11 @@ async def test_verify_magic_login_token_leaves_token_unused_when_client_missing(
 
 
 @pytest.mark.asyncio
-async def test_verify_magic_login_token_rejects_replay_after_first_use():
+async def test_verify_magic_login_token_allows_reuse_within_validity():
+    # Il link e' RIUTILIZZABILE entro la validita' (30gg): la stessa persona puo'
+    # riaprirlo piu' volte (leggo il Blueprint, ci penso, torno a pagare) senza che
+    # si "bruci" al primo uso. Due accessi con lo stesso token, anche concorrenti,
+    # riescono entrambi.
     db = FakeDB(
         ciak_clients=[
             {
@@ -262,7 +252,153 @@ async def test_verify_magic_login_token_rejects_replay_after_first_use():
     successes = [result for result in results if isinstance(result, dict)]
     failures = [result for result in results if isinstance(result, Exception)]
 
-    assert [result["id"] for result in successes] == ["client-1"]
-    assert len(failures) == 1
-    assert isinstance(failures[0], ValueError)
-    assert str(failures[0]) == "token non valido"
+    assert [result["id"] for result in successes] == ["client-1", "client-1"]
+    assert failures == []
+
+
+def test_ruolo_contatto_distingue_lead_cliente_start_e_partner():
+    from services.ciak_client_accounts import ruolo_contatto
+
+    assert ruolo_contatto(None)["tipo"] == "lead"
+    # Account creato dal Blueprint gratuito: ha ricevuto un PDF, non ha pagato.
+    assert ruolo_contatto({"access_level": "cliente_blueprint"})["tipo"] == "lead"
+    start = ruolo_contatto({"access_level": "cliente_start", "start_purchased_at": "2026-10-01T07:02:00+00:00"})
+    assert start["tipo"] == "cliente_start" and "2026-10-01" in start["dettaglio"]
+    assert ruolo_contatto({"start_credit_amount": 390})["tipo"] == "cliente_start"
+    assert ruolo_contatto({"access_level": "partner"})["tipo"] == "partner"
+    # Un partner ha la precedenza anche se ha pagato Start prima.
+    assert ruolo_contatto({"access_level": "cliente_start"}, {"id": "p1"})["tipo"] == "partner"
+
+
+def test_pick_diagnostic_session_preferisce_la_piu_recente_con_risposte():
+    from services.ciak_client_accounts import pick_diagnostic_session
+
+    vuota_nuova = {"session_token": "new", "responses": {}}
+    compilata_vecchia = {"session_token": "old", "responses": {"q1_competenza": "coaching"}}
+    # Chi riapre il questionario crea una sessione vuota: conta quella compilata.
+    assert pick_diagnostic_session([vuota_nuova, compilata_vecchia])["session_token"] == "old"
+    # Tra due compilate vince la piu' recente (lista gia' ordinata dalla piu' recente).
+    ancora_piu_nuova = {"session_token": "newer", "responses": {"q1_competenza": "x"}}
+    assert pick_diagnostic_session([ancora_piu_nuova, compilata_vecchia])["session_token"] == "newer"
+    # Nessuna con risposte: si torna alla piu' recente, mai None se esiste qualcosa.
+    assert pick_diagnostic_session([vuota_nuova, {"session_token": "x"}])["session_token"] == "new"
+    assert pick_diagnostic_session([]) is None and pick_diagnostic_session(None) is None
+
+
+def test_una_sessione_con_tutte_le_chiavi_ma_valori_nulli_non_ha_risposte():
+    """Caso Anna Maria Bernard (1/10): riaprire il questionario crea una sessione con
+    le 10 chiavi presenti e tutti i valori nulli. Un dizionario non vuoto NON e' una
+    sessione compilata: il Blueprint generato li' dice 'questionario arrivato vuoto'."""
+    from services.ciak_client_accounts import ha_risposte, pick_diagnostic_session
+
+    nulla = {"session_token": "new", "responses": {f"q{i}": None for i in range(10)}}
+    vuote = {"session_token": "new2", "responses": {"q1": "", "q2": "   ", "q3": [], "q4": {}}}
+    compilata = {"session_token": "old", "responses": {"q1_competenza": "coaching", "q2": None}}
+    assert ha_risposte(nulla) is False and ha_risposte(vuote) is False
+    assert ha_risposte(compilata) is True
+    assert ha_risposte({}) is False and ha_risposte(None) is False and ha_risposte({"responses": "x"}) is False
+    assert ha_risposte({"responses": {"q1": ["a"]}}) is True
+    assert ha_risposte({"responses": {"q1": 0}}) is True
+    assert pick_diagnostic_session([nulla, vuote, compilata])["session_token"] == "old"
+    # Nessuna compilata: si torna alla piu' recente.
+    assert pick_diagnostic_session([nulla, vuote])["session_token"] == "new"
+
+
+class _FindCursor:
+    def __init__(self, docs):
+        self._docs = docs
+
+    def sort(self, key, direction):
+        self._docs = sorted(self._docs, key=lambda d: d.get(key) or "", reverse=direction < 0)
+        return self
+
+    def limit(self, n):
+        self._docs = self._docs[:n]
+        return self
+
+    async def to_list(self, length=None):
+        return [dict(d) for d in self._docs]
+
+
+class _SessionsCollection(FakeCollection):
+    """Valuta davvero il filtro, regex case-insensitive compresa: un finto che
+    ignora il filtro farebbe passare un'implementazione che non trova nulla."""
+
+    def find(self, query):
+        import re
+
+        def match(doc):
+            for key, cond in query.items():
+                value = doc.get(key)
+                if isinstance(cond, dict) and "$regex" in cond:
+                    flags = re.I if "i" in cond.get("$options", "") else 0
+                    if not re.search(cond["$regex"], str(value or ""), flags):
+                        return False
+                elif value != cond:
+                    return False
+            return True
+
+        return _FindCursor([d for d in self.docs if match(d)])
+
+
+def _db_due_sessioni():
+    """Caso Anna Maria Bernard: la scheda cliente punta alla sessione VUOTA dell'1/10,
+    le risposte vere stanno nella sessione del 22/9 (email salvata con le maiuscole)."""
+    db = FakeDB()
+    db.diagnostic_sessions = _SessionsCollection([
+        {"session_token": "vuota", "user_email": "AMB@AnnaMariaBernard.it",
+         "created_at": "2026-10-01T08:33:00", "responses": {f"q{i}": None for i in range(10)}},
+        {"session_token": "piena", "user_email": "AMB@AnnaMariaBernard.it",
+         "created_at": "2026-09-22T10:13:00", "responses": {"q1": "coaching e intelligenza emotiva"}},
+    ])
+    return db
+
+
+def test_effective_session_token_legge_dalla_sessione_con_risposte_se_la_scheda_punta_alla_vuota():
+    from services.ciak_client_accounts import effective_session_token
+
+    db = _db_due_sessioni()
+    client = {"email": "amb@annamariabernard.it", "session_token": "vuota"}
+    assert asyncio.run(effective_session_token(db, client)) == "piena"
+    # Nessuna scrittura: la scheda resta com'e'.
+    assert client["session_token"] == "vuota"
+
+
+def test_effective_session_token_non_cambia_se_la_sessione_della_scheda_e_gia_piena():
+    from services.ciak_client_accounts import effective_session_token
+
+    db = _db_due_sessioni()
+    client = {"email": "amb@annamariabernard.it", "session_token": "piena"}
+    assert asyncio.run(effective_session_token(db, client)) == "piena"
+
+
+def test_effective_session_token_senza_alcuna_sessione_compilata_torna_al_token_salvato():
+    from services.ciak_client_accounts import effective_session_token
+
+    db = FakeDB()
+    db.diagnostic_sessions = _SessionsCollection([
+        {"session_token": "vuota", "user_email": "x@y.it", "created_at": "2026-10-01",
+         "responses": {"q1": None}},
+    ])
+    assert asyncio.run(effective_session_token(db, {"email": "x@y.it", "session_token": "vuota"})) == "vuota"
+    assert asyncio.run(effective_session_token(db, {})) is None
+
+
+def test_il_ponte_start_non_e_una_partnership_firmata():
+    """Caso Linda Pavia (2/10): la scheda diceva 'Partner - ha firmato la Partnership'
+    a una cliente che ha comprato Ciak Start. Ogni cliente Start ha un record
+    `partners` di livello 'start' (il ponte dei motori del percorso)."""
+    from services.ciak_client_accounts import ruolo_contatto
+
+    start = {"access_level": "cliente_start", "start_purchased_at": "2026-10-01T07:02:00+00:00"}
+    ponte = {"id": "c1", "tier": "start"}
+    assert ruolo_contatto(start, ponte)["tipo"] == "cliente_start"
+    # Livello scritto in modo diverso o sconosciuto: mai piu' di Start.
+    assert ruolo_contatto(start, {"id": "c1", "tier": " START "})["tipo"] == "cliente_start"
+    assert ruolo_contatto(start, {"id": "c1", "tier": "boh"})["tipo"] == "cliente_start"
+    # Salito a Partnership: ora si'.
+    assert ruolo_contatto(start, {"id": "c1", "tier": "partnership"})["tipo"] == "partner"
+    # I partner storici non hanno il campo `tier`: valgono Partnership.
+    assert ruolo_contatto({}, {"id": "p-storico"})["tipo"] == "partner"
+    # Un lead col ponte start (non ancora pagato) non e' partner ne' cliente.
+    assert ruolo_contatto({"access_level": "cliente_blueprint"}, {"id": "c1", "tier": "start"})["tipo"] == "lead"

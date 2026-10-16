@@ -7,9 +7,13 @@ from typing import Any
 from uuid import uuid4
 
 
-BLUEPRINT_AMOUNT_CENTS = 2700
-START_AMOUNT_CENTS = 49900
-PARTNERSHIP_AMOUNT_CENTS = 279000
+BLUEPRINT_AMOUNT_CENTS = 2700  # €27: importo STORICO per fatturare chi ha già pagato (il funnel nuovo è gratuito, checkout €27 ritirato)
+START_AMOUNT_CENTS = 39000
+PARTNERSHIP_AMOUNT_CENTS = 299000
+# Start Plus (decisione di Claudio 15-16/10/2026): 790 EUR. Il credito sulla Partnership e'
+# intero (790) entro 60 giorni dall'acquisto; dopo restano 390, come il credito di Start.
+START_PLUS_AMOUNT_CENTS = 79000
+START_PLUS_CREDIT_DAYS = 60
 ACCESS_BLUEPRINT = "cliente_blueprint"
 ACCESS_START = "cliente_start"
 ACCESS_PARTNER = "partner"
@@ -42,7 +46,143 @@ def has_start_entitlement(client: dict[str, Any]) -> bool:
     )
 
 
-def partnership_price_for_client(client: dict[str, Any]) -> dict[str, Any]:
+def _parse_iso(value: Any) -> datetime | None:
+    if isinstance(value, datetime):
+        parsed = value
+    else:
+        try:
+            parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        except (TypeError, ValueError):
+            return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def has_start_plus(client: dict[str, Any]) -> bool:
+    """True se il cliente ha acquistato Start Plus (la data di acquisto e' il suo registro)."""
+    return bool(client.get("start_plus_purchased_at"))
+
+
+def start_plus_credit_expires_at(client: dict[str, Any]) -> datetime | None:
+    bought = _parse_iso(client.get("start_plus_purchased_at"))
+    return bought + timedelta(days=START_PLUS_CREDIT_DAYS) if bought else None
+
+
+def start_plus_credit_active(client: dict[str, Any], now: Any = None) -> bool:
+    """Il credito pieno di 790 EUR vale fino a 60 giorni dall'acquisto (estremo incluso)."""
+    expires = start_plus_credit_expires_at(client)
+    if expires is None:
+        return False
+    reference = _parse_iso(now) if now is not None else datetime.now(timezone.utc)
+    return reference is not None and reference <= expires
+
+
+def _valore_pieno(valore: Any) -> bool:
+    if isinstance(valore, str):
+        return bool(valore.strip())
+    if isinstance(valore, (list, dict, tuple, set)):
+        return any(_valore_pieno(v) for v in (valore.values() if isinstance(valore, dict) else valore))
+    return valore is not None and valore is not False
+
+
+def ha_risposte(sessione: dict[str, Any] | None) -> bool:
+    """True se la sessione contiene almeno UNA risposta vera.
+
+    Non basta che `responses` non sia vuoto: la sessione nata riaprendo il
+    questionario ha tutte le chiavi presenti ma con valori nulli (caso Anna Maria
+    Bernard, 1/10: il Blueprint "questionario arrivato vuoto" e' stato generato e
+    inviato su una sessione cosi'). Conta il contenuto, non la forma.
+    """
+    risposte = (sessione or {}).get("responses")
+    return isinstance(risposte, dict) and any(_valore_pieno(v) for v in risposte.values())
+
+
+def pick_diagnostic_session(sessions: list[dict[str, Any]] | None) -> dict[str, Any] | None:
+    """La sessione diagnostica che conta per un lead: la PIU' RECENTE CON RISPOSTE.
+
+    Chi riapre il questionario crea una sessione nuova e vuota: se si prendesse
+    ciecamente "l'ultima", Blueprint e stato "call fatta" finirebbero su una
+    sessione senza risposte mentre quella compilata resta ferma. `sessions` va
+    passata dalla piu' recente alla meno recente; se nessuna ha risposte si torna
+    alla piu' recente.
+    """
+    ordered = [s for s in (sessions or []) if isinstance(s, dict)]
+    for item in ordered:
+        if ha_risposte(item):
+            return item
+    return ordered[0] if ordered else None
+
+
+async def effective_session_token(db, client: dict[str, Any] | None) -> str | None:
+    """Il token della sessione da cui leggere Blueprint e analisi di un cliente.
+
+    Di norma e' quello salvato nella scheda. Ma se la scheda punta a una sessione
+    SENZA risposte (chi riapre il questionario ne crea una vuota, caso Anna Maria
+    Bernard 1/10) mentre il lead ne ha un'altra compilata, si legge da quella:
+    altrimenti pagina Insider e area cliente raccontano al cliente che il suo
+    questionario "e' arrivato vuoto". Nessuna scrittura: e' solo lettura.
+    """
+    client = client or {}
+    stored = client.get("session_token") or client.get("diagnostic_session_token")
+    if stored:
+        current = await db.diagnostic_sessions.find_one({"session_token": stored})
+        if ha_risposte(current):
+            return stored
+    email = (client.get("email") or "").strip()
+    if not email:
+        return stored
+    import logging
+    import re
+
+    try:
+        pattern = {"$regex": f"^{re.escape(email)}$", "$options": "i"}
+        docs = (
+            await db.diagnostic_sessions.find({"user_email": pattern})
+            .sort("created_at", -1)
+            .limit(20)
+            .to_list(length=20)
+        )
+    except Exception as exc:  # noqa: BLE001
+        # Pagina cliente/Insider: una lettura in piu' non deve mai romperla.
+        logging.getLogger(__name__).warning("[CLIENT] sessioni del lead non leggibili: %s", exc)
+        return stored
+    best = pick_diagnostic_session(docs)
+    if best and ha_risposte(best) and best.get("session_token"):
+        return best["session_token"]
+    return stored
+
+
+def ruolo_contatto(client: dict[str, Any] | None, partner: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Chi e' questa persona per il business: lead, cliente Start pagante o partner.
+
+    Unica fonte per la scheda admin. Un account `cliente_blueprint` (ha solo
+    ricevuto il Blueprint gratuito) resta un LEAD: non ha pagato niente.
+    Priorita': partner > cliente Start > lead.
+    """
+    from models.start_journey import is_start_tier
+
+    client = client or {}
+    # Ogni cliente Start ha un record `partners` di livello "start" (il ponte che
+    # fa girare i motori del percorso): NON e' una Partnership firmata. Un record
+    # senza livello e' un partner storico e vale Partnership.
+    partner_vero = bool(partner) and not is_start_tier(partner.get("tier"))
+    if partner_vero or client.get("access_level") == ACCESS_PARTNER:
+        return {"tipo": "partner", "label": "Partner", "dettaglio": "Ha firmato la Partnership."}
+    if has_start_entitlement(client):
+        when = client.get("start_purchased_at")
+        return {
+            "tipo": "cliente_start",
+            "label": "Cliente Ciak Start",
+            "dettaglio": (
+                ("Ha pagato Start Plus (790 €)." if has_start_plus(client) else "Ha pagato Ciak Start (390 €).")
+                + (f" Attivo dal {str(when)[:10]}." if when else "")
+            ),
+        }
+    return {"tipo": "lead", "label": "Lead", "dettaglio": "Non ha ancora pagato nessuna offerta."}
+
+
+def partnership_price_for_client(client: dict[str, Any], now: Any = None) -> dict[str, Any]:
+    """Prezzo della Partnership al netto del credito. `now` serve per ricalcolare a una data
+    passata (es. la data del pagamento, per fatturare): la scadenza di Start Plus dipende da lei."""
     stored_credit = client.get("start_credit_amount")
     if has_start_entitlement(client):
         try:
@@ -54,29 +194,25 @@ def partnership_price_for_client(client: dict[str, Any]) -> dict[str, Any]:
             credit = int(stored_credit or 0)
         except (TypeError, ValueError):
             credit = 0
+    plus = has_start_plus(client)
+    if plus:
+        # Start Plus: 790 interi entro 60 giorni, poi 390 (mai meno di Start).
+        credit = START_PLUS_AMOUNT_CENTS if start_plus_credit_active(client, now) else START_AMOUNT_CENTS
     credit = max(0, min(credit, PARTNERSHIP_AMOUNT_CENTS))
-    return {
+    result = {
         "full_amount_cents": PARTNERSHIP_AMOUNT_CENTS,
         "credit_amount_cents": credit,
         "due_amount_cents": PARTNERSHIP_AMOUNT_CENTS - credit,
         "currency": "eur",
     }
-
-
-def default_start_progress() -> list[dict[str, Any]]:
-    labels = [
-        "Direzione di posizionamento",
-        "Basi del brand",
-        "Sistemazione profili social",
-        "Sito vetrina semplice",
-        "Strategia contenuti",
-        "Calendario contenuti",
-        "Revisione finale e readiness partnership",
-    ]
-    return [
-        {"id": f"start_{idx + 1}", "label": label, "status": "locked" if idx else "todo"}
-        for idx, label in enumerate(labels)
-    ]
+    if plus:
+        expires = start_plus_credit_expires_at(client)
+        result["start_plus"] = {
+            "credit_expires_at": expires.isoformat() if expires else None,
+            "credit_after_expiry_cents": START_AMOUNT_CENTS,
+            "credit_active": start_plus_credit_active(client, now),
+        }
+    return result
 
 
 def _score_from_session(session: dict[str, Any]) -> int:
@@ -175,7 +311,6 @@ async def ensure_client_for_blueprint(db, session: dict[str, Any]) -> dict[str, 
         "access_level": ACCESS_BLUEPRINT,
         "created_at": _now_iso(),
         "start_credit_amount": 0,
-        "start_progress": [],
         "events": [{"event": "client_created_from_blueprint", "timestamp": _now_iso()}],
     }
     await db.ciak_clients.insert_one(doc)
@@ -217,7 +352,6 @@ async def ensure_client_for_direct_start(
         "access_level": ACCESS_BLUEPRINT,
         "created_from": "ciak_start_direct",
         "start_credit_amount": 0,
-        "start_progress": [],
         "created_at": _now_iso(),
         "updated_at": _now_iso(),
         "events": [{"event": "client_created_for_direct_start", "timestamp": _now_iso()}],
@@ -248,8 +382,32 @@ def build_start_entitlement_updates(
     return {
         "access_level": ACCESS_START,
         "start_purchased_at": client.get("start_purchased_at") or now,
-        "start_progress": client.get("start_progress") or default_start_progress(),
         "start_credit_amount": START_AMOUNT_CENTS,
+        "start_payments": registrati,
+        "updated_at": now,
+    }
+
+
+def build_start_plus_entitlement_updates(
+    client: dict[str, Any],
+    *,
+    reference_id: str,
+    now: str,
+) -> dict[str, Any] | None:
+    """Campi da scrivere per attivare Start Plus. Include l'accesso a Ciak Start (Start Plus
+    consegna anche le fondamenta). Ritorna None se quel pagamento e' gia' registrato.
+    La data `start_plus_purchased_at` e' il registro da cui scade il credito a 60 giorni."""
+    registrati = [dict(item) for item in (client.get("start_payments") or [])]
+    if any(item.get("reference_id") == reference_id for item in registrati):
+        return None
+    registrati.append({
+        "amount_cents": START_PLUS_AMOUNT_CENTS, "reference_id": reference_id, "at": now, "offer": "start_plus",
+    })
+    return {
+        "access_level": ACCESS_START,
+        "start_purchased_at": client.get("start_purchased_at") or now,
+        "start_plus_purchased_at": client.get("start_plus_purchased_at") or now,
+        "start_credit_amount": START_PLUS_AMOUNT_CENTS,
         "start_payments": registrati,
         "updated_at": now,
     }
@@ -263,7 +421,9 @@ async def create_magic_login_token(db, client_id: str, email: str) -> dict[str, 
         "email": email.strip().lower(),
         "token_hash": _token_hash(token),
         "used_at": None,
-        "expires_at": (datetime.now(timezone.utc) + timedelta(hours=48)).isoformat(),
+        # 30 giorni + riutilizzabile (vedi verify): copre la finestra "leggo il
+        # Blueprint, decido, pago" senza costringere a rigenerare il link.
+        "expires_at": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
         "created_at": _now_iso(),
     }
     await db.ciak_client_login_tokens.insert_one(doc)
@@ -272,7 +432,7 @@ async def create_magic_login_token(db, client_id: str, email: str) -> dict[str, 
 
 async def verify_magic_login_token(db, token: str) -> dict[str, Any]:
     doc = await db.ciak_client_login_tokens.find_one({"token_hash": _token_hash(token)})
-    if not doc or doc.get("used_at"):
+    if not doc:
         raise ValueError("token non valido")
     expires_at = datetime.fromisoformat(doc["expires_at"].replace("Z", "+00:00"))
     if expires_at < datetime.now(timezone.utc):
@@ -280,13 +440,13 @@ async def verify_magic_login_token(db, token: str) -> dict[str, Any]:
     client = await db.ciak_clients.find_one({"id": doc["client_id"]}, {"_id": 0})
     if not client:
         raise ValueError("cliente non trovato")
-    result = await db.ciak_client_login_tokens.update_one(
-        {"id": doc["id"], "used_at": None},
-        {"$set": {"used_at": _now_iso()}},
-    )
-    modified_count = getattr(result, "modified_count", None)
-    if modified_count is None and isinstance(result, dict):
-        modified_count = result.get("modified_count", 0)
-    if not modified_count:
-        raise ValueError("token non valido")
+    # Link RIUTILIZZABILE entro la validità (30gg): non si "brucia" al primo uso,
+    # così la persona può riaprire lo stesso link finché non scade. Registriamo
+    # comunque il primo accesso (`used_at`) come traccia di audit, senza bloccare
+    # i riusi successivi.
+    if not doc.get("used_at"):
+        await db.ciak_client_login_tokens.update_one(
+            {"id": doc["id"], "used_at": None},
+            {"$set": {"used_at": _now_iso()}},
+        )
     return client

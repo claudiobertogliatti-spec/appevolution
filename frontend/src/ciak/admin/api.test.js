@@ -5,7 +5,7 @@
  * una rata incassata, muovere una leva). Senza un helper, ogni pagina rifarebbe
  * fetch + token + gestione del 401 a modo suo.
  */
-import { apiPatch } from "./api";
+import { apiPatch, adminFetch, errorDetail } from "./api";
 
 beforeEach(() => {
   localStorage.setItem("ciak_admin_token", "tok-123");
@@ -36,4 +36,69 @@ test("apiPatch su 401 pulisce la sessione e segnala AUTH_EXPIRED", async () => {
 
   await expect(apiPatch("/crediti/x/rate/1", { stato: "saltata" })).rejects.toThrow("AUTH_EXPIRED");
   expect(localStorage.getItem("ciak_admin_token")).toBeNull();
+});
+
+test("errorDetail legge il motivo reale dal body invece di 'Errore 502' generico", async () => {
+  const res = {
+    status: 502,
+    clone() {
+      return { json: async () => ({ detail: "Generazione Blueprint fallita: sezioni mancanti ['mercato']" }) };
+    },
+  };
+  await expect(errorDetail(res)).resolves.toBe("Generazione Blueprint fallita: sezioni mancanti ['mercato']");
+});
+
+test("errorDetail torna al fallback 'Errore N' se il body non e' JSON con detail", async () => {
+  const res = {
+    status: 500,
+    clone() {
+      return { json: async () => { throw new Error("not json"); } };
+    },
+  };
+  await expect(errorDetail(res)).resolves.toBe("Errore 500");
+});
+
+test("adminFetch abortisce e rifiuta con un messaggio se scade il timeout", async () => {
+  jest.useFakeTimers();
+  localStorage.setItem("ciak_admin_token", "tok-123");
+  // fetch che non risolve mai, ma rifiuta quando il segnale abortisce (come il browser).
+  global.fetch = jest.fn(
+    (url, opts) =>
+      new Promise((_resolve, reject) => {
+        opts.signal.addEventListener("abort", () =>
+          reject(Object.assign(new Error("Aborted"), { name: "AbortError" }))
+        );
+      })
+  );
+
+  const p = adminFetch("/api/lento", { method: "POST", timeoutMs: 1000 });
+  const expectation = expect(p).rejects.toThrow(/troppo tempo/i);
+  jest.advanceTimersByTime(1000);
+  await expectation;
+  jest.useRealTimers();
+});
+
+function res403(detail) {
+  const body = { detail };
+  const r = { ok: false, status: 403, json: async () => body };
+  r.clone = () => r;
+  return r;
+}
+
+test("403 di scope (account solo Acquisizione): errore leggibile, la sessione resta", async () => {
+  global.fetch.mockResolvedValue(res403("Questo account ha accesso solo al reparto Acquisizione."));
+  await expect(adminFetch("/api/admin/ciak/partners")).rejects.toThrow("solo al reparto Acquisizione");
+  expect(localStorage.getItem("ciak_admin_token")).toBe("tok-123");
+});
+
+test("403 da token non valido: logout come prima", async () => {
+  global.fetch.mockResolvedValue(res403("Accesso riservato agli admin"));
+  await expect(adminFetch("/api/admin/ciak/partners")).rejects.toThrow("AUTH_EXPIRED");
+  expect(localStorage.getItem("ciak_admin_token")).toBeNull();
+});
+
+test("403 di contabilità riservata (Antonella): errore leggibile, niente logout", async () => {
+  global.fetch.mockResolvedValue(res403("Contabilita' collaboratori riservata"));
+  await expect(adminFetch("/api/admin/ciak/collaboratori/antonella/settlements")).rejects.toThrow("Contabilita' collaboratori riservata");
+  expect(localStorage.getItem("ciak_admin_token")).toBe("tok-123");
 });

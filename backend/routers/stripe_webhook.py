@@ -23,7 +23,7 @@ from services.ciak_client_accounts import (
     ACCESS_PARTNER,
     ACCESS_START,
     START_AMOUNT_CENTS,
-    default_start_progress,
+    START_PLUS_AMOUNT_CENTS,
     has_start_entitlement,
 )
 from security_config import require_stripe_webhook_secret
@@ -221,12 +221,14 @@ async def _dispatch_checkout_completed(db, session: dict, session_id: str, metad
         await process_evo_s_payment(db, session, metadata)
         return
 
-    if tipo == 'ciak_start':
+    if tipo in ('ciak_start', 'ciak_start_plus'):
         client_id = metadata.get('client_id')
         if client_id:
-            await process_ciak_start_payment(db, client_id, session_id, session=session)
+            await process_ciak_start_payment(
+                db, client_id, session_id, session=session, plus=(tipo == 'ciak_start_plus'),
+            )
         else:
-            raise RuntimeError(f"Missing client_id for ciak_start session {session_id}")
+            raise RuntimeError(f"Missing client_id for {tipo} session {session_id}")
     elif tipo == 'analisi_strategica':
         await process_analisi_payment(db, user_id, session_id, background_tasks)
     elif tipo == 'partnership':
@@ -442,10 +444,15 @@ async def _record_checkout_payment(db, *, session_id: str, tipo: str, amount_cen
         )
 
 
-async def process_ciak_start_payment(db, client_id: str, reference_id: str, session: dict | None = None) -> None:
+async def process_ciak_start_payment(
+    db, client_id: str, reference_id: str, session: dict | None = None, plus: bool = False,
+) -> None:
+    """Start (390) o Start Plus (790, `plus=True`). Plus include l'accesso a Start e registra
+    `start_plus_purchased_at`, da cui scade il credito a 60 giorni."""
     session = session or {}
-    if session.get("amount_total") not in (None, START_AMOUNT_CENTS):
-        raise RuntimeError(f"Invalid Ciak Start amount for session {reference_id}")
+    amount_cents = START_PLUS_AMOUNT_CENTS if plus else START_AMOUNT_CENTS
+    if session.get("amount_total") not in (None, amount_cents):
+        raise RuntimeError(f"Invalid Ciak Start{' Plus' if plus else ''} amount for session {reference_id}")
     if session.get("currency") not in (None, "eur"):
         raise RuntimeError(f"Invalid Ciak Start currency for session {reference_id}")
     client = await db.ciak_clients.find_one({"id": client_id}, {"_id": 0})
@@ -456,22 +463,38 @@ async def process_ciak_start_payment(db, client_id: str, reference_id: str, sess
     updates = {
         "access_level": ACCESS_START,
         "start_purchased_at": client.get("start_purchased_at") or now,
-        "start_credit_amount": START_AMOUNT_CENTS,
-        "start_progress": client.get("start_progress") or default_start_progress(),
+        "start_credit_amount": amount_cents,
         "updated_at": now,
         "last_checkout_session_id": reference_id,
         "last_checkout_completed_at": now,
     }
+    if plus:
+        updates["start_plus_purchased_at"] = client.get("start_plus_purchased_at") or now
     events = _append_payment_event(
         client.get("events"),
-        "ciak_start_payment_completed",
+        "ciak_start_plus_payment_completed" if plus else "ciak_start_payment_completed",
         reference_id,
-        {"amount_cents": START_AMOUNT_CENTS},
+        {"amount_cents": amount_cents},
     )
     await db.ciak_clients.update_one(
         {"id": client_id},
         {"$set": {**updates, "events": events}},
     )
+    # Systeme: il cliente Start esce dalle sequenze "non acquirente" (es. Evolution Insider).
+    # Non blocca ne' fa fallire il pagamento: l'emissione gira in background.
+    try:
+        from services.ciak_systeme import ciak_emit_event, fire_and_forget
+
+        buyer_email = (client.get("email") or "").strip().lower()
+        if buyer_email:
+            fire_and_forget(ciak_emit_event(
+                email=buyer_email,
+                event_name="ciak_start_acquistato",
+                first_name=(client.get("name") or "").strip().split(" ")[0] or None,
+                metadata={"source": "ciak_start_payment", "reference_id": reference_id},
+            ))
+    except Exception as exc:  # noqa: BLE001 - un tag mancato non deve toccare il pagamento
+        logger.warning("[START] tag Systeme non emesso: %s", exc)
     # Ponte verso i motori partner: da qui il cliente Start puo' usare brand kit e
     # posizionamento, che girano su `partner_journey_steps`. Si passa il documento
     # AGGIORNATO: quello letto sopra non ha ancora l'entitlement, e il ponte
@@ -482,8 +505,8 @@ async def process_ciak_start_payment(db, client_id: str, reference_id: str, sess
     await _record_checkout_payment(
         db,
         session_id=reference_id,
-        tipo="ciak_start",
-        amount_cents=START_AMOUNT_CENTS,
+        tipo="ciak_start_plus" if plus else "ciak_start",
+        amount_cents=amount_cents,
         email=client.get("email", ""),
         client_id=client_id,
     )
@@ -496,6 +519,7 @@ async def process_ciak_start_payment(db, client_id: str, reference_id: str, sess
         name=client.get("name"),
         paid_at=updates["start_purchased_at"],
         checkout_session_id=reference_id,
+        plus=plus,
     )
 
 
@@ -526,8 +550,6 @@ async def process_ciak_client_partnership_payment(db, client_id: str, reference_
     }
     if credit_amount:
         updates["start_credit_amount"] = credit_amount
-    if has_start_entitlement(client) and not client.get("start_progress"):
-        updates["start_progress"] = default_start_progress()
 
     events = _append_payment_event(
         client.get("events"),
@@ -1129,7 +1151,8 @@ async def process_partnership_payment(db, user_id: str, reference_id: str, backg
             # container espone la 8080. Questa attivazione falliva a ogni pagamento.
             async with httpx.AsyncClient(timeout=10) as hc:
                 risposta = await hc.post(
-                    internal_api_url(f"/api/flusso-analisi/attiva-partnership/{uid}")
+                    internal_api_url(f"/api/flusso-analisi/attiva-partnership/{uid}"),
+                    headers={"X-Internal-Key": os.environ.get("INTERNAL_API_KEY", "")},
                 )
                 if risposta.status_code >= 400:
                     logger.error(
@@ -1158,7 +1181,9 @@ async def send_partnership_welcome_email(partner_id: str):
             # Stessa storia della porta: qui c'era localhost:8001 hardcoded, quindi
             # la welcome email non e' mai partita da questo percorso.
             risposta = await client.post(
-                internal_api_url(f"/api/onboarding/send-welcome-email/{partner_id}")
+                internal_api_url(f"/api/onboarding/send-welcome-email/{partner_id}"),
+                # rotta chiusa a chi non e' admin: la chiamata di sistema porta la chiave interna
+                headers={"X-Internal-Key": os.environ.get("INTERNAL_API_KEY", "")},
             )
             if risposta.status_code >= 400:
                 # Un "triggered" scritto senza guardare la risposta e' il motivo per cui

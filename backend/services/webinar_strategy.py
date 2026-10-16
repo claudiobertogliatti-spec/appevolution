@@ -18,6 +18,8 @@ import logging
 import os
 from typing import Any
 
+from services import offer_price
+
 logger = logging.getLogger(__name__)
 
 _MODEL = os.environ.get("WEBINAR_STRATEGY_MODEL", "claude-sonnet-4-6")
@@ -46,18 +48,16 @@ _FASE_SCHEMA = {
 _PREZZO_SCHEMA = {
     "type": "object",
     "properties": {
-        "listino": {"type": "string", "description": "Prezzo pieno del corso (es. '297€')."},
-        "promo_webinar": {"type": "string", "description": "Prezzo speciale per chi compra dal webinar."},
         "scadenza_promo": {"type": "string", "description": "Quando scade la promo (es. 'entro 48h dal live')."},
         "bonus": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "2-3 bonus che si sbloccano solo comprando entro la scadenza.",
-            "minItems": 2, "maxItems": 3,
+            "description": "SOLO i bonus gia' previsti nel corso che ti vengono dati. Se non ce ne sono, lista vuota: non inventarne.",
+            "minItems": 0, "maxItems": 3,
         },
         "razionale": {"type": "string", "description": "Perché questo prezzo e questa promo, in 1-2 frasi."},
     },
-    "required": ["listino", "promo_webinar", "scadenza_promo", "bonus", "razionale"],
+    "required": ["scadenza_promo", "bonus", "razionale"],
 }
 
 _SCHEMA = {
@@ -93,18 +93,19 @@ _SYSTEM = (
     "2. Il problema — nomina il problema vero e perché i metodi soliti falliscono.\n"
     "3. Il metodo — mostra i passi del sistema (il 'cosa', non l'intero 'come').\n"
     "4. Le prove — casi, numeri, testimonianze: rendi credibile.\n"
-    "5. L'offerta — presenta corso + bonus + prezzo promo a scadenza.\n"
+    "5. L'offerta — presenta corso + prezzo (e i bonus solo se esistono).\n"
     "6. Q&A e chiusura — sciogli obiezioni, ricorda la scadenza, ultima CTA.\n"
-    "PREZZO: proponi un listino coerente col formato dichiarato dal partner, un "
-    "prezzo promo del webinar piu' basso, una scadenza breve (24-72h), e 2-3 bonus "
-    "che si sbloccano solo entro la scadenza.\n"
+    "PREZZO: il prezzo del corso e' un DATO deciso dal team e ti viene dato nel messaggio: "
+    "usalo cosi' com'e', non proporne altri e non scrivere nessun altro importo in euro. "
+    "Proponi solo una scadenza breve (24-72h) per la promo. Bonus: SOLO quelli gia' previsti "
+    "nel corso (te li diamo); se non ce ne sono, nessun bonus. Mai inventare bonus, valori o garanzie.\n"
     "REGOLE DI SCRITTURA (brand voice Ciak, non negoziabili):\n"
     "- Italiano semplice e diretto, zero fuffa.\n"
     "- Niente superlativi assoluti (mai 'potente', 'incredibile', '10x', 'il migliore').\n"
     "- 'come_farlo' = istruzione esecutiva semplicissima per un partner poco pratico "
     "(es. 'Mostra 3 slide', 'Condividi lo schermo e fai la demo', 'Parla a camera').\n"
     "- Il titolo del webinar dice il risultato, non vende a vuoto.\n"
-    "- Se il partner non ha dato un prezzo, proponi un range sensato e spiega il perche'."
+    "- Non inventare mai numeri: ne' prezzi, ne' percentuali, ne' risultati."
 )
 
 # Chiavi del Posizionamento che alimentano la strategia.
@@ -164,13 +165,12 @@ def _normalize(out: dict) -> dict:
     }
 
 
-def _deterministic(answers: dict, outline: dict | None) -> dict:
+def _deterministic(answers: dict, outline: dict | None, offer: dict | None = None) -> dict:
     """Fallback senza AI: script webinar a 6 fasi + prezzo, dai dati del partner.
     Non si blocca mai: il partner non resta davanti a un foglio bianco."""
     nicchia = _t(answers, "nicchia", "il tuo cliente ideale")
     metodo = _t(answers, "metodo_nome", "il tuo metodo")
     trasf = _t(answers, "trasformazione_90gg", "il risultato che prometti")
-    prezzo_dichiarato = _t(answers, "prezzo_e_formato")
     corso = _clean((outline or {}).get("course_name")) or "il tuo corso"
     bonus_outline = [_clean(b) for b in ((outline or {}).get("bonus") or []) if _clean(b)]
 
@@ -198,10 +198,7 @@ def _deterministic(answers: dict, outline: dict | None) -> dict:
             "come_farlo": come,
         })
 
-    bonus = bonus_outline[:3] or [
-        "Sessione di domande e risposte di gruppo",
-        "Template e strumenti operativi pronti",
-    ]
+    bonus = bonus_outline[:3]  # mai bonus inventati
 
     return {
         "webinar": {
@@ -210,17 +207,17 @@ def _deterministic(answers: dict, outline: dict | None) -> dict:
             "fasi": fasi,
         },
         "prezzo": {
-            "listino": prezzo_dichiarato or "297€",
-            "promo_webinar": "197€",
+            "listino": offer_price.fmt((offer or {}).get("listino")),
+            "promo_webinar": offer_price.fmt((offer or {}).get("promo")),
             "scadenza_promo": "entro 48h dal live",
             "bonus": bonus,
-            "razionale": "Prezzo promo solo per chi è al live: premia chi agisce subito e crea urgenza vera. Fuori scadenza si torna a listino.",
+            "razionale": "Prezzo promo per chi decide durante il live. La scadenza va rispettata davvero: fuori scadenza si torna a listino.",
         },
         "source": "fallback",
     }
 
 
-def _call_claude(answers: dict, outline: dict | None) -> dict:
+def _call_claude(answers: dict, outline: dict | None, offer: dict | None = None) -> dict:
     """Chiamata sincrona Anthropic tool-use. Solleva eccezione in caso di errore."""
     import anthropic
 
@@ -242,12 +239,13 @@ def _call_claude(answers: dict, outline: dict | None) -> dict:
             + (f"Bonus già previsti nel corso:\n{righe}" if bonus_outline else "")
         )
 
+    blocco_prezzo = f"\n\n{offer_price.prompt_block(offer)}" if offer else ""
     user = (
-        f"Posizionamento del partner:\n{pos}{blocco_corso}\n\n"
+        f"Posizionamento del partner:\n{pos}{blocco_corso}{blocco_prezzo}\n\n"
         "Genera lo script del webinar live in 6 fasi (Apertura, Il problema, Il "
         "metodo, Le prove, L'offerta, Q&A e chiusura) con obiettivo, minuti, cosa "
-        "dire e come farlo per ciascuna; più il prezzo: listino, prezzo promo del "
-        "webinar, scadenza, 2-3 bonus a scadenza e il razionale."
+        "dire e come farlo per ciascuna; più la scadenza della promo, i bonus "
+        "(solo se già previsti) e il razionale. Il prezzo è già deciso: non scriverne altri."
     )
 
     from .agent_deliverable import system_blocks
@@ -287,17 +285,24 @@ def _valid(out: Any) -> bool:
     return True
 
 
-async def build_webinar_strategy(answers: dict, outline: dict | None = None) -> dict:
+async def build_webinar_strategy(answers: dict, outline: dict | None = None, offer: dict | None = None) -> dict:
     """Ritorna {webinar:{titolo, durata_min, fasi:[...]}, prezzo:{...}, source}.
 
     Prova la sintesi AI; in caso di qualunque errore o output incompleto ricade
     sullo scheletro deterministico. Non solleva mai: lo step non deve mai bloccarsi.
     """
     try:
-        out = await asyncio.to_thread(_call_claude, answers, outline)
+        out = await asyncio.to_thread(_call_claude, answers, outline, offer)
         if _valid(out):
-            return _normalize(out)
+            result = _normalize(out)
+            if offer:
+                result["prezzo"] = offer_price.apply_to_prezzo(result["prezzo"], offer)
+                foreign = offer_price.foreign_amounts(result, offer["allowed"])
+                if foreign:
+                    logger.warning(f"[WEBINAR] L'AI ha scritto importi non dell'offerta {foreign} — scheletro deterministico")
+                    return _deterministic(answers, outline, offer)
+            return result
         logger.warning("[WEBINAR] Strategia AI incompleta — uso scheletro deterministico")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"[WEBINAR] Strategia AI fallita ({e}) — uso scheletro deterministico")
-    return _deterministic(answers, outline)
+    return _deterministic(answers, outline, offer)

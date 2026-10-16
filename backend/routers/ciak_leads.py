@@ -22,7 +22,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, EmailStr, Field
 
-from services.ciak_systeme import ciak_emit_event
+from services.ciak_systeme import ciak_emit_event, fire_and_forget
 from services.meta_capi import send_lead_event
 
 logger = logging.getLogger(__name__)
@@ -191,7 +191,7 @@ async def lead_capture(payload: LeadCaptureRequest, request: Request):
         if utm.get("utm_medium"):
             extra_tags.append(f"utm_medium_{_utm_slug(utm['utm_medium'])}")
 
-        asyncio.create_task(ciak_emit_event(
+        fire_and_forget(ciak_emit_event(
             email=email,
             event_name="ciak_optin_masterclass",
             first_name=nome,

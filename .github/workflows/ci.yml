@@ -65,6 +65,13 @@ jobs:
           pip install -r backend/requirements.txt
           pip install pytest pytest-asyncio mongomock
 
+      # `import server` crea cartelle sotto /app/storage (istanza globale di
+      # VideoProcessor in video_processor.py). Nel container Cloud Run /app e' la
+      # cartella dell'app ed e' scrivibile; sul runner non esiste. La prepariamo
+      # uguale, cosi' i test che importano server girano come in produzione.
+      - name: Prepara /app/storage (come nel container)
+        run: sudo mkdir -p /app/storage && sudo chown -R "$USER" /app
+
       # MONGO_URL fittizia: serve solo perche' routers/dependencies.py la richiede
       # all'import (il client Motor e' lazy, nessuna connessione reale).
       # Lista esplicita dei file unit: evita di importare gli integration test
@@ -79,17 +86,47 @@ jobs:
         run: >
           pytest -q
           tests/test_ciak_analisi.py
+          tests/test_start_plus.py
+          tests/test_ciak_youtube_publish.py
+          tests/test_ciak_video_intake.py
+          tests/test_pipeline_blueprint_tempi.py
+          tests/test_cerca_persone.py
+          tests/test_lead_tocco.py
           tests/test_ciak_analisi_prompt_store.py
           tests/test_ciak_analisi_public.py
-          tests/test_checkout_trigger.py
+          tests/test_ciak_scoring_ai.py
+          tests/test_diagnostic_complete_resilient.py
+          tests/test_ciak_mark_call_booked.py
+          tests/test_lead_stato_manuale_email_case.py
+          tests/test_ciak_matteo_structured.py
+          tests/test_ciak_booking_regen.py
+          tests/test_acquisizione_funnel_gratuito.py
+          tests/test_riporta_a_call_fatta.py
+          tests/test_commercial_admin_scope.py
+          tests/test_agent_token_auth.py
+          tests/test_admin_consegna_blueprint.py
+          tests/test_admin_consegna_manuale.py
           tests/test_ciak_pdf.py
+          tests/test_ciak_pdf_blueprint.py
+          tests/test_ciak_blueprint_generator.py
+          tests/test_ciak_analisi_delivery.py
           tests/test_servizi_extra_catalogo.py
           tests/test_security_config.py
           tests/test_stripe_webhook_security.py
+          tests/test_start_payment_systeme_tag.py
+          tests/test_systeme_webhook_secret.py
           tests/test_document_admin_auth.py
+          tests/test_operations_pii_auth.py
           tests/test_partner_journey_auth_unittest.py
           tests/test_no_shadow_routes.py
           tests/test_admin_endpoints_auth.py
+          tests/test_funnel_export_auth.py
+          tests/test_partner_optin.py
+          tests/test_partner_systeme.py
+          tests/test_partners_write_auth.py
+          tests/test_sales_bonifico_auth.py
+          tests/test_attiva_partnership_auth.py
+          tests/test_credentials_telegram_auth.py
           tests/test_auth_public_surface.py
           tests/test_proposta_security.py
           tests/test_partner_forgot_password.py
@@ -110,16 +147,47 @@ jobs:
           tests/test_proposta_client_identity.py
           tests/test_proposta_payment_gate.py
           tests/test_proposta_finalization_race.py
+          tests/test_insider_helpers.py
+          tests/test_contratto_dopo_il_pagamento.py
+          tests/test_proposta_stato_vista.py
+          tests/test_contratto_doppia_firma.py
+          tests/test_proposta_chat.py
+          tests/test_ciak_insider_invites.py
+          tests/test_paid_offer_gate.py
+          tests/test_paid_offer_legacy_routes.py
           tests/test_ciak_delivery_gaps.py
-          tests/test_blueprint_delivery_durability.py
           tests/test_launch_calendar.py
           tests/test_editorial_calendar_api.py
           tests/test_calendario_lancio.py
           tests/test_ciak_start_attivazione.py
           tests/test_ciak_start_consegne.py
+          tests/test_ciak_admin_elimina_client.py
+          tests/test_ciak_start_bonus_guida.py
+          tests/test_start_deliverables_wiring.py
+          tests/test_start_content_cycle.py
+          tests/test_start_final_deliverables_contract.py
+          tests/test_start_pdf.py
+          tests/test_start_libretto.py
+          tests/test_risultati_finali_admin.py
+          tests/test_start_bozze_admin.py
+          tests/test_start_marchio_admin.py
+          tests/test_start_pipeline.py
+          tests/test_lead_gestione.py
+          tests/test_lead_modifica_elimina.py
+          tests/test_start_autogenerazione.py
           tests/test_ciak_start_recovery.py
           tests/test_ciak_client_accounts.py
           tests/test_ciak_clients_router.py
+          tests/test_start_assistente.py
+          tests/test_start_assistente_admin.py
+          tests/test_partner_assistente.py
+          tests/test_stefania_chat_auth.py
+          tests/test_stefania_routes_protected.py
+          tests/test_server_routes_guarded.py
+          tests/test_ciak_bonus_offer.py
+          tests/test_ciak_bonus_reminder.py
+          tests/test_ciak_client_reengagement.py
+          tests/test_email_from_fallback.py
           tests/test_start_journey_tiers.py
           tests/test_start_partner_bridge.py
           tests/test_start_client_partner_guard.py
@@ -132,15 +200,82 @@ jobs:
           tests/test_luca_briefing_task.py
           tests/test_internal_api.py
           tests/test_funnel_metrics.py
+          tests/test_documenti_legali_completo.py
           tests/test_social_publisher.py
+          tests/test_fire_and_forget.py
+          tests/test_scheduler_social_trigger.py
           tests/test_discovery_lead_write_auth.py
           tests/test_crediti.py
           tests/test_obiettivo.py
+          tests/test_obiettivo_patch_campi.py
+          tests/test_transactions_partnership_amount.py
           tests/test_briefing_importabile_nel_container.py
           tests/test_luca_contesto_cassa.py
+          tests/test_luca_partner_attivi.py
           tests/test_crediti_elimina.py
           tests/test_collaudo.py
           tests/test_vetrina_contatti.py
+          tests/test_agent_task_dismiss.py
+          tests/test_operational_task_contracts.py
+          tests/test_operational_task_completion.py
+          tests/test_operational_task_concurrency.py
+          tests/test_operational_task_policy.py
+          tests/test_operational_task_reconciliation.py
+          tests/test_operational_task_recovery.py
+          tests/test_operational_runtime_health.py
+          tests/test_operational_acquisition.py
+          tests/test_operational_sales.py
+          tests/test_operational_delivery.py
+          tests/test_operational_back_office.py
+          tests/test_operational_coordinator.py
+          tests/test_operational_collaborations.py
+          tests/test_collaborator_department_access.py
+          tests/test_collaboration_compensation.py
+          tests/test_operational_tasks_end_to_end.py
+          tests/test_discovery_summary.py
+          tests/test_discovery_places_concurrency.py
+          tests/test_youtube_titles.py
+          tests/test_youtube_uploader_retry.py
+          tests/test_partner_materiali_listing.py
+          tests/test_operativo_upload_resource_type.py
+          tests/test_acquisition_policy.py
+          tests/test_celery_manager_config.py
+          tests/test_celery_tasks_db_contract.py
+          tests/test_ciak_admin_clienti_ciak.py
+          tests/test_ciak_admin_observability.py
+          tests/test_ciak_cut_engine.py
+          tests/test_ciak_edit_project.py
+          tests/test_ciak_fatturazione_offerte.py
+          tests/test_ciak_lesson_review.py
+          tests/test_ciak_lesson_standard.py
+          tests/test_ciak_mark_call_booked.py
+          tests/test_ciak_publish.py
+          tests/test_collaborator_document_storage.py
+          tests/test_collaborator_settlements.py
+          tests/test_collaborator_settlements_api.py
+          tests/test_collaborator_gettoni.py
+          tests/test_collaborator_gettoni_api.py
+          tests/test_frontend_security_headers.py
+          tests/test_journey_obiettivo.py
+          tests/test_legacy_partnership_routes.py
+          tests/test_lesson_video_router.py
+          tests/test_partner_journey_review_data.py
+          tests/test_partner_step_materials.py
+          tests/test_partner_step_materials_access.py
+          tests/test_funnel_review.py
+          tests/test_funnel_review_api.py
+          tests/test_legal_documents.py
+          tests/test_funnel_copy_review.py
+          tests/test_domain_check.py
+          tests/test_webinar_offer_price.py
+          tests/test_posizionamento_inputs_endpoint.py
+          tests/test_proposta_signed_contract_effect.py
+          tests/test_video_health.py
+          tests/test_video_retry_guard.py
+          tests/test_video_watchdog_attempt_cap.py
+          tests/test_start_final_deliverables.py
+          tests/test_partner_rewards_phase_unlock.py
+          tests/test_partner_rewards_protocollo_evo.py
 
   frontend:
     name: Frontend (build smoke)
@@ -163,7 +298,7 @@ jobs:
 
       - name: Calendar review tests
         working-directory: frontend
-        run: CI=true npm test -- --runInBand CalendarioEditoriale.test.jsx Step11Calendario.test.jsx metaAdLandingRedirect.test.js admin/api.test.js repartoMetrics.test.js adminPath.test.js Amministrazione.test.jsx CabinaRegia.test.jsx ConfirmDialog.test.jsx StatusPill.test.jsx PartnerHub.test.jsx QuarantenaPartner.test.jsx ExPartner.test.jsx AdminLeads.test.jsx ListaFredda.test.jsx LeadManager.test.jsx AdminLeadDetail.test.jsx AnalisiDaValidare.test.jsx Fatture.test.jsx PipelineList.test.jsx StefaniaAdmin.test.jsx TemplateEmail.test.jsx MatteoKBEditor.test.jsx
+        run: CI=true npm test -- --runInBand Diagnostica.test.jsx CalendarioEditoriale.test.jsx Step11Calendario.test.jsx metaAdLandingRedirect.test.js admin/api.test.js repartoMetrics.test.js adminPath.test.js Amministrazione.test.jsx CabinaRegia.test.jsx ConfirmDialog.test.jsx StatusPill.test.jsx KpiTile.test.jsx PageHeader.test.jsx PartnerHub.test.jsx QuarantenaPartner.test.jsx ExPartner.test.jsx AdminLeads.test.jsx ListaFredda.test.jsx LeadManager.test.jsx AdminLeadDetail.test.jsx AnalisiDaValidare.test.jsx Fatture.test.jsx PipelineList.test.jsx StefaniaAdmin.test.jsx TemplateEmail.test.jsx MatteoKBEditor.test.jsx ContractParamsModal.test.jsx AnalisiPromptEditor.test.jsx LucaChat.test.jsx VideoPipelineMonitor.test.jsx VideoReview.test.jsx ContrattoCustomModal.test.jsx PartnerDetailModal.test.jsx DepartmentQueue.test.jsx AcquisizioneQueue.test.jsx offerEmphasis.test.js InsiderSalesPage.test.js OfferSections.test.js timeline.test.js chatStream.test.js ProposalChat.test.js ContractAccept.test.js PartnershipCheckout.test.jsx ListinoPrezzi.test.jsx ConsegnaManuale.test.jsx AdminHome.test.jsx OggiBlocks.test.jsx oggiModel.test.js useDrawer.test.jsx cercaModel.test.js CercaPalette.test.jsx sezioneModel.test.js SezioneNav.test.jsx navCoerenza.test.js AcquisizioneScript.test.jsx schedaScriptModel.test.js LeadScriptPanel.test.jsx AnalysisRecap.test.js BoosterEvoPage.test.js ClientiCiak.test.jsx ClientLayout.test.jsx CollaboratorSettlements.test.jsx ConsegneMancate.test.jsx ConsegneStart.test.jsx RisultatiFinali.test.jsx DepartmentRoom.test.jsx EvoSPage.test.js feature.test.js funnelRouting.test.js homeModel.test.js journeyModel.test.js journeyPresentation.test.js MasterclassLanding.test.jsx navigationMatch.test.js obiettivoModel.test.js PersonaHome.test.jsx simulatoreFatturato.test.js StepObiettivo.test.jsx TrattativePipeline.test.jsx MasterclassFlow.test.jsx TeamSupportoPage.test.jsx SerenoPiano.test.js SerenoJourney.test.js SerenoAssistenza.test.js PartnerNavigation.test.js PartnerFilesPage.test.js protectedDownload.test.js CiakBlueprint.test.jsx Landing.test.jsx
 
       # Allineato a vercel.json (buildCommand). DISABLE_ESLINT_PLUGIN evita i
       # conflitti eslint v9; CI=false: i warning non bloccano. Errori reali

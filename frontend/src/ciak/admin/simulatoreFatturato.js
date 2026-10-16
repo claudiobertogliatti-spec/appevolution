@@ -15,11 +15,13 @@
  * Modulo PURO (nessuna dipendenza React): testabile in isolamento.
  */
 
+import { PRICING } from "../pricing";
+
 export const PRICE = {
-  blueprint: 27,
-  start: 499,
-  upgrade: 2291,
-  direct: 2790,
+  blueprint: 0, // Blueprint gratis (fuori dal SSOT: decisione di flusso separata)
+  start: PRICING.start.cents / 100, // SSOT pricing.js
+  upgrade: PRICING.upgradeFromStart.cents / 100, // Upgrade Start→Partnership
+  direct: PRICING.partnership.cents / 100, // Partnership diretta
   commRate: 0.10, // 10% sul venduto, solo nei 12 mesi di Partnership
 };
 

@@ -149,6 +149,10 @@ async def _build_state(partner_id: str) -> Dict[str, Any]:
     n_planned = len(planned)
     uploaded = []
     from services.ciak_lesson_review import is_partner_approved
+    from services import coda_antonella, limite_video
+    esiti = {}
+    async for e in db.ciak_coda_lezioni.find({"partner_id": str(partner_id)}, {"_id": 1, "esito": 1}):
+        esiti[e["_id"]] = e
     for lid, l in lessons.items():
         lesson_status = l.get("pipeline_status") or l.get("status") or ""
         partner_approved = is_partner_approved(l)
@@ -164,6 +168,10 @@ async def _build_state(partner_id: str) -> Dict[str, Any]:
             "video_duration_s": float(l.get("video_final_duration_s") or 0),
             "active_revision_id": l.get("active_revision_id"),
             "revision_cycle": int(l.get("revision_cycle") or 0),
+            "team_check": coda_antonella.stato_per_partner(
+                partner_approved,
+                esiti.get(coda_antonella.chiave_lezione(str(partner_id), lid, int(l.get("output_version") or 0))),
+            ),
             "embed_url": l.get("video_ciak_url") or l.get("video_embed_url") or l.get("video_youtube_url") or "",
         })
     n_uploaded = len(uploaded)
@@ -229,6 +237,10 @@ async def _build_state(partner_id: str) -> Dict[str, Any]:
         "progress": progress,
         "done_count": done,
         "total_count": total,
+        # Quanti video puo' ancora mandarci adesso (vedi services/limite_video.py).
+        "upload": limite_video.stato_upload(
+            lessons, esiti, coda_antonella.chiave_lezione, str(partner_id),
+        ),
     }
 
 

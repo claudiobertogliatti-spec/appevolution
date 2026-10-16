@@ -70,7 +70,7 @@ class TestPropostaEndpoints:
             json={
                 "analisi_posizionamento": "Test positioning analysis",
                 "analisi_punti_forza": ["Punto 1", "Punto 2"],
-                "contract_params": {"corrispettivo": 2790.0}
+                "contract_params": {"corrispettivo": 2990.0}
             }
         )
         

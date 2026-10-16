@@ -9,16 +9,28 @@ pytestmark = pytest.mark.unit
 
 
 @pytest.mark.asyncio
-async def test_piano_start_riusa_calendario_trimestrale_e_dichiara_fonti(monkeypatch):
-    async def fake_calendar(answers, outline=None):
-        return {"months": [{"mese": 1}, {"mese": 2}, {"mese": 3}], "source": "deterministic"}
+async def test_piano_start_usa_ciclo_60_giorni_e_dichiara_fonti(monkeypatch):
+    # Dal #163 il piano Start e' un ciclo ripetibile di 60 giorni
+    # (build_start_content_cycle), non il regime trimestrale della Partnership.
+    calls = []
 
-    monkeypatch.setattr("services.start_final_deliverables.build_quarterly_calendar", fake_calendar)
+    async def fake_cycle(answers, outline=None):
+        calls.append((answers, outline))
+        return {"phases": [{"fase": 1}, {"fase": 2}, {"fase": 3}], "source": "deterministic"}
+
+    monkeypatch.setattr("services.start_final_deliverables.build_start_content_cycle", fake_cycle)
     out = await build_start_content_plan({"answers": {"nicchia": "fisioterapia"}})
-    assert len(out["calendar"]["months"]) == 3
-    assert out["period_days"] == 90
-    assert out["evidence"]["answers_present"] is True
+    assert calls == [({"nicchia": "fisioterapia"}, None)]
+    assert len(out["calendar"]["phases"]) == 3
+    assert out["period_days"] == 60
+    assert out["recurring"] is True
+    assert out["evidence"] == {
+        "answers_present": True,
+        "outline_present": False,
+        "calendar_source": "deterministic",
+    }
     assert out["status"] == "ready_for_review"
+    # identificatore tecnico legacy, usato da approvazione/readiness/frontend
     assert out["type"] == "content_plan_90d"
 
 

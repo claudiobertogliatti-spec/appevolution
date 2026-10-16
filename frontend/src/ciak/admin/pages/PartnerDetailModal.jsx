@@ -18,10 +18,16 @@ import {
   Calendar, AlertTriangle, Eye, Shield, XCircle, Settings, Globe,
   ChevronDown, ChevronUp, BookOpen, Video, Link2, Target, Sparkles, Wand2
 } from "lucide-react";
+import { toast } from "sonner";
 import { adminFetch } from "../api";
 import { attoEvo } from "../evo";
+import { PRICING } from "../../pricing";
 import { ContractParamsModal } from "./ContractParamsModal";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { PercorsoEvoPanel } from "../components/PercorsoEvoPanel";
+import { CodaAssistente } from "../components/CodaAssistente";
+import { CompitiPartner } from "../components/CompitiPartner";
+import { CommentiPannello } from "../components/CommentiPannello";
 // Stesso registro domande usato dal wizard lato partner: unica fonte, così i due
 // elenchi non possono divergere.
 import { STORIA_QUESTIONS } from "../../partner/operativo/questionari/storiaQuestions";
@@ -790,7 +796,107 @@ function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired 
 // COMPONENTE PRINCIPALE - CENTRALE OPERATIVA PARTNER
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelete, onAuthExpired, initialTab = "profilo" }) => {
+// ═══════════════════════════════════════════════════════════════════════════════
+// HEADER OPERATIVO (T17a) — apre la scheda su "cosa manca e chi ci lavora"
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Scadenza operativa: SOLO da campi reali (prossima rata del piano o fine
+// contratto). Una deadline per-step non esiste → se manca, "—", mai inventata.
+function opScadenza(partner, piano) {
+  const raw = piano?.prossima_scadenza || partner?.piano_pagamento?.prossima_scadenza || partner?.contract_end;
+  if (!raw) return null;
+  const s = String(raw).slice(0, 10);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
+}
+
+// Blocco: dai flag GIA' calcolati dal backend in /delivery-audit (stessa fonte di
+// Audit Delivery). Mai ricalcolato a mano qui.
+function opBlocco(audit) {
+  if (!audit) return null;
+  if (audit.blocked) return { text: "Fermo", cls: "bg-red-100 text-red-700" };
+  if (audit.incoerenza) return { text: "Incoerenza", cls: "bg-red-100 text-red-700" };
+  if (audit.stale) return { text: "In ritardo", cls: "bg-amber-100 text-amber-700" };
+  return null;
+}
+
+// Obiettivo dell'atto EVO corrente (descrizione dell'atto, non una promessa
+// per-partner inventata): il "prossimo risultato" a cui punta la fase attuale.
+const ATTO_OBIETTIVO = {
+  Esamina: "Posizionamento e offerta chiari",
+  Valida: "Funnel online e testato",
+  Ottimizza: "Crescita e riferimento di categoria",
+};
+
+// Striscia operativa in cima alla scheda. I dati operativi (situazione/prossima
+// azione/responsabile/blocco) arrivano dall'item `audit` passato dal chiamante,
+// che e' la STESSA fonte di Audit Delivery (GET /delivery-audit). Nulla e'
+// ricalcolato o inventato: dove il dato manca, "—".
+export function PartnerOpHeader({ partner, audit, piano, phase, onOpenJourney }) {
+  const atto = attoEvo(phase) || "—";
+  const situazione = (audit && audit.current_step) || atto;
+  const risultato = ATTO_OBIETTIVO[atto] || "—";
+  const responsabile = (audit && audit.owner) || "—";
+  const scadenza = opScadenza(partner, piano);
+  const blocco = opBlocco(audit);
+  const prossima = (audit && audit.next_action) || null;
+  return (
+    <div data-testid="partner-op-header" className="px-6 py-4 bg-slate-50 border-b border-slate-200">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            <Target className="w-3.5 h-3.5" aria-hidden />Situazione
+          </div>
+          <div className="text-sm font-medium text-slate-800 truncate">{situazione}</div>
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            <Sparkles className="w-3.5 h-3.5" aria-hidden />Prossimo risultato
+          </div>
+          <div className="text-sm font-medium text-slate-800 truncate">{risultato}</div>
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            <User className="w-3.5 h-3.5" aria-hidden />Responsabile
+          </div>
+          <div className="text-sm font-medium text-slate-800 truncate">{responsabile}</div>
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            <Calendar className="w-3.5 h-3.5" aria-hidden />Scadenza
+          </div>
+          <div className="text-sm font-medium text-slate-800 truncate">{scadenza || "—"}</div>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Prossima azione</div>
+          <div className="text-sm font-semibold text-slate-900 truncate">
+            {prossima || <span className="text-slate-400 font-normal">Nessuna azione in coda</span>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {blocco ? (
+            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${blocco.cls}`}>
+              <AlertTriangle className="w-3.5 h-3.5" aria-hidden />{blocco.text}
+            </span>
+          ) : (
+            <span className="text-xs text-slate-400">Nessun blocco</span>
+          )}
+          <button
+            type="button"
+            onClick={onOpenJourney}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-yellow-400 hover:bg-slate-800 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+          >
+            Apri i materiali
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelete, onAuthExpired, initialTab = "panoramica", audit = null }) => {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -798,6 +904,12 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showContractParams, setShowContractParams] = useState(false);
+  // Toggle di stato (Partnership/Contratto/Onboarding/Masterclass): la conferma
+  // passa da un ConfirmDialog in pagina, non da un window.confirm() sincrono.
+  const [pendingToggle, setPendingToggle] = useState(null); // { field, next, label }
+  // Conferma generica in pagina per le azioni dilazione/morosità (al posto di
+  // window.confirm): { title, body, confirmLabel, destructive, onConfirm }.
+  const [pendingConfirm, setPendingConfirm] = useState(null);
 
   // Form state for profile tab
   const [formData, setFormData] = useState({
@@ -843,6 +955,8 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
 
   // Partnership payment state
   const [markingPartnership, setMarkingPartnership] = useState(false);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState(String(PRICING.partnership.cents / 100));
 
   // Video pipeline state
   const [videoPipeline, setVideoPipeline] = useState(null);
@@ -890,7 +1004,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       // Tab di apertura: "profilo" (click sul nome) o "journey" (bottone Journey)
       setActiveTab(initialTab);
       setJourneyData(null);
-      if (initialTab === "journey") loadJourneyData();
+      if (initialTab === "materiali") loadJourneyData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [partner, initialTab]);
@@ -1213,21 +1327,20 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
     }
   };
 
-  // Segna pagamento partnership manuale
-  const handleSegnaPagamentoPartnership = async () => {
-    const importo = window.prompt(
-      "Inserisci l'importo della partnership (es. 2790 per €2.790):",
-      "2790"
-    );
+  // Segna pagamento partnership manuale: importo e conferma raccolti da un
+  // form in pagina (non window.prompt + window.confirm).
+  const handleSegnaPagamentoPartnership = () => {
+    setPaymentAmount(String(PRICING.partnership.cents / 100));
+    setShowPaymentForm(true);
+  };
 
-    if (!importo || isNaN(parseFloat(importo))) return;
-
-    const conferma = window.confirm(
-      `Confermi che ${partnerName} ha effettuato il pagamento della Partnership di €${parseFloat(importo).toLocaleString('it-IT')} tramite bonifico?\n\nVerrà aggiunto ai pagamenti come "Pagato".`
-    );
-
-    if (!conferma) return;
-
+  const submitPagamentoPartnership = async () => {
+    const importo = parseFloat(paymentAmount);
+    if (!paymentAmount || isNaN(importo) || importo <= 0) {
+      toast.error("Inserisci un importo valido.");
+      return;
+    }
+    setShowPaymentForm(false);
     setMarkingPartnership(true);
 
     try {
@@ -1244,16 +1357,16 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       const data = await res.json();
 
       if (data.success) {
-        alert(`Pagamento Partnership di €${parseFloat(importo).toLocaleString('it-IT')} segnato correttamente!`);
+        toast.success(`Pagamento Partnership di €${parseFloat(importo).toLocaleString('it-IT')} segnato correttamente!`);
         fetchPayments();
         setSaveSuccess(true);
       } else {
-        alert("Errore: " + (data.detail || "Impossibile segnare il pagamento"));
+        toast.error("Errore: " + (data.detail || "Impossibile segnare il pagamento"));
       }
     } catch (e) {
       authErr(e);
       console.error("Error:", e);
-      alert("Errore nella comunicazione con il server");
+      toast.error("Errore nella comunicazione con il server");
     } finally {
       setMarkingPartnership(false);
     }
@@ -1273,7 +1386,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
     const d = pianoDraft;
     if (!d) return;
     if (Number(d.rate_pagate) > Number(d.rate_totali)) {
-      alert("Le rate pagate non possono superare il totale");
+      toast.error("Le rate pagate non possono superare il totale");
       return;
     }
     setSavingPiano(true);
@@ -1297,14 +1410,22 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       setSaveSuccess(true);
     } catch (e) {
       authErr(e);
-      alert(e.message || "Errore nel salvataggio della dilazione");
+      toast.error(e.message || "Errore nel salvataggio della dilazione");
     } finally {
       setSavingPiano(false);
     }
   };
 
-  const handleRemovePiano = async () => {
-    if (!window.confirm("Rimuovere la dilazione di questo partner?")) return;
+  const handleRemovePiano = () =>
+    setPendingConfirm({
+      title: "Rimuovi la dilazione",
+      body: "Il partner torna alle condizioni di pagamento standard.",
+      confirmLabel: "Rimuovi",
+      destructive: true,
+      onConfirm: doRemovePiano,
+    });
+
+  const doRemovePiano = async () => {
     setSavingPiano(true);
     try {
       const res = await adminFetch(`/api/admin/ciak/partner/${partner.id}/piano-pagamento`, {
@@ -1316,7 +1437,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       setSaveSuccess(true);
     } catch (e) {
       authErr(e);
-      alert(e.message || "Errore nella rimozione della dilazione");
+      toast.error(e.message || "Errore nella rimozione della dilazione");
     } finally {
       setSavingPiano(false);
     }
@@ -1324,8 +1445,16 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
 
   // Morosità: unico punto d'ingresso per marcare quarantena_tipo "morosita".
   // (La sospensione "richiesta" si gestisce dalla pagina Quarantena Partner.)
-  const handleSetMorosita = async () => {
-    if (!window.confirm("Segnalare questo partner come moroso? Verrà spostato in Quarantena con badge Morosità.")) return;
+  const handleSetMorosita = () =>
+    setPendingConfirm({
+      title: "Segnala il partner come moroso",
+      body: "Viene spostato in Quarantena con badge Morosità.",
+      confirmLabel: "Segnala moroso",
+      destructive: true,
+      onConfirm: doSetMorosita,
+    });
+
+  const doSetMorosita = async () => {
     setSavingMorosita(true);
     try {
       const res = await adminFetch(`/api/admin/ciak/partner/${partner.id}/stato`, {
@@ -1344,14 +1473,22 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       if (onUpdate) onUpdate();
     } catch (e) {
       authErr(e);
-      alert(e.message || "Errore nella segnalazione morosità");
+      toast.error(e.message || "Errore nella segnalazione morosità");
     } finally {
       setSavingMorosita(false);
     }
   };
 
-  const handleClearMorosita = async () => {
-    if (!window.confirm("Rimuovere la segnalazione di morosità e riattivare il partner?")) return;
+  const handleClearMorosita = () =>
+    setPendingConfirm({
+      title: "Rimuovi la morosità",
+      body: "La segnalazione viene tolta e il partner torna attivo.",
+      confirmLabel: "Riattiva",
+      destructive: false,
+      onConfirm: doClearMorosita,
+    });
+
+  const doClearMorosita = async () => {
     setSavingMorosita(true);
     try {
       const res = await adminFetch(`/api/admin/ciak/partner/${partner.id}/stato`, {
@@ -1366,7 +1503,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       if (onUpdate) onUpdate();
     } catch (e) {
       authErr(e);
-      alert(e.message || "Errore nella riattivazione");
+      toast.error(e.message || "Errore nella riattivazione");
     } finally {
       setSavingMorosita(false);
     }
@@ -1382,10 +1519,12 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
   const partnerName = headerPartner.name || headerPartner.nome || `${headerPartner.nome || ""} ${headerPartner.cognome || ""}`.trim() || "Partner";
 
   const tabs = [
-    { id: "profilo", label: "Profilo", icon: User },
-    { id: "journey", label: "Dati Journey", icon: Edit3 },
+    { id: "panoramica", label: "Panoramica", icon: Eye },
+    { id: "percorso", label: "Percorso EVO", icon: Target },
+    { id: "materiali", label: "Materiali", icon: Edit3 },
     { id: "documenti", label: "Documenti", icon: FileText },
-    { id: "pagamenti", label: "Pagamenti", icon: CreditCard }
+    { id: "pagamenti", label: "Pagamenti", icon: CreditCard },
+    { id: "impostazioni", label: "Impostazioni", icon: Settings }
   ];
 
   return (
@@ -1431,12 +1570,22 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
             </button>
           </div>
 
+          {/* Header operativo (T17a): situazione, prossimo risultato, responsabile,
+              scadenza, prossima azione e blocco — apre su cosa manca e chi ci lavora. */}
+          <PartnerOpHeader
+            partner={headerPartner}
+            audit={audit}
+            piano={piano}
+            phase={formData.phase}
+            onOpenJourney={() => { setActiveTab("materiali"); loadJourneyData(); }}
+          />
+
           {/* Tabs */}
           <div className="flex border-b" style={{ backgroundColor: "#FAFAF7" }}>
             {tabs.map(tab => (
               <button
                 key={tab.id}
-                onClick={() => { setActiveTab(tab.id); if (tab.id === "journey") loadJourneyData(); }}
+                onClick={() => { setActiveTab(tab.id); if (tab.id === "materiali") loadJourneyData(); }}
                 className={`flex items-center gap-2 px-6 py-4 font-medium transition-all border-b-2 ${
                   activeTab === tab.id
                     ? "border-[#FFD24D] text-gray-900 bg-white"
@@ -1470,8 +1619,53 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
             )}
 
             {/* TAB JOURNEY */}
-            {activeTab === "journey" && (
-              <div className="space-y-5" data-testid="tab-content-journey">
+            {/* TAB PANORAMICA — apre qui: cosa serve adesso + stato consegna (solo dati reali) */}
+            {activeTab === "panoramica" && (
+              <div className="space-y-5" data-testid="tab-content-panoramica">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Prossima azione</div>
+                  <div className="text-sm font-semibold text-slate-900 mt-0.5">
+                    {audit?.next_action || <span className="text-slate-400 font-normal">Nessuna azione in coda.</span>}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-700 mb-2">Stato consegna</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {[
+                      { ok: formData.partnership_pagata, label: "Partnership pagata" },
+                      { ok: formData.contratto_firmato, label: "Contratto firmato" },
+                      { ok: formData.onboarding_completato, label: "Onboarding" },
+                      { ok: formData.masterclass_pronta, label: "Masterclass" },
+                    ].map(({ ok, label }) => (
+                      <div
+                        key={label}
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${ok ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-400"}`}
+                      >
+                        {ok ? <CheckCircle className="w-3.5 h-3.5" aria-hidden /> : <AlertCircle className="w-3.5 h-3.5" aria-hidden />}
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <CodaAssistente base={`/partner/${partner.id}`} email={partner.email} />
+                <p className="text-xs text-slate-400">
+                  Modifica i dati nelle schede <b>Materiali</b>, <b>Percorso EVO</b> e <b>Impostazioni</b>.
+                </p>
+              </div>
+            )}
+
+            {/* TAB PERCORSO EVO — macro-fasi + step, promosso a tab dedicato */}
+            {activeTab === "percorso" && (
+              <div className="space-y-5" data-testid="tab-content-percorso">
+                <CompitiPartner partnerId={partner.id} />
+                <CommentiPannello tipo="partner" id={partner.id} />
+                <PercorsoEvoPanel partner={partner} />
+              </div>
+            )}
+
+            {/* TAB MATERIALI (ex Dati Journey) */}
+            {activeTab === "materiali" && (
+              <div className="space-y-5" data-testid="tab-content-materiali">
                 {journeyLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
@@ -1496,8 +1690,8 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
             )}
 
             {/* TAB PROFILO */}
-            {activeTab === "profilo" && (
-              <div className="space-y-6" data-testid="tab-content-profilo">
+            {activeTab === "impostazioni" && (
+              <div className="space-y-6" data-testid="tab-content-impostazioni">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Nicchia */}
                   <div>
@@ -1708,11 +1902,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                       <input
                         type="checkbox"
                         checked={formData.partnership_pagata || false}
-                        onChange={e => {
-                          if (window.confirm(`Vuoi ${e.target.checked ? 'segnare' : 'rimuovere'} il pagamento partnership per ${partnerName}?`)) {
-                            setFormData({...formData, partnership_pagata: e.target.checked});
-                          }
-                        }}
+                        onChange={e => setPendingToggle({ field: "partnership_pagata", next: e.target.checked, label: "il pagamento partnership" })}
                         className="w-4 h-4 text-amber-500 rounded"
                       />
                       <span className="text-sm font-medium text-gray-700">Partnership Pagata</span>
@@ -1722,11 +1912,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                       <input
                         type="checkbox"
                         checked={formData.contratto_firmato || false}
-                        onChange={e => {
-                          if (window.confirm(`Vuoi ${e.target.checked ? 'segnare' : 'rimuovere'} il contratto firmato per ${partnerName}?`)) {
-                            setFormData({...formData, contratto_firmato: e.target.checked});
-                          }
-                        }}
+                        onChange={e => setPendingToggle({ field: "contratto_firmato", next: e.target.checked, label: "il contratto firmato" })}
                         className="w-4 h-4 text-amber-500 rounded"
                       />
                       <span className="text-sm font-medium text-gray-700">Contratto Firmato</span>
@@ -1746,11 +1932,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                       <input
                         type="checkbox"
                         checked={formData.onboarding_completato || false}
-                        onChange={e => {
-                          if (window.confirm(`Vuoi ${e.target.checked ? 'segnare' : 'rimuovere'} l'onboarding completato per ${partnerName}?`)) {
-                            setFormData({...formData, onboarding_completato: e.target.checked});
-                          }
-                        }}
+                        onChange={e => setPendingToggle({ field: "onboarding_completato", next: e.target.checked, label: "l'onboarding completato" })}
                         className="w-4 h-4 text-amber-500 rounded"
                       />
                       <span className="text-sm font-medium text-gray-700">Onboarding Completato</span>
@@ -1760,11 +1942,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                       <input
                         type="checkbox"
                         checked={formData.masterclass_pronta || false}
-                        onChange={e => {
-                          if (window.confirm(`Vuoi ${e.target.checked ? 'segnare' : 'rimuovere'} la masterclass pronta per ${partnerName}?`)) {
-                            setFormData({...formData, masterclass_pronta: e.target.checked});
-                          }
-                        }}
+                        onChange={e => setPendingToggle({ field: "masterclass_pronta", next: e.target.checked, label: "la masterclass pronta" })}
                         className="w-4 h-4 text-amber-500 rounded"
                       />
                       <span className="text-sm font-medium text-gray-700">Masterclass Pronta</span>
@@ -1799,10 +1977,6 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                   </button>
                 </div>
 
-                {/* Percorso EVO — macro-fasi + 20 step (sostituisce il selettore fase legacy) */}
-                <div className="pt-6 border-t">
-                  <PercorsoEvoPanel partner={partner} />
-                </div>
               </div>
             )}
 
@@ -2474,6 +2648,97 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
           onClose={() => setShowContractParams(false)}
           onAuthExpired={onAuthExpired}
         />
+      )}
+
+      <ConfirmDialog
+        open={!!pendingToggle}
+        title={
+          pendingToggle
+            ? `${pendingToggle.next ? "Segna" : "Rimuovi"} ${pendingToggle.label}`
+            : ""
+        }
+        body={pendingToggle ? `Per ${partnerName}. Va salvato con "Salva Modifiche".` : ""}
+        confirmLabel={pendingToggle?.next ? "Segna" : "Rimuovi"}
+        cancelLabel="Annulla"
+        destructive={pendingToggle ? !pendingToggle.next : false}
+        onConfirm={() => {
+          if (pendingToggle) setFormData({ ...formData, [pendingToggle.field]: pendingToggle.next });
+          setPendingToggle(null);
+        }}
+        onCancel={() => setPendingToggle(null)}
+      />
+
+      <ConfirmDialog
+        open={!!pendingConfirm}
+        title={pendingConfirm?.title || ""}
+        body={pendingConfirm?.body || ""}
+        confirmLabel={pendingConfirm?.confirmLabel || "Conferma"}
+        cancelLabel="Annulla"
+        destructive={pendingConfirm?.destructive || false}
+        onConfirm={() => {
+          const p = pendingConfirm;
+          setPendingConfirm(null);
+          p?.onConfirm?.();
+        }}
+        onCancel={() => setPendingConfirm(null)}
+      />
+
+      {showPaymentForm && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 p-4"
+          role="presentation"
+          onClick={(e) => { e.stopPropagation(); setShowPaymentForm(false); }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="payment-form-title"
+            className="w-full max-w-md rounded-xl bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="payment-form-title" className="text-lg font-semibold text-slate-900">
+              Segna il pagamento partnership
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Per {partnerName}. Registra un bonifico incassato come "Pagato".
+            </p>
+            <label className="mt-4 block text-xs font-semibold uppercase tracking-widest text-slate-500">
+              Importo
+            </label>
+            <div className="mt-1 flex items-center rounded-lg border border-slate-300 px-3 focus-within:border-slate-900">
+              <span className="text-slate-500">€</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                autoFocus
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") submitPagamentoPartnership(); }}
+                data-testid="payment-amount-input"
+                className="w-full py-2 pl-2 outline-none tabular-nums"
+              />
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowPaymentForm(false)}
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400 transition-colors"
+              >
+                Annulla
+              </button>
+              <button
+                type="button"
+                onClick={submitPagamentoPartnership}
+                disabled={markingPartnership}
+                data-testid="payment-confirm-btn"
+                className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-yellow-400 hover:bg-slate-800 transition-colors disabled:opacity-50"
+              >
+                Segna pagato
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
