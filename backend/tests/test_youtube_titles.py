@@ -118,3 +118,31 @@ if __name__ == "__main__":
     for p in build_title_plan(PARTNER, demo_vc, demo_mc):
         print(f"  {p['video_id']:>6}  ->  {p['target_title']}")
     print("OK demo")
+
+
+# ---------- doppioni in playlist ----------
+from services.youtube_titles import playlist_duplicates  # noqa: E402
+
+
+def _pl(vid, item, title, pos):
+    return {"video_id": vid, "playlist_item_id": item, "title": title, "position": pos}
+
+
+def test_playlist_duplicates_finds_same_video_and_same_title_keeping_the_first():
+    items = [_pl("v1", "i1", "Lamanna · BONUS 3", 0), _pl("v2", "i2", "Altro", 1),
+             _pl("v1", "i3", "Lamanna · BONUS 3", 2),                 # stesso video due volte
+             _pl("v9", "i4", "  lamanna ·  bonus 3 ", 3)]             # stesso titolo, video ricaricato
+    out = playlist_duplicates(items)
+    assert [(d["playlist_item_id"], d["motivo"]) for d in out] == [
+        ("i3", "stesso video gia' in playlist"), ("i4", "stesso titolo di un altro video in playlist")]
+
+
+def test_playlist_duplicates_keeps_the_lowest_position_even_if_listed_later():
+    out = playlist_duplicates([_pl("v1", "i-tardi", "Uguale", 5), _pl("v2", "i-primo", "Uguale", 1)])
+    assert [d["playlist_item_id"] for d in out] == ["i-tardi"]
+
+
+def test_playlist_duplicates_leaves_distinct_videos_and_bad_rows_alone():
+    items = [_pl("v1", "i1", "A", 0), _pl("v2", "i2", "B", 1), {"video_id": None, "playlist_item_id": "x"},
+             {"video_id": "v3", "title": "C"}]                          # senza id voce: ignorato
+    assert playlist_duplicates(items) == [] and playlist_duplicates(None) == []

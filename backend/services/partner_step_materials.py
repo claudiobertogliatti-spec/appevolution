@@ -257,7 +257,11 @@ def build_drive_registration_record(
     approved = visibility == "partner_visible" and explicitly_approved and serveable
     state = "approved" if approved else "pending_review"
     name = str(item.get("name") or "")
+    # Un link su host pubblico consentito (YouTube, ciak.io) si apre dal `public_url`: senza, il file risultava
+    # "non apribile" e il partner non lo vedeva. Drive e gli altri host restano esclusi (`allowed_public_url`).
+    public_url = allowed_public_url(url)
     return {
+        **({"public_url": public_url} if public_url else {}),
         "id": record_id,
         "file_id": drive_id,
         "partner_id": str(partner_id),
