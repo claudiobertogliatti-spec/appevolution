@@ -1209,3 +1209,111 @@ def test_senza_richiesta_del_team_chi_aveva_inviato_le_otto_resta_chiuso(monkeyp
     fake_db.partner_journey_steps.docs[0]["data"]["integrazione_richiesta_at"] = None
     r = client_app.put("/api/ciak/client/start/risposte", json={"answers": {"nicchia": "Versione corretta della nicchia"}, "completato": True}, headers=auth)
     assert r.status_code == 200
+
+
+# ---- Start Plus (790 EUR) ---------------------------------------------------
+
+def _prepara_lead(fake_db):
+    fake_db.ciak_clients.docs[0].update(
+        access_level="cliente_blueprint", start_credit_amount=0, start_purchased_at=None, start_progress=[],
+    )
+    return ciak_clients._create_client_jwt(fake_db.ciak_clients.docs[0])
+
+
+def test_start_plus_checkout_creates_790_euro_session(monkeypatch, client_app, fake_db):
+    monkeypatch.setenv("STRIPE_API_KEY", "sk_test_123")
+    monkeypatch.setenv("FRONTEND_URL", "https://frontend.example")
+    token = _prepara_lead(fake_db)
+    response = client_app.post("/api/ciak/client/start-plus/checkout", headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["amount_cents"] == 79000
+    assert body["credit_amount_cents"] == 79000
+    assert body["credit_valid_days"] == 60
+    request = FakeStripeCheckout.created_requests[0]["request"]
+    assert request.amount == 790.0
+    assert request.currency == "eur"
+    assert request.metadata == {"tipo": "ciak_start_plus", "client_id": "client-1", "email": "a@example.com"}
+
+
+def test_start_plus_live_checkout_closed_without_approvals(monkeypatch, client_app, fake_db):
+    monkeypatch.setenv("STRIPE_API_KEY", "sk_live_fixture")
+    monkeypatch.delenv("CIAK_PAID_OFFERS_LEGAL_APPROVED", raising=False)
+    monkeypatch.delenv("CIAK_PAID_OFFERS_FISCAL_APPROVED", raising=False)
+    token = _prepara_lead(fake_db)
+    response = client_app.post("/api/ciak/client/start-plus/checkout", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 503
+    assert response.json()["detail"]["code"] == "PAID_OFFER_CHECKOUT_CLOSED"
+    assert FakeStripeCheckout.created_requests == []
+
+
+def test_start_plus_checkout_rejects_clients_who_already_have_start(monkeypatch, client_app, fake_db):
+    monkeypatch.setenv("STRIPE_API_KEY", "sk_test_123")
+    token = _prepara_lead(fake_db)
+    fake_db.ciak_clients.docs[0].update(access_level="cliente_start", start_purchased_at="2026-10-01T00:00:00+00:00",
+                                        start_credit_amount=39000)
+    response = client_app.post("/api/ciak/client/start-plus/checkout", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 409
+    assert FakeStripeCheckout.created_requests == []
+
+
+def test_start_plus_checkout_requires_call_done(monkeypatch, client_app, fake_db):
+    monkeypatch.setenv("STRIPE_API_KEY", "sk_test_123")
+    token = _prepara_lead(fake_db)
+    fake_db.diagnostic_sessions.docs[0].update(current_state="call_booked")
+    response = client_app.post("/api/ciak/client/start-plus/checkout", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 409
+    assert FakeStripeCheckout.created_requests == []
+
+
+@pytest.mark.asyncio
+async def test_start_plus_flusso_completo_checkout_pagamento_dashboard_e_scadenza(monkeypatch, fake_db):
+    """Collaudo in-process: pagamento Plus registrato dal webhook, poi il prezzo della Partnership
+    letto dalla dashboard a 30 giorni (2.200) e a 61 giorni (2.600)."""
+    from datetime import datetime, timedelta, timezone
+
+    from routers import stripe_webhook
+    from services import ciak_start_delivery, ciak_systeme, start_partner_bridge
+
+    consegne = []
+
+    async def _noop(*a, **k):
+        return True
+
+    async def _deliver(db, **kwargs):
+        consegne.append(kwargs)
+
+    monkeypatch.setattr(ciak_systeme, "ciak_emit_event", _noop)
+    monkeypatch.setattr(start_partner_bridge, "ensure_start_partner_bridge", _noop)
+    monkeypatch.setattr(stripe_webhook, "_record_checkout_payment", _noop)
+    monkeypatch.setattr(ciak_start_delivery, "deliver_start_access", _deliver)
+    ciak_clients.set_db(fake_db)
+    fake_db.ciak_clients.docs[0].update(
+        access_level="cliente_blueprint", start_credit_amount=0, start_purchased_at=None, start_progress=[],
+    )
+
+    await stripe_webhook.process_ciak_start_payment(
+        fake_db, "client-1", "cs_test_plus", session={"amount_total": 79000, "currency": "eur"}, plus=True,
+    )
+    cliente = fake_db.ciak_clients.docs[0]
+    assert cliente["access_level"] == "cliente_start"
+    assert cliente["start_plus_purchased_at"]
+    assert cliente["start_credit_amount"] == 79000
+    assert consegne and consegne[0]["plus"] is True
+
+    comprato = datetime.fromisoformat(cliente["start_plus_purchased_at"])
+    from services import ciak_client_accounts as acc
+
+    dopo_30 = acc.partnership_price_for_client(cliente, now=comprato + timedelta(days=30))
+    dopo_61 = acc.partnership_price_for_client(cliente, now=comprato + timedelta(days=61))
+    assert dopo_30["due_amount_cents"] == 220000
+    assert dopo_61["due_amount_cents"] == 260000
+
+    # la dashboard di oggi (appena comprato) mostra l'upgrade a 2.200 e la scadenza
+    payload = await ciak_clients._dashboard_for_client(dict(cliente))
+    assert payload["start"]["attivo"] is True
+    assert payload["pricing"]["partnership"]["due_amount_cents"] == 220000
+    assert payload["pricing"]["partnership"]["start_plus"]["credit_active"] is True
+    assert payload["pricing"]["ciak_start_plus"]["amount_cents"] == 79000
+    assert payload["pricing"]["partnership"]["upgrade_from_start_plus_cents"] == 220000
