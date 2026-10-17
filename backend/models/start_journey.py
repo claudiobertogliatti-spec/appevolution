@@ -94,8 +94,8 @@ START_ONLY_STEPS_DEFINITION: list[dict[str, Any]] = [
 ]
 
 # Passo proprio di Start Plus: compare solo ai clienti che l'hanno acquistato (seed dedicato in
-# `journey_seed.seed_start_plus_step`, non nella definizione del livello). Responsabile Marco; chi
-# rivede il prodotto prima della consegna e' ancora da confermare.
+# `journey_seed.seed_start_plus_step`, non nella definizione del livello). Responsabile Marco, che
+# rivede anche il prodotto prima della consegna (confermato da Claudio il 17/10/2026).
 START_PLUS_STEP_ID = "start-primo-prodotto"
 START_PLUS_ONLY_STEPS_DEFINITION: list[dict[str, Any]] = [
     {
