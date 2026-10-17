@@ -1,3 +1,19 @@
+### 2026-10-17 · Claude Code · cc/blog-secondo-prodotto — Blog: bozza articolo in ritardo (ultimo del 27/9)
+
+**RICHIESTA:** Claudio: «aggiornare gli articoli ogni 2 settimane con una nuova uscita come era già impostato». Scelta: bozza ora + task ogni 14 giorni, sempre con la sua approvazione.
+
+**DICHIARATO**
+- Nuovo articolo «Cosa vendere a chi ha già finito il tuo videocorso» (slug `secondo-prodotto-dopo-il-videocorso`, data esplicita 2026-10-17) in fondo a `RAW` in `evolution-pro-site/blog-build/content.mjs`. Nessun numero o testimonianza inventati.
+- Rigenerato con `node blog-build/generate.mjs`: nuova pagina, `index.html`, `sitemap.xml` e la riga «Continua a leggere» degli altri articoli.
+
+**VERIFICATO**
+- `cd evolution-pro-site && node blog-build/generate.mjs` → «Blog generato: index + 39 articoli (LIVE=39, totali definiti=39)».
+- `git diff`: le modifiche agli altri articoli sono solo la riga «related»; la sitemap ha la nuova URL con lastmod 2026-10-17.
+
+**⛔ NON VERIFICATO / APERTO**
+- Pagina non aperta nel browser. PR da rivedere e mergiare da Claudio: il merge su main pubblica (Vercel).
+- Date retrodatate degli altri 37 articoli e «Online dal 2025»: non toccate, decisione di Claudio.
+
 ### 2026-10-16 · Claude Code · cc/start-plus-admin-vista — Admin: Start Plus visibile per cliente
 
 **COSA:** in /admin/clienti-ciak chi ha Start Plus ha l'etichetta «Start Plus» (con «da Start» se `start_plus_from_start`), la data di acquisto e i giorni rimasti al credito pieno di 790 €; scaduto, «restano 390 €». Dati solo dal documento cliente: `start_plus_admin_view` (`services/ciak_client_accounts.py`) riusa `start_plus_credit_expires_at`/`start_plus_credit_active`, esposto come `start_plus` da `GET /api/admin/ciak/clienti-ciak`.

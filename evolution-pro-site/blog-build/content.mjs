@@ -127,6 +127,37 @@ const RAW = [
   <p>Apri il tuo videocorso e mettiti nei panni di chi lo compra oggi. Quanto tempo passa prima che ottenga il primo risultato concreto? Quante lezioni superano la mezz'ora? Cosa succede se smette di entrare per due settimane?</p>
   <p>Se le risposte ti mettono a disagio, hai appena trovato la leva più sottovalutata della tua accademia di videocorsi. Non ti serve vendere di più per crescere: ti serve che <strong>chi ha già comprato arrivi in fondo</strong>. Il resto — passaparola, rinnovi, nuovi percorsi — viene da lì.</p>
 ` },
+  { cat:'Funnel & Acquisizione', read:7, slug:'secondo-prodotto-dopo-il-videocorso', kw:'secondo prodotto per videocorsi', date:'2026-10-17', title:"Cosa vendere a chi ha già finito il tuo videocorso", excerpt:"Il cliente più facile da vendere è quello che ha già ottenuto un risultato con te. Come scegliere il secondo prodotto senza inventare un catalogo.", body:`
+  <p class="lede">Hai un videocorso che funziona. Qualcuno lo compra, lo finisce, ottiene il risultato. E poi? Nella maggior parte dei casi, niente: lo studente saluta e tu torni a cercare nuovi clienti da zero. È il modo più costoso di far crescere un'accademia.</p>
+  <p>Chi ha già comprato e finito il tuo videocorso ti conosce, si fida del tuo metodo e ha una prova concreta che funziona, perché l'ha vissuta. Non devi convincerlo che esisti. Devi solo sapere cosa proporgli dopo.</p>
+  <h2>Il secondo prodotto non è «più contenuti»</h2>
+  <p>L'errore più comune è pensare che il passo successivo sia un videocorso più lungo, o una versione «avanzata» dello stesso. Spesso è solo altro materiale da guardare, e chi ha faticato per finire il primo corso non ha voglia di un'altra pila di video.</p>
+  <blockquote>Il secondo prodotto risponde alla domanda che lo studente si fa appena ha finito: «ok, e adesso come lo applico al mio caso?»</blockquote>
+  <h2>Come scoprire cosa serve davvero</h2>
+  <p>Non serve indovinare. Le risposte sono già nelle mani di chi ha completato il percorso.</p>
+  <ul>
+    <li><strong>Le domande che arrivano dopo la fine.</strong> Se più persone ti chiedono la stessa cosa, hai trovato un bisogno che il primo corso non copre.</li>
+    <li><strong>Dove chiedono aiuto, non dove si fermano.</strong> Chi arriva in fondo e poi ti scrive per un dubbio sta indicando il punto in cui da solo non basta.</li>
+    <li><strong>Una domanda diretta.</strong> Scrivi a chi ha finito e chiedi: «qual è la cosa che ancora non sei riuscito a fare?». Le risposte, con le loro parole, sono il materiale migliore per costruire l'offerta.</li>
+  </ul>
+  <h2>Tre direzioni che di solito hanno senso</h2>
+  <h3>1. Accompagnamento sull'applicazione</h3>
+  <p>Una sessione di gruppo o un percorso guidato in cui lo studente porta il proprio caso e lo lavora con te. Il videocorso dà il metodo, qui si applica. Richiede il tuo tempo, quindi va tenuto a numero limitato.</p>
+  <h3>2. Strumenti pronti</h3>
+  <p>Modelli, schemi, checklist, script: tutto ciò che fa risparmiare ore a chi vuole mettere in pratica ciò che ha imparato. Si prepara una volta e si vende senza ulteriore lavoro tuo.</p>
+  <h3>3. Un passo più avanti nello stesso percorso</h3>
+  <p>Se il primo corso porta dal punto A al punto B, il secondo può portare da B a C. Ha senso solo se il punto C è un risultato che gli studenti ti chiedono davvero, non uno che hai deciso a tavolino.</p>
+  <h2>Cosa non fare</h2>
+  <ul>
+    <li><strong>Non costruire il secondo prodotto prima di avere il primo che funziona.</strong> Se pochi studenti arrivano in fondo, il problema è a monte e va risolto lì.</li>
+    <li><strong>Non proporlo a tutti, sempre.</strong> Va offerto a chi ha completato, al momento giusto, con un messaggio onesto sul perché potrebbe servirgli.</li>
+    <li><strong>Non promettere ciò che non puoi misurare.</strong> Se non hai dati sui risultati, racconta il metodo, non numeri inventati.</li>
+  </ul>
+  <h2>Come si collega al Metodo EVO</h2>
+  <p>Nella fase <strong>Ottimizza</strong> osservi cosa succede dopo la vendita: chi finisce, chi si ferma, cosa chiede. È lo stesso lavoro che ti dice dove migliorare il primo corso e, allo stesso tempo, cosa costruire dopo. Una sola attività di ascolto, due decisioni.</p>
+  <h2>La domanda da farti oggi</h2>
+  <p>Pensa all'ultima persona che ha finito il tuo videocorso. Se oggi ti scrivesse «e adesso?», avresti una risposta da offrirle? Se la risposta è no, non hai bisogno di un nuovo corso: hai bisogno di chiederglielo.</p>
+` },
 ];
 
 // Corpi aggiuntivi per slug (si estende un lotto alla volta). Se un corpo non contiene "cta-box",
