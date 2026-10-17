@@ -114,6 +114,7 @@ h2.title{font-size:28pt;letter-spacing:-.025em;margin-bottom:16px}.dark h2.title
 .cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px}
 .card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:0 6px 18px rgba(16,19,38,.06)}
 .card h4{font-size:12pt;font-weight:700;margin-bottom:6px}.card p{font-size:10pt;color:#475569;line-height:1.5}
+.dark .card h4{color:var(--ink)}  /* la 13 e' su pagina scura: le card sono bianche, il titolo non deve ereditare il bianco */
 .diag{display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:16px;overflow:hidden;border:1px solid var(--border);margin-top:20px}
 .diag .col{padding:24px 22px}.diag .col.answer{background:var(--ink);color:#fff}.diag .col.problem{background:var(--surface)}
 .diag h4{font-size:9.5pt;letter-spacing:.13em;text-transform:uppercase;font-weight:700;margin-bottom:14px}.diag .col.answer h4{color:var(--accent)}.diag .col.problem h4{color:var(--muted)}
@@ -159,8 +160,8 @@ _SEZIONI = [
     ("rischio", "10", "Rischio principale", "Se non cambi passo", "dark"),
     ("manca", "11", "Cosa manca davvero", "Gli elementi da costruire", ""),
     ("roadmap", "12", "La roadmap", "Le fasi per arrivarci", "surface"),
-    ("prossimo", "13", "Il prossimo passo", "Le due strade davanti a te", "dark"),
-    ("cta", "14", "Il tuo passo, adesso", "Come procedere da qui", ""),
+    ("prossimo", "13", "Le tre strade", "Cosa comprende ciascun percorso", "dark"),
+    ("cta", "14", "Il nostro consiglio", "La strada che ti suggeriamo", ""),
 ]
 
 
@@ -308,12 +309,20 @@ def _c_prossimo(s, num):
             f'<div class="contrast">{no}{yes}</div>{chius}')
 
 
+def _c_strade(s, num):
+    """Sezione 13 nuova (tre card). I Blueprint salvati con il vecchio formato
+    (no / yes / chiusura) restano renderizzabili col vecchio componente."""
+    if s.get("cards"):
+        return _c_cards(s, num)
+    return _c_prossimo(s, num)
+
+
 _RENDERERS = {
     "sintesi": _c_prosa, "potenziale": _c_cards, "mercato": _c_trend,
     "competitor": _c_competitor, "pubblico": _c_tabella_pubblico, "problema": _c_prosa,
     "forza": lambda s, n: _c_lista(s, n, mut=False), "limiti": lambda s, n: _c_lista(s, n, mut=True),
     "accademia": _c_moduli, "rischio": _c_rischio, "manca": _c_manca,
-    "roadmap": _c_roadmap, "prossimo": _c_prossimo, "cta": _c_cta,
+    "roadmap": _c_roadmap, "prossimo": _c_strade, "cta": _c_cta,
 }
 
 
@@ -404,7 +413,10 @@ BLUEPRINT_SCHEMA = {
         "rischio": {"title": "str", "accent": "str", "lead": "str", "callout": "str(html-safe)"},
         "manca": {"title": "str", "accent": "str", "items": [{"h": "str", "p": "str"}]},
         "roadmap": {"title": "str", "accent": "str", "lead": "str", "steps": [{"titolo": "str", "desc": "str"}]},
-        "prossimo": {"title": "str", "accent": "str", "lead": "str", "no": "str", "yes": ["str"], "chiusura": "str(html-safe)"},
+        # Sezione 13 (le tre strade): NON generata dall'AI, iniettata dal generatore
+        # (cards con sole descrizioni, niente prezzi). I vecchi Blueprint salvati con
+        # no / yes / chiusura continuano a renderizzare (vedi _c_strade).
+        "prossimo": {"title": "str", "accent": "str", "lead": "str", "cards": [{"h": "str", "p": "str"}]},
         # Sezione 14 CTA: NON generata dall'AI, iniettata dal generatore in base
         # allo `scoring.instradamento` (partnership/start). Deterministica, senza prezzi.
         "cta": {"title": "str", "accent": "str", "lead": "str", "body": "str?", "callout": "str(html-safe)", "note": "str?"},

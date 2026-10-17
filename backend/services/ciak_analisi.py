@@ -45,7 +45,8 @@ _VINCOLI_STILE = """VINCOLI DI STILE NON NEGOZIABILI:
 - NO dati inventati: usa solo numeri/competitor dalla ricerca web reale fornita. Se un dato manca, dichiaralo ("non ho elementi sufficienti per...").
 - NO coach-speak: ROI→il guadagno che porti | funnel→percorso | target→chi vuoi raggiungere | nicchia→ambito specifico | scalare→che funziona anche senza di te. Vietati: "potente", "incredibile", "trasforma la tua vita", "rivoluziona", "10x".
 - Personalizza: cita la competenza e il problema specifici del cliente, ma mai nomi di persone, agenzie o consulenti terzi: scrivi "un consulente", "una psicologa".
-- Mai il trattino lungo: usa virgola, punto o parentesi."""
+- Mai il trattino lungo: usa virgola, punto o parentesi.
+- Genere: non dedurre mai se il cliente è uomo o donna dal nome o dalla sua terminazione (Andrea e Luca sono nomi maschili, Gemma è femminile). Usa forme senza accordo di genere ("hai già", "la tua competenza", "il tuo percorso") invece di aggettivi o participi riferiti a lui o a lei, salvo che le sue stesse risposte lo rendano inequivocabile."""
 
 _PROMPT_RESEARCH = """Sei un analista di mercato. Devi produrre un RESEARCH BRIEF per un professionista che vuole creare un'accademia digitale nel suo settore.
 
@@ -347,21 +348,20 @@ _SCHEMA_BLUEPRINT = {
             "rischio": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "callout": {"type": "string"}}, "required": ["title", "accent", "lead", "callout"]},
             "manca": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "items": {"type": "array", "items": {"type": "object", "properties": {"h": {"type": "string"}, "p": {"type": "string"}}, "required": ["h", "p"]}}}, "required": ["title", "accent", "items"]},
             "roadmap": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "steps": {"type": "array", "items": {"type": "object", "properties": {"titolo": {"type": "string"}, "desc": {"type": "string"}}, "required": ["titolo", "desc"]}}}, "required": ["title", "accent", "lead", "steps"]},
-            "prossimo": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "no": {"type": "string"}, "yes": {"type": "array", "items": {"type": "string"}}, "chiusura": {"type": "string"}}, "required": ["title", "accent", "lead", "no", "yes"]},
-        }, "required": ["sintesi", "potenziale", "mercato", "competitor", "pubblico", "problema", "forza", "limiti", "accademia", "rischio", "manca", "roadmap", "prossimo"]},
+        }, "required": ["sintesi", "potenziale", "mercato", "competitor", "pubblico", "problema", "forza", "limiti", "accademia", "rischio", "manca", "roadmap"]},
     },
     "required": ["meta", "sezioni"],
 }
 
-_SEZIONI_BLUEPRINT = ["sintesi", "potenziale", "mercato", "competitor", "pubblico", "problema", "forza", "limiti", "accademia", "rischio", "manca", "roadmap", "prossimo"]
+_SEZIONI_BLUEPRINT = ["sintesi", "potenziale", "mercato", "competitor", "pubblico", "problema", "forza", "limiti", "accademia", "rischio", "manca", "roadmap"]
 
-_PROMPT_BLUEPRINT = """Sei Matteo, analista strategico senior di Evolution PRO. Produci il BLUEPRINT DEFINITIVO: un'analisi strategica di posizionamento in 13 sezioni, dalle 10 domande del cliente e dal research brief di mercato.
+_PROMPT_BLUEPRINT = """Sei Matteo, analista strategico senior di Evolution PRO. Produci il BLUEPRINT DEFINITIVO: un'analisi strategica di posizionamento in 12 sezioni, dalle 10 domande del cliente e dal research brief di mercato.
 
 """ + _VINCOLI_STILE + """
 
 OGNI sezione ha un titolo in due parti: `title` (prima parte, in nero) + `accent` (seconda parte, evidenziata in giallo). Es. title="Una competenza rara,", accent="in un mercato che cresce." Devono formare una frase sola, netta, non generica.
 
-Le 13 sezioni (usa ESATTAMENTE queste chiavi, in questo ordine):
+Le 12 sezioni (usa ESATTAMENTE queste chiavi, in questo ordine):
 1. sintesi — lead: chi e' e cosa fa (dai dati). body: il vero nodo (vende tempo/presenza). note: "Nota di metodo..." breve.
 2. potenziale — lead: livello sintetico (NON mostrare punteggi numerici). cards: 3 card {h,p} tipo "Competenza ✓", "Pubblico ✓", "Struttura ✗".
 3. mercato — lead + trend: 3-4 segnali di mercato REALI dal research (mai numeri inventati; se un dato manca, parla di "segnali"). note: che le dimensioni precise si validano.
@@ -374,7 +374,7 @@ Le 13 sezioni (usa ESATTAMENTE queste chiavi, in questo ordine):
 10. rischio — lead + callout: il rischio di restare fermi + (callout) il rischio opposto di fare in fretta e male. Nel callout puoi usare <b>...</b>.
 11. manca — items: 5 elementi {h,p} che servono per un'accademia che vende.
 12. roadmap — lead + steps: ESATTAMENTE 3 fasi, quelle del Metodo E.V.O., in quest'ordine: Esamina, Valida, Ottimizza. Ogni fase {titolo, desc}: titolo = il nome della fase, desc = cosa si fa in quella fase per questo cliente. Mai 5 fasi, mai numeri di fase inventati.
-13. prossimo — lead + no (la strada sbagliata) + yes (2 voci: la strada corretta col metodo, e che e' il punto della call) + chiusura: <b>Dopo la call.</b> decidiamo insieme il passo giusto per te; "nessun guadagno garantito". NON nominare Ciak Start né la Partnership: li indica la sezione successiva.
+Le sezioni 13 (le tre strade) e 14 (il consiglio) sono fisse: le inserisce il sistema. NON scriverle e NON nominare Ciak Start, Start Plus o Partnership nelle sezioni 1-12.
 
 meta: progetto (2-3 parole, es. "Progetto") + accent_progetto (il nome del progetto/percorso, es. "Career Scalability") + ambito (es. "Orientamento e carriera") + sub (una frase sotto il titolo di copertina).
 
@@ -382,6 +382,35 @@ meta: progetto (2-3 parole, es. "Progetto") + accent_progetto (il nome del proge
 
 Cosa copre Ciak Start: direzione di posizionamento, basi del brand, sistemazione dei profili social, sito vetrina semplice, strategia contenuti. Cosa NON copre: caso studio documentato, metodo formalizzato, canale B2B, lead magnet. Nelle sezioni "manca" e "roadmap" non far credere che Start risolva questi punti: di' quali restano da costruire dopo.
 Cosa copre la Partnership: applicazione del Metodo E.V.O., funnel, automazioni, area riservata e asset digitali, copywriting, supporto al lancio. Cosa NON dichiarare incluso: un caso studio documentato, un canale B2B, un lead magnet, perche' dipendono dai risultati e dal lavoro del cliente. Nelle sezioni "manca" e "roadmap" di' quali di questi restano da costruire dopo."""
+
+
+def _build_strade_section() -> dict:
+    """Sezione 13 del Blueprint: le tre strade, SOLO descrizioni, niente prezzi
+    (i prezzi stanno nella pagina). Deterministica, come la 14. Il Blueprint si
+    presenta in call, quindi nessun rimando a "dopo la call". Le voci vengono da
+    frontend/src/ciak/insider/offerData.js (start, startPlus, partnership.servizi).
+    """
+    return {
+        "title": "Tre modi per partire,",
+        "accent": "a seconda di dove sei oggi.",
+        "lead": "Qui trovi cosa comprende ciascun percorso. Il consiglio per te è nella pagina che segue.",
+        "cards": [
+            {"h": "Ciak Start: le fondamenta",
+             "p": ("Un pacchetto di servizi per mettere a fuoco il progetto: direzione di posizionamento, "
+                   "basi del brand, sistemazione dei profili social, sito vetrina semplice, strategia e "
+                   "calendario dei contenuti, revisione finale. Non c'è un prodotto da vendere: "
+                   "è il punto di partenza.")},
+            {"h": "Start Plus: le fondamenta e il primo prodotto",
+             "p": ("Le stesse fondamenta di Start, più un primo prodotto piccolo con una sola promessa, "
+                   "la sua pagina di vendita e il messaggio per presentarlo ai tuoi contatti. "
+                   "Il prodotto lo vendi tu: serve avere già persone a cui proporlo.")},
+            {"h": "Partnership: l'affiancamento di 12 mesi",
+             "p": ("Costruiamo insieme la tua accademia digitale: analisi strategica e posizionamento, "
+                   "struttura dell'offerta e dei contenuti formativi, piattaforma con area corsi, funnel e "
+                   "automazioni, pagine, copy e materiali di vendita, piano editoriale di lancio. "
+                   "Ti affianca il team. È la strada per chi ha già competenza, contenuti e un pubblico.")},
+        ],
+    }
 
 
 def _build_cta_section(instradamento, nome: str) -> dict:
@@ -401,11 +430,11 @@ def _build_cta_section(instradamento, nome: str) -> dict:
         )
     if instradamento == "partnership":
         return {
-            "eyebrow": "Il tuo passo, adesso",
-            "title": "Sei pronto per la",
+            "eyebrow": "Il nostro consiglio",
+            "title": "La strada giusta per te è la",
             "accent": "Partnership.",
             "lead": (f"{n}, da questa analisi emerge che hai già la competenza, i contenuti e un "
-                     "pubblico: il passo giusto per te è la Partnership Evolution. Costruiamo e "
+                     "pubblico: il nostro consiglio è la Partnership Evolution. Costruiamo e "
                      "vendiamo insieme il tuo percorso, che resta tuo al 100%."),
             "body": ("Non ti manca il talento: ti manca una struttura che venda al posto tuo, e "
                      "quella la mettiamo noi. Non serve altro tempo per capire se hai i pezzi: ce li hai."),
@@ -415,11 +444,12 @@ def _build_cta_section(instradamento, nome: str) -> dict:
             "note": "Nessun guadagno garantito: costruiamo un percorso, non promesse. Il prossimo passo lo fai tu.",
         }
     return {
-        "eyebrow": "Il tuo passo, adesso",
+        "eyebrow": "Il nostro consiglio",
         "title": "Il tuo primo passo è",
         "accent": "Ciak Start.",
-        "lead": (f"{n}, hai basi solide ma il progetto va ancora messo a fuoco. Parti da Ciak Start: "
-                 "il gradino guidato che ti porta pronto alla Partnership, e vale come credito verso di essa."),
+        "lead": (f"{n}, hai basi solide ma il progetto va ancora messo a fuoco. Il nostro consiglio è "
+                 "partire da Ciak Start: il gradino guidato che ti accompagna fino alla Partnership, "
+                 "e vale come credito verso di essa."),
         "body": ("È la via più rapida e sicura per trasformare la tua competenza in qualcosa di "
                  "vendibile, senza bruciare tempo e budget in tentativi."),
         "callout": ("<b>Solo se parti entro 48 ore dalla nostra call</b> ricevi in omaggio la guida "
@@ -441,9 +471,10 @@ def _senza_trattino_lungo(obj):
 
 
 async def genera_blueprint(session_token: str) -> dict:
-    """Genera il payload delle 13 sezioni + la CTA (14) per il renderer (ciak_pdf_blueprint).
+    """Genera il payload delle 14 sezioni per il renderer (ciak_pdf_blueprint): 12 scritte dall'AI,
+    più la 13 (le tre strade) e la 14 (il nostro consiglio) iniettate in modo deterministico.
 
-    Ricerca mercato (riuso research brief) + generazione strutturata 13 sezioni.
+    Ricerca mercato (riuso research brief) + generazione strutturata 12 sezioni.
     Ritorna {"meta": {...}, "sezioni": {...}} pronto per render_blueprint_html.
     Il nome del cliente lo mette il chiamante (dalla sessione).
     """
@@ -461,7 +492,7 @@ async def genera_blueprint(session_token: str) -> dict:
         research = {"settore": responses.get("q1_competenza", ""), "dimensione_trend": "", "fascia_prezzo_mercato": "", "note_data_gap": "ricerca web non disponibile"}
 
     user_message = (
-        "Genera il Blueprint definitivo (13 sezioni).\n\n10 RISPOSTE:\n"
+        "Genera il Blueprint definitivo (12 sezioni).\n\n10 RISPOSTE:\n"
         f"{json.dumps(responses, ensure_ascii=False, indent=2)}\n\n"
         f"RESEARCH BRIEF DI MERCATO:\n{json.dumps(research, ensure_ascii=False, indent=2)}"
     )
@@ -480,6 +511,7 @@ async def genera_blueprint(session_token: str) -> dict:
     # Sezione 14 (CTA): iniettata deterministicamente dallo scoring del questionario,
     # non dall'AI. Pronto → Partnership · non pronto → Ciak Start (con bonus 48h).
     scoring = session.get("scoring") or {}
+    sez["prossimo"] = _build_strade_section()
     sez["cta"] = _build_cta_section(scoring.get("instradamento"), meta["nome"])
     return {"meta": meta, "sezioni": sez}
 

@@ -79,6 +79,28 @@ function formatDate(value) {
   }).format(date);
 }
 
+function formatDay(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(date);
+}
+
+// Riepilogo Start Plus calcolato dal backend (`start_plus`); null per chi non ha Plus.
+export function riepilogoPlus(plus) {
+  if (!plus) return null;
+  const pieno = formatCurrency(plus.credito_pieno_cents);
+  const dopo = formatCurrency(plus.credito_dopo_cents);
+  const giorni = plus.giorni_rimasti;
+  return {
+    etichetta: plus.da_start ? "Start Plus (da Start)" : "Start Plus",
+    acquisto: formatDay(plus.acquistato_il),
+    credito: plus.credito_pieno_attivo
+      ? `Credito pieno ${pieno}: ${giorni} ${giorni === 1 ? "giorno" : "giorni"} rimasti`
+      : `Credito pieno scaduto, restano ${dopo}`,
+  };
+}
+
 function ScoreBadge({ value }) {
   const tone =
     typeof value !== "number"
@@ -376,6 +398,7 @@ export function ClientiCiak({ onAuthExpired }) {
           recommendedOffer: item.recommended_offer,
           offerDecision: item.offer_decision,
           startCredit: formatCurrency(item.start_credit_amount),
+          plus: riepilogoPlus(item.start_plus),
           startStatus: startStatus ? START_STATUS_LABELS[startStatus] || startStatus : null,
           analysisStatus: item.analysis_status || null,
           updatedAt,
@@ -525,6 +548,17 @@ export function ClientiCiak({ onAuthExpired }) {
                       </div>
                     </td>
                     <td className="px-4 py-4 text-sm text-slate-600">
+                      {row.plus && (
+                        <div className="mb-2" data-testid="riepilogo-plus">
+                          <span className="inline-flex rounded-md bg-yellow-100 px-2 py-1 text-xs font-semibold text-slate-900">
+                            {row.plus.etichetta}
+                          </span>
+                          {row.plus.acquisto && (
+                            <div className="mt-1 text-xs text-slate-500">Acquistato il {row.plus.acquisto}</div>
+                          )}
+                          <div className="mt-1 text-xs text-slate-500">{row.plus.credito}</div>
+                        </div>
+                      )}
                       <div>{row.startCredit === "-" ? "Credito: -" : `Credito: ${row.startCredit}`}</div>
                       <div className="mt-1 text-xs text-slate-500">
                         {row.startStatus ? `Stato: ${row.startStatus}` : "Stato: -"}

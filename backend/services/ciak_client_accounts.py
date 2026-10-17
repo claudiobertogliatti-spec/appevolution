@@ -85,6 +85,31 @@ def start_plus_credit_active(client: dict[str, Any], now: Any = None) -> bool:
     return reference is not None and reference <= expires
 
 
+def start_plus_admin_view(client: dict[str, Any], now: Any = None) -> dict[str, Any] | None:
+    """Riepilogo Start Plus per l'admin: None se il cliente non ha Plus.
+
+    Legge solo il documento cliente (nessuna nuova fonte). `giorni_rimasti` e' 0 a credito
+    scaduto; dopo la scadenza resta il credito di Start (390), come in `partnership_price_for_client`.
+    """
+    if not has_start_plus(client):
+        return None
+    reference = (_parse_iso(now) if now is not None else None) or datetime.now(timezone.utc)
+    expires = start_plus_credit_expires_at(client)
+    active = start_plus_credit_active(client, reference)
+    giorni = 0
+    if active and expires is not None:
+        giorni = max(0, -(-int((expires - reference).total_seconds()) // 86400))
+    return {
+        "acquistato_il": client.get("start_plus_purchased_at"),
+        "da_start": bool(client.get("start_plus_from_start")),
+        "credito_scade_il": expires.isoformat() if expires else None,
+        "credito_pieno_attivo": active,
+        "giorni_rimasti": giorni,
+        "credito_pieno_cents": START_PLUS_AMOUNT_CENTS,
+        "credito_dopo_cents": START_AMOUNT_CENTS,
+    }
+
+
 def _valore_pieno(valore: Any) -> bool:
     if isinstance(valore, str):
         return bool(valore.strip())

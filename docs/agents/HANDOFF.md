@@ -1,3 +1,50 @@
+### 2026-10-17 · Claude Code · cc/blog-secondo-prodotto — Blog: bozza articolo in ritardo (ultimo del 27/9)
+
+**RICHIESTA:** Claudio: «aggiornare gli articoli ogni 2 settimane con una nuova uscita come era già impostato». Scelta: bozza ora + task ogni 14 giorni, sempre con la sua approvazione.
+
+**DICHIARATO**
+- Nuovo articolo «Cosa vendere a chi ha già finito il tuo videocorso» (slug `secondo-prodotto-dopo-il-videocorso`, data esplicita 2026-10-17) in fondo a `RAW` in `evolution-pro-site/blog-build/content.mjs`. Nessun numero o testimonianza inventati.
+- Rigenerato con `node blog-build/generate.mjs`: nuova pagina, `index.html`, `sitemap.xml` e la riga «Continua a leggere» degli altri articoli.
+
+**VERIFICATO**
+- `cd evolution-pro-site && node blog-build/generate.mjs` → «Blog generato: index + 39 articoli (LIVE=39, totali definiti=39)».
+- `git diff`: le modifiche agli altri articoli sono solo la riga «related»; la sitemap ha la nuova URL con lastmod 2026-10-17.
+
+**⛔ NON VERIFICATO / APERTO**
+- Pagina non aperta nel browser. PR da rivedere e mergiare da Claudio: il merge su main pubblica (Vercel).
+- Date retrodatate degli altri 37 articoli e «Online dal 2025»: non toccate, decisione di Claudio.
+
+### 2026-10-16 · Claude Code · cc/start-plus-admin-vista — Admin: Start Plus visibile per cliente
+
+**COSA:** in /admin/clienti-ciak chi ha Start Plus ha l'etichetta «Start Plus» (con «da Start» se `start_plus_from_start`), la data di acquisto e i giorni rimasti al credito pieno di 790 €; scaduto, «restano 390 €». Dati solo dal documento cliente: `start_plus_admin_view` (`services/ciak_client_accounts.py`) riusa `start_plus_credit_expires_at`/`start_plus_credit_active`, esposto come `start_plus` da `GET /api/admin/ciak/clienti-ciak`.
+
+**BASE:** il branch parte da `cc/start-plus-completamento` (PR #387, ancora APERTA al momento della scrittura). Merge solo dopo la #387; la PR ha base main e include il commit della #387 finché non è mergiata.
+
+**VERIFICATO:** backend 118 passati (`test_start_plus`, `test_ciak_admin_clienti_ciak`, `test_start_journey_tiers`, `test_ciak_clients_router`); frontend `ClientiCiak.test.jsx` 9 passati.
+
+**NON FATTO / APERTO:** nessuna rotta marca completato `start-primo-prodotto` (`first_product_reviewed` esiste solo nel modello); l'admin non mostra i passi della journey per cliente Start. Schema per il dettaglio dentro `start-primo-prodotto` da proporre a Claudio. Revisore del primo prodotto: da confermare (oggi owner Marco). Nessuna prova con Stripe test né sul DB reale.
+
+### 2026-10-16 · Claude Code · cc/blueprint-13-14-genere — Blueprint: 13 "Le tre strade", 14 "Il nostro consiglio", regola sul genere
+
+**RICHIESTA:** Claudio presenta il Blueprint IN CALL: la 13 diceva "Dopo la call". Servono le 3 opzioni (solo descrizioni, niente prezzi) e subito dopo il nostro consiglio; inoltre errori di genere (Luca, Andrea non sono femminili).
+
+**DICHIARATO (backend/services/ciak_analisi.py, ciak_pdf_blueprint.py + test)**
+- Sezione 13 deterministica (`_build_strade_section`: Ciak Start, Start Plus, Partnership, sole descrizioni), iniettata come la 14; l'AI scrive 12 sezioni (prompt, schema, `_SEZIONI_BLUEPRINT`, user_message aggiornati).
+- Renderer `_c_strade`: i Blueprint già salvati con la vecchia 13 (no/yes/chiusura) continuano a renderizzare.
+- Sezione 14: eyebrow "Il nostro consiglio"; tolti i due testi al maschile ("Sei pronto per la", "ti porta pronto alla Partnership").
+- Regola sul genere in `_VINCOLI_STILE` (condiviso da research, definitiva, bozza, script_call, blueprint). Il nome del cliente NON viene mandato al modello.
+- CSS: `.dark .card h4{color:var(--ink)}` (la 13 è su pagina scura con card bianche: il titolo usciva bianco su bianco, trovato guardando il PDF).
+
+**VERIFICATO**
+- `cd backend && MONGO_URL=mongodb://localhost:27017 DB_NAME=t python3 -m pytest tests/test_ciak_blueprint_generator.py tests/test_ciak_pdf_blueprint.py tests/test_ciak_analisi.py tests/test_ciak_scoring_ai.py -q` → 48 passed.
+- PDF di prova per entrambi i rami (start e partnership), 16 pagine; `pdftotext`: 0 occorrenze di pronto/pronta/dopo la call/€/euro/trattino lungo; pagine 13 e 14 guardate.
+
+**⛔ NON VERIFICATO / APERTO**
+- Nessun Blueprint reale generato dal modello (serve ANTHROPIC_API_KEY): contenuto delle sezioni 1-12 e rispetto della regola genere da verificare con una rigenerazione.
+- Prompt store admin: `_resolve_prompt` usa la versione attiva dello store per `research`, `definitiva`, `bozza`, `script_call`: se ce n'è una, la regola sul genere NON vale lì finché non la si aggiunge nello store. `blueprint` usa il prompt nel codice (nessuno store).
+- Testo della card Partnership: costruito dalle voci di `offerData.js` (partnership.servizi); "12 mesi" viene dalla decisione di Claudio, non da offerData.js. Lo Start Plus coincide con `offerData.startPlus`.
+- Non toccati (decisioni di Claudio): ramo del Plus nella 14, "numero chiuso" (Partnership) e "entro 48 ore" (Start), "una struttura che venda al posto tuo".
+
 ### 2026-10-14 (4) · Claude Code · claude/modest-euler-xde2pw — Controllo completo di server.py: 238 rotte chiuse
 
 **RICHIESTA:** «si controllo completo» (dopo le rotte `/stefania/*`).
