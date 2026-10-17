@@ -161,3 +161,34 @@ def playlist_removal_plan(keep_ids, playlist_items):
             "title": it.get("title", ""),
         })
     return out
+
+
+def _titolo_normalizzato(titolo: Optional[str]) -> str:
+    return re.sub(r"\s+", " ", str(titolo or "")).strip().casefold()
+
+
+def playlist_duplicates(playlist_items) -> List[Dict[str, Any]]:
+    """Doppioni nella playlist: lo STESSO video presente due volte, oppure due video con lo stesso titolo
+    (stesso file ricaricato). Si tiene la prima voce (posizione piu' bassa), le altre sono candidate alla
+    rimozione DALLA PLAYLIST: i video restano su YouTube. Puro: riceve la lista gia' letta da YouTube.
+    """
+    ordinati = sorted(
+        (it for it in (playlist_items or []) if it.get("video_id") and (it.get("playlist_item_id") or it.get("id"))),
+        key=lambda it: (it.get("position") if isinstance(it.get("position"), int) else 10 ** 9))
+    visti_id: Dict[str, str] = {}
+    visti_titolo: Dict[str, str] = {}
+    out: List[Dict[str, Any]] = []
+    for it in ordinati:
+        vid, item_id, titolo = it["video_id"], it.get("playlist_item_id") or it.get("id"), it.get("title", "")
+        chiave = _titolo_normalizzato(titolo)
+        if vid in visti_id:
+            motivo = "stesso video gia' in playlist"
+        elif chiave and chiave in visti_titolo:
+            motivo = "stesso titolo di un altro video in playlist"
+        else:
+            visti_id[vid] = item_id
+            if chiave:
+                visti_titolo[chiave] = vid
+            continue
+        out.append({"video_id": vid, "playlist_item_id": item_id, "title": titolo, "motivo": motivo})
+    return out

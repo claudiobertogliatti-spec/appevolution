@@ -26,13 +26,17 @@ class PublishError(Exception):
         self.status, self.message = status, message
 
 
-def _masterclass_source(partner_id: str, gcs_path: str) -> str:
-    """La masterclass montata fuori dall'app va prima copiata sotto edited_videos/<partner>/ (e li che si cerca)."""
+def _edited_source(partner_id: str, gcs_path: str, cosa: str) -> str:
+    """Un video montato fuori dall'app va prima copiato sotto edited_videos/<partner>/ (e li che si cerca)."""
     prefix = f"gs://{BUCKET}/edited_videos/{partner_id}/"
     path = str(gcs_path or "").strip()
     if not path.startswith(prefix) or ".." in path or not path.lower().endswith(".mp4") or len(path) == len(prefix):
-        raise PublishError(400, f"Il file della masterclass deve stare in {prefix} ed essere un .mp4")
+        raise PublishError(400, f"Il file {cosa} deve stare in {prefix} ed essere un .mp4")
     return path
+
+
+def _masterclass_source(partner_id: str, gcs_path: str) -> str:
+    return _edited_source(partner_id, gcs_path, "della masterclass")
 
 
 def resolve_items(partner_id: str, videocorso: Optional[dict], requests: list) -> list[dict]:
@@ -61,8 +65,14 @@ def resolve_items(partner_id: str, videocorso: Optional[dict], requests: list) -
             key = "masterclass"
             item = {"kind": "masterclass", "lesson_id": None,
                     "gs_url": _masterclass_source(partner_id, raw.get("gcs_path"))}
+        elif kind == "material":
+            # Bonus e altri video di supporto: stanno su YouTube e compaiono tra i Materiali del partner come LINK.
+            # La chiave e' il nome del file: lo stesso file non si pubblica due volte (vedi `already_published`).
+            path = _edited_source(partner_id, raw.get("gcs_path"), "del materiale")
+            key = "material:" + path.rsplit("/", 1)[-1].lower()
+            item = {"kind": "material", "lesson_id": None, "gs_url": path}
         else:
-            raise PublishError(400, "Il tipo del video deve essere 'lesson' o 'masterclass'")
+            raise PublishError(400, "Il tipo del video deve essere 'lesson', 'masterclass' o 'material'")
         if key in seen:
             raise PublishError(400, f"Video indicato due volte: {key}")
         seen.add(key)
@@ -74,12 +84,47 @@ def registration_fields(kind: str, lesson_id: Optional[str], youtube_id: str) ->
     """Campi da scrivere dopo il caricamento. Lezione: solo l'archivio YouTube (il corso usa il link di Ciak).
     Masterclass: l'incorporamento e proprio YouTube, quindi si aggiorna tutto il gruppo coerente."""
     url = f"https://www.youtube.com/watch?v={youtube_id}"
+    if kind == "material":
+        return {}  # niente da aggiornare sul percorso: il materiale si registra a parte (`material_registration_item`)
     if kind == "lesson":
         lk = f"lessons.{lesson_id}"
         return {f"{lk}.video_youtube_id": youtube_id, f"{lk}.video_youtube_url": url}
     embed = f"https://www.youtube.com/embed/{youtube_id}"
     return {"video_youtube_id": youtube_id, "video_youtube_url": url, "video_embed_url": embed,
             "video_systeme_embed": f'<iframe src="{embed}" width="560" height="315" frameborder="0" allowfullscreen></iframe>'}
+
+
+def material_registration_item(title: str, youtube_id: str) -> dict:
+    """Voce per `register_drive_file_once`: il video su YouTube come materiale del partner, apribile dal link.
+    `drive_id` e' stabile (`yt-<id>`): registrare due volte lo stesso video non crea un secondo record."""
+    return {"name": title, "url": f"https://www.youtube.com/watch?v={youtube_id}", "drive_id": f"yt-{youtube_id}",
+            "category": "video", "mime_type": "video/mp4", "folder": "Bonus e risorse",
+            "visibility": "partner_visible", "approval_status": "approved"}
+
+
+async def _material_items(db: Any, partner_id: str, exclude_job_id: Optional[str] = None) -> list[dict]:
+    """Voci `material` gia' caricate su YouTube per questo partner (qualunque lavoro precedente)."""
+    found = []
+    async for job in db.youtube_publish_jobs.find({"partner_id": partner_id}):
+        if exclude_job_id and job.get("job_id") == exclude_job_id:
+            continue
+        for it in job.get("items") or []:
+            if it.get("kind") == "material" and it.get("youtube_id") and it.get("status") in ("uploaded", "done"):
+                found.append(it)
+    return found
+
+
+async def already_published(db: Any, partner_id: str, key: str, exclude_job_id: Optional[str] = None) -> Optional[str]:
+    """Id YouTube se questo materiale (stessa chiave = stesso nome file) e' gia' stato caricato: non si carica due volte."""
+    for it in await _material_items(db, partner_id, exclude_job_id):
+        if it.get("key") == key:
+            return it["youtube_id"]
+    return None
+
+
+async def published_material_ids(db: Any, partner_id: str) -> set:
+    """Id YouTube dei materiali caricati: la pulizia della playlist (`prune-playlist`) deve TENERLI."""
+    return {it["youtube_id"] for it in await _material_items(db, partner_id)}
 
 
 async def create_publish_job(db: Any, *, partner_id: str, requests: list, actor_id: Optional[str],

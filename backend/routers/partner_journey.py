@@ -1950,6 +1950,10 @@ async def prune_partner_playlist(
     keep_ids = {p["video_id"] for p in plan}
     if masterclass_video_id:
         keep_ids.add(masterclass_video_id)
+    # i materiali (bonus) caricati con `youtube-publish` kind "material" NON sono lezioni ne' masterclass:
+    # senza questa riga la pulizia li toglierebbe dalla playlist
+    from services.ciak_youtube_publish import published_material_ids
+    keep_ids |= await published_material_ids(db, partner_id)
 
     from youtube_uploader import youtube_uploader
     if not youtube_uploader.is_authenticated():
@@ -1977,6 +1981,57 @@ async def prune_partner_playlist(
         "keep_count": len(keep_ids),
         "to_remove_count": len(to_remove),
         "to_remove": to_remove,
+        "removed": removed,
+        "errors": errors,
+    }
+
+
+@router.post("/videocorso/{partner_id}/dedupe-playlist")
+async def dedupe_partner_playlist(
+    partner_id: str,
+    dry_run: bool = Query(
+        True,
+        description="True (default): mostra i doppioni senza toccare nulla. False: li toglie dalla playlist.",
+    ),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Toglie dalla playlist del partner SOLO i doppioni: lo stesso video presente due volte o due video con lo
+    stesso titolo (si tiene la prima voce). A differenza di `prune-playlist` NON tocca i video diversi.
+    I video restano su YouTube (non in elenco): si rimuovono dalla playlist, niente viene cancellato. Solo admin."""
+    await require_admin_token(credentials)
+    partner = await get_partner_or_404(partner_id)
+    playlist_id = partner.get("youtube_playlist_id")
+    if not playlist_id:
+        raise HTTPException(status_code=400, detail="Il partner non ha una playlist YouTube")
+
+    from services.youtube_titles import playlist_duplicates
+    from youtube_uploader import youtube_uploader
+    if not youtube_uploader.is_authenticated():
+        raise HTTPException(status_code=503, detail="YouTube non autenticato sul backend")
+
+    listing = youtube_uploader.get_playlist_videos(playlist_id)
+    if not listing.get("success", True):
+        raise HTTPException(status_code=502, detail="Playlist non leggibile da YouTube")
+    playlist_items = listing.get("videos", [])
+    duplicati = playlist_duplicates(playlist_items)
+
+    removed, errors = 0, []
+    if not dry_run:
+        for it in duplicati:
+            res = youtube_uploader.remove_video_from_playlist(it["playlist_item_id"])
+            if res.get("success"):
+                removed += 1
+            else:
+                errors.append({"video_id": it["video_id"], "error": res.get("error")})
+
+    return {
+        "success": True,
+        "partner_id": partner_id,
+        "playlist_id": playlist_id,
+        "dry_run": dry_run,
+        "total_in_playlist": len(playlist_items),
+        "duplicates_count": len(duplicati),
+        "duplicates": duplicati,
         "removed": removed,
         "errors": errors,
     }

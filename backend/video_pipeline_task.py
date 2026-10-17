@@ -542,6 +542,13 @@ def add_to_youtube_playlist_sync(video_id: str, playlist_id: str) -> bool:
                 return False
 
         service = build('youtube', 'v3', credentials=creds)
+        try:
+            # anti-doppioni: se il video e' gia' in playlist non si aggiunge una seconda volta
+            gia = service.playlistItems().list(part="id", playlistId=playlist_id, videoId=video_id, maxResults=1).execute()
+            if gia.get("items"):
+                return True
+        except Exception as e:  # il controllo non deve impedire l'aggiunta
+            logger.warning(f"[VIDEO-PIPE] Controllo doppione playlist non riuscito: {e}")
         service.playlistItems().insert(
             part="snippet",
             body={
@@ -2951,7 +2958,8 @@ def apply_manual_cut(self, cut_id: str):
 async def _process_youtube_publish(job_id: str):
     """Carica su YouTube i video finali indicati dall'admin, li registra e li mette nella playlist del partner."""
     from motor.motor_asyncio import AsyncIOMotorClient
-    from services.ciak_youtube_publish import registration_fields
+    from services.ciak_youtube_publish import already_published, material_registration_item, registration_fields
+    from services.partner_step_materials import register_drive_file_once
     from services.youtube_titles import youtube_id_from_url
     from services.youtube_playlist import aggiungi_video
     mongo_url = os.environ.get("MONGO_ATLAS_URL") or os.environ.get("MONGO_URL") or os.environ.get("MONGODB_URL", "mongodb://localhost:27017")
@@ -2971,18 +2979,28 @@ async def _process_youtube_publish(job_id: str):
             base = f"items.{idx}"
             tmp_dir = Path(tempfile.mkdtemp(prefix="ciak-ytpub-"))
             try:
-                local = str(tmp_dir / "video.mp4")
-                await download_from_gcs(item["gs_url"], local)
-                url = await loop.run_in_executor(
-                    None, upload_to_youtube_sync, local, item["title"], partner.get("name", partner_id))
-                yt_id = youtube_id_from_url(url) if url else None
+                yt_id = None
+                if item["kind"] == "material":
+                    # anti-doppioni: lo stesso file gia' caricato in un lavoro precedente non si ricarica
+                    yt_id = await already_published(database, partner_id, item["key"], exclude_job_id=job_id)
                 if not yt_id:
-                    raise RuntimeError("Caricamento su YouTube non riuscito (credenziali o quota)")
+                    local = str(tmp_dir / "video.mp4")
+                    await download_from_gcs(item["gs_url"], local)
+                    url = await loop.run_in_executor(
+                        None, upload_to_youtube_sync, local, item["title"], partner.get("name", partner_id))
+                    yt_id = youtube_id_from_url(url) if url else None
+                    if not yt_id:
+                        raise RuntimeError("Caricamento su YouTube non riuscito (credenziali o quota)")
                 await database.youtube_publish_jobs.update_one(
                     {"job_id": job_id}, {"$set": {f"{base}.youtube_id": yt_id, f"{base}.status": "uploaded"}})
                 fields = registration_fields(item["kind"], item.get("lesson_id"), yt_id)
                 if item["kind"] == "lesson":
                     await database.partner_videocorso.update_one({"partner_id": partner_id}, {"$set": fields})
+                elif item["kind"] == "material":
+                    # il link YouTube diventa un Materiale apribile del partner (un solo record per video)
+                    await register_drive_file_once(
+                        database.files, partner_id, material_registration_item(item["title"], yt_id),
+                        datetime.now(timezone.utc).isoformat(), uuid.uuid4().hex)
                 else:
                     coll = database.masterclass_factory if await database.masterclass_factory.find_one(
                         {"partner_id": partner_id}, {"_id": 1}) else database.partner_masterclass
